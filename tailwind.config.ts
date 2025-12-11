@@ -53,7 +53,7 @@ export default {
         swaami: {
           yellow: "hsl(var(--swaami-yellow))",
           "yellow-deep": "hsl(var(--swaami-yellow-deep))",
-          green: "hsl(var(--swaami-green))",
+          "yellow-highlight": "hsl(var(--swaami-yellow-highlight))",
           text: "hsl(var(--swaami-text))",
           subtle: "hsl(var(--swaami-subtle))",
         },
