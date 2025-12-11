@@ -55,7 +55,7 @@ export function FeedScreen() {
       {/* Header */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="px-4 py-4 max-w-lg mx-auto flex items-center justify-between">
-          <img src={swaamiLogo} alt="Swaami" className="h-12 w-auto" />
+          <img src={swaamiLogo} alt="Swaami" className="h-16 w-auto" />
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
