@@ -27,9 +27,9 @@
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
 
-    /* Soft green accent */
-    --accent: 145 43% 59%;
-    --accent-foreground: 0 0% 100%;
+    /* Deep warm yellow accent */
+    --accent: 54 80% 55%;
+    --accent-foreground: 0 0% 7%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -42,8 +42,8 @@
 
     /* Custom Swaami tokens */
     --swaami-yellow: 54 91% 85%;
-    --swaami-yellow-deep: 54 85% 75%;
-    --swaami-green: 145 43% 59%;
+    --swaami-yellow-deep: 54 80% 55%;
+    --swaami-yellow-highlight: 54 91% 92%;
     --swaami-text: 0 0% 7%;
     --swaami-subtle: 0 0% 91%;
 
@@ -76,8 +76,8 @@
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 65%;
 
-    --accent: 145 43% 59%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 54 80% 55%;
+    --accent-foreground: 0 0% 7%;
 
     --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 98%;
