@@ -14,7 +14,201 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      matches: {
+        Row: {
+          created_at: string | null
+          helper_id: string
+          id: string
+          status: string | null
+          task_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          helper_id: string
+          id?: string
+          status?: string | null
+          task_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          helper_id?: string
+          id?: string
+          status?: string | null
+          task_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_helper_id_fkey"
+            columns: ["helper_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          match_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          match_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          match_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          availability: string | null
+          created_at: string | null
+          credits: number | null
+          display_name: string | null
+          id: string
+          phone: string | null
+          radius: number | null
+          reliability_score: number | null
+          skills: string[] | null
+          tasks_completed: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          availability?: string | null
+          created_at?: string | null
+          credits?: number | null
+          display_name?: string | null
+          id?: string
+          phone?: string | null
+          radius?: number | null
+          reliability_score?: number | null
+          skills?: string[] | null
+          tasks_completed?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          availability?: string | null
+          created_at?: string | null
+          credits?: number | null
+          display_name?: string | null
+          id?: string
+          phone?: string | null
+          radius?: number | null
+          reliability_score?: number | null
+          skills?: string[] | null
+          tasks_completed?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          approx_address: string | null
+          category: string | null
+          created_at: string | null
+          description: string | null
+          helper_id: string | null
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          original_description: string | null
+          owner_id: string
+          status: string | null
+          time_estimate: string | null
+          title: string
+          updated_at: string | null
+          urgency: string | null
+        }
+        Insert: {
+          approx_address?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          helper_id?: string | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          original_description?: string | null
+          owner_id: string
+          status?: string | null
+          time_estimate?: string | null
+          title: string
+          updated_at?: string | null
+          urgency?: string | null
+        }
+        Update: {
+          approx_address?: string | null
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          helper_id?: string | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          original_description?: string | null
+          owner_id?: string
+          status?: string | null
+          time_estimate?: string | null
+          title?: string
+          updated_at?: string | null
+          urgency?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_helper_id_fkey"
+            columns: ["helper_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

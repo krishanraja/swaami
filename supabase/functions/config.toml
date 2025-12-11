@@ -1,0 +1,2 @@
+[functions.rewrite-need]
+verify_jwt = false

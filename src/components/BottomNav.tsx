@@ -1,15 +1,16 @@
 import { cn } from "@/lib/utils";
-import { Home, PlusCircle, User } from "lucide-react";
+import { Home, PlusCircle, MessageCircle, User } from "lucide-react";
 
 interface BottomNavProps {
-  activeTab: 'feed' | 'post' | 'profile';
-  onTabChange: (tab: 'feed' | 'post' | 'profile') => void;
+  activeTab: 'feed' | 'post' | 'chats' | 'profile';
+  onTabChange: (tab: 'feed' | 'post' | 'chats' | 'profile') => void;
 }
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   const tabs = [
     { id: 'feed' as const, label: 'Feed', icon: Home },
     { id: 'post' as const, label: 'Post', icon: PlusCircle },
+    { id: 'chats' as const, label: 'Chats', icon: MessageCircle },
     { id: 'profile' as const, label: 'Profile', icon: User },
   ];
 
@@ -25,7 +26,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={cn(
-                "flex flex-col items-center gap-1 px-6 py-2 transition-all duration-200",
+                "flex flex-col items-center gap-1 px-4 py-2 transition-all duration-200",
                 isActive ? "text-foreground" : "text-muted-foreground"
               )}
             >
