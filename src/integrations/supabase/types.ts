@@ -95,14 +95,43 @@ export type Database = {
           },
         ]
       }
+      neighbourhoods: {
+        Row: {
+          city: string
+          created_at: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          name: string
+        }
+        Insert: {
+          city: string
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+        }
+        Update: {
+          city?: string
+          created_at?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           availability: string | null
+          city: string | null
           created_at: string | null
           credits: number | null
           display_name: string | null
           id: string
           is_demo: boolean | null
+          neighbourhood: string | null
           phone: string | null
           radius: number | null
           reliability_score: number | null
@@ -113,11 +142,13 @@ export type Database = {
         }
         Insert: {
           availability?: string | null
+          city?: string | null
           created_at?: string | null
           credits?: number | null
           display_name?: string | null
           id?: string
           is_demo?: boolean | null
+          neighbourhood?: string | null
           phone?: string | null
           radius?: number | null
           reliability_score?: number | null
@@ -128,11 +159,13 @@ export type Database = {
         }
         Update: {
           availability?: string | null
+          city?: string | null
           created_at?: string | null
           credits?: number | null
           display_name?: string | null
           id?: string
           is_demo?: boolean | null
+          neighbourhood?: string | null
           phone?: string | null
           radius?: number | null
           reliability_score?: number | null
