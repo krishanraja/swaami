@@ -50,7 +50,7 @@ export default function Landing() {
         </div>
 
         {/* Middle Section - Value Prop (35%) */}
-        <div className="flex-[35] flex flex-col items-center justify-end px-8 text-center gap-6 pb-4">
+        <div className="flex-[35] flex flex-col items-center justify-end px-8 text-center gap-6 pb-12">
           <h1 
             className="text-2xl md:text-3xl font-semibold text-foreground leading-tight animate-fade-in"
             style={{ animationDelay: "200ms" }}
