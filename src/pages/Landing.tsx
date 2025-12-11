@@ -31,15 +31,15 @@ export default function Landing() {
         loop
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none z-0"
+        className="absolute inset-0 w-full h-full object-cover object-left opacity-20 pointer-events-none z-0"
       >
         <source src="/videos/swaami-background.mp4" type="video/mp4" />
       </video>
 
       {/* Content Container - above video */}
       <div className="relative z-10 flex flex-col h-full">
-        {/* Top Section - Logo (35%) */}
-        <div className="flex-[35] flex items-center justify-center px-6">
+        {/* Top Section - Logo (30%) */}
+        <div className="flex-[30] flex items-center justify-center px-6">
           <div className="animate-fade-in">
             <img
               src={swaamiLogo}
@@ -49,8 +49,8 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Middle Section - Value Prop (30%) */}
-        <div className="flex-[30] flex flex-col items-center justify-center px-8 text-center gap-6">
+        {/* Middle Section - Value Prop (35%) */}
+        <div className="flex-[35] flex flex-col items-center justify-end px-8 text-center gap-6 pb-4">
           <h1 
             className="text-2xl md:text-3xl font-semibold text-foreground leading-tight animate-fade-in"
             style={{ animationDelay: "200ms" }}
@@ -78,7 +78,7 @@ export default function Landing() {
 
         {/* Bottom Section - CTAs (35%) */}
         <div 
-          className="flex-[35] flex flex-col items-center justify-center px-8 gap-4 animate-fade-in"
+          className="flex-[35] flex flex-col items-center justify-start px-8 pt-8 gap-4 animate-fade-in"
           style={{ animationDelay: "600ms" }}
         >
           <Button
