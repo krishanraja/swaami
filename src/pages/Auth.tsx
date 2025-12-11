@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
 import swaamiLogo from "@/assets/swaami-logo.png";
 
 export default function Auth() {
@@ -14,6 +15,7 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -25,13 +27,16 @@ export default function Auth() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        navigate("/app");
+        // Check if email is confirmed before proceeding
+        if (session.user.email_confirmed_at) {
+          navigate("/join");
+        }
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        navigate("/app");
+      if (session?.user && session.user.email_confirmed_at) {
+        navigate("/join");
       }
     });
 
@@ -44,25 +49,37 @@ export default function Auth() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+        
+        // Check if email is confirmed
+        if (!data.user?.email_confirmed_at) {
+          toast.error("Please confirm your email before signing in.");
+          setLoading(false);
+          return;
+        }
+        
         toast.success("Welcome back!");
+        navigate("/join");
       } else {
+        // Signup flow
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `${window.location.origin}/join`,
             data: {
               display_name: displayName,
             },
           },
         });
         if (error) throw error;
-        toast.success("Account created! You're now logged in.");
+        
+        // Show email confirmation message
+        setEmailSent(true);
       }
     } catch (error: any) {
       console.error("Auth error:", error);
@@ -77,6 +94,45 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  // Email confirmation sent screen
+  if (emailSent) {
+    return (
+      <div className="h-[100dvh] overflow-hidden bg-background flex flex-col items-center justify-center px-4">
+        <div className="w-full max-w-sm flex flex-col gap-6 text-center">
+          <div className="mx-auto p-4 rounded-full bg-accent/20">
+            <Mail className="h-12 w-12 text-accent" />
+          </div>
+          
+          <div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              Check your email
+            </h1>
+            <p className="text-muted-foreground">
+              We've sent a verification link to:
+            </p>
+            <p className="font-medium text-foreground mt-1">{email}</p>
+          </div>
+          
+          <div className="bg-muted/50 rounded-xl p-4 text-sm text-muted-foreground">
+            <p>Click the link in the email to verify your account and continue setting up your profile.</p>
+          </div>
+          
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setEmailSent(false);
+              setIsLogin(true);
+            }}
+            className="mx-auto"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to login
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[100dvh] overflow-hidden bg-background flex flex-col items-center justify-center px-4">
