@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Join from "./pages/Join";
 import NotFound from "./pages/NotFound";
 import { ChatScreen } from "./screens/ChatScreen";
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/app" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/join" element={<Join />} />
           <Route path="/chat/:matchId" element={<ChatScreen />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

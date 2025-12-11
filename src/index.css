@@ -106,6 +106,15 @@
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* Safe area padding for mobile devices with notches/home indicators */
+  .pb-safe {
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  }
+  
+  .pt-safe {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
 }
 
 /* Swaami specific animations */

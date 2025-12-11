@@ -38,27 +38,27 @@ export default function Landing() {
 
       {/* Content Container - above video */}
       <div className="relative z-10 flex flex-col h-full">
-        {/* Top Section - Logo (30%) */}
-        <div className="flex-[30] flex items-center justify-center px-6">
+        {/* Top Section - Logo (flexible, minimum guaranteed) */}
+        <div className="flex-1 flex items-center justify-center px-6 min-h-[180px]">
           <div className="animate-fade-in">
             <img
               src={swaamiLogo}
               alt="Swaami"
-              className="h-80 w-auto"
+              className="h-64 md:h-80 w-auto"
             />
           </div>
         </div>
 
-        {/* Middle Section - Value Prop (35%) */}
-        <div className="flex-[35] flex flex-col items-center justify-end px-8 text-center gap-6 pb-12">
+        {/* Middle Section - Value Prop (never shrinks) */}
+        <div className="shrink-0 flex flex-col items-center px-6 text-center gap-4 pb-6">
           <div 
             className="flex flex-col items-center gap-3 animate-fade-in"
             style={{ animationDelay: "200ms" }}
           >
-            <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
+            <h1 className="text-xl md:text-3xl font-semibold text-foreground">
               Your neighbours need a hand.
             </h1>
-            <span className="text-2xl md:text-3xl font-semibold text-accent bg-swaami-yellow-highlight px-3 py-1.5 rounded-lg">
+            <span className="text-xl md:text-3xl font-semibold text-accent bg-swaami-yellow-highlight px-3 py-1.5 rounded-lg">
               You have two.
             </span>
           </div>
@@ -79,9 +79,9 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Bottom Section - CTAs (35%) */}
+        {/* Bottom Section - CTAs (never shrinks, guaranteed minimum height) */}
         <div 
-          className="flex-[35] flex flex-col items-center justify-start px-8 pt-8 gap-4 animate-fade-in"
+          className="shrink-0 min-h-[160px] flex flex-col items-center justify-center px-6 gap-3 pb-safe animate-fade-in"
           style={{ animationDelay: "600ms" }}
         >
           <Button
@@ -102,10 +102,10 @@ export default function Landing() {
           </Button>
 
           {/* Trust indicator */}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Heart className="h-3 w-3 text-accent" />
-            <span>Building stronger neighbourhoods</span>
-          </div>
+            Building stronger neighbourhoods
+          </p>
         </div>
       </div>
     </div>

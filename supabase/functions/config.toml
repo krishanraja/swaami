@@ -1,2 +1,5 @@
 [functions.rewrite-need]
 verify_jwt = false
+
+[functions.send-phone-otp]
+verify_jwt = false
