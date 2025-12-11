@@ -50,7 +50,7 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         {/* Logo */}
         <div className="mb-8 animate-fade-in">
-          <img src={swaamiLogo} alt="Swaami" className="h-16 w-auto" />
+          <img src={swaamiLogo} alt="Swaami" className="h-48 w-auto" />
         </div>
 
         {/* Steps */}
