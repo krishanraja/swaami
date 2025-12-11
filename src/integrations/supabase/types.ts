@@ -102,13 +102,14 @@ export type Database = {
           credits: number | null
           display_name: string | null
           id: string
+          is_demo: boolean | null
           phone: string | null
           radius: number | null
           reliability_score: number | null
           skills: string[] | null
           tasks_completed: number | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           availability?: string | null
@@ -116,13 +117,14 @@ export type Database = {
           credits?: number | null
           display_name?: string | null
           id?: string
+          is_demo?: boolean | null
           phone?: string | null
           radius?: number | null
           reliability_score?: number | null
           skills?: string[] | null
           tasks_completed?: number | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           availability?: string | null
@@ -130,13 +132,14 @@ export type Database = {
           credits?: number | null
           display_name?: string | null
           id?: string
+          is_demo?: boolean | null
           phone?: string | null
           radius?: number | null
           reliability_score?: number | null
           skills?: string[] | null
           tasks_completed?: number | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
