@@ -51,14 +51,17 @@ export default function Landing() {
 
         {/* Middle Section - Value Prop (35%) */}
         <div className="flex-[35] flex flex-col items-center justify-end px-8 text-center gap-6 pb-12">
-          <h1 
-            className="text-2xl md:text-3xl font-semibold text-foreground leading-tight animate-fade-in"
+          <div 
+            className="flex flex-col items-center gap-3 animate-fade-in"
             style={{ animationDelay: "200ms" }}
           >
-            Your neighbours need a hand.
-            <br />
-            <span className="text-accent bg-swaami-yellow-highlight px-2 py-1 rounded-lg">You have two.</span>
-          </h1>
+            <h1 className="text-2xl md:text-3xl font-semibold text-foreground">
+              Your neighbours need a hand.
+            </h1>
+            <span className="text-2xl md:text-3xl font-semibold text-accent bg-swaami-yellow-highlight px-3 py-1.5 rounded-lg">
+              You have two.
+            </span>
+          </div>
 
           {/* Live Nearby Indicator */}
           <div 
