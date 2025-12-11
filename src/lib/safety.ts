@@ -90,9 +90,9 @@ export function checkContentSafety(content: string): SafetyCheckResult {
 export const SAFETY_GUIDELINES = {
   firstMeeting: [
     'Meet in a public place for first interactions',
-    'Let someone know where you're going',
-    'Trust your instincts - it's okay to decline',
-    'Don't share personal financial information',
+    'Let someone know where you are going',
+    'Trust your instincts - it is okay to decline',
+    'Do not share personal financial information',
   ],
   general: [
     'Share your live location with a trusted contact',

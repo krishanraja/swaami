@@ -51,7 +51,7 @@ export function FeedScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="h-[100dvh] overflow-hidden bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="px-4 py-4 max-w-lg mx-auto flex items-center justify-between">
@@ -105,8 +105,8 @@ export function FeedScreen() {
         </div>
       </header>
 
-      {/* Content */}
-      <main className="px-4 py-6 max-w-lg mx-auto">
+      {/* Content - scrollable area */}
+      <main className="flex-1 overflow-y-auto px-4 py-4 pb-24 max-w-lg mx-auto w-full">
         <h1 className="text-xl font-semibold text-foreground mb-1">
           Nearby needs
         </h1>
