@@ -31,7 +31,7 @@ export default function Landing() {
         loop
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-cover object-left opacity-20 pointer-events-none z-0"
+        className="absolute inset-0 w-full h-full object-cover object-[25%_center] opacity-20 pointer-events-none z-0"
       >
         <source src="/videos/swaami-background.mp4" type="video/mp4" />
       </video>
