@@ -71,7 +71,7 @@ export function ChatScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-[100dvh] overflow-hidden bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="px-4 py-3 max-w-lg mx-auto flex items-center gap-3">

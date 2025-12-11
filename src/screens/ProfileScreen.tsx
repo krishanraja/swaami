@@ -75,7 +75,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="h-[100dvh] overflow-hidden bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="px-4 py-4 max-w-lg mx-auto flex items-center justify-between">
@@ -86,8 +86,8 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
         </div>
       </header>
 
-      {/* Content */}
-      <main className="px-4 py-6 max-w-lg mx-auto">
+      {/* Content - scrollable */}
+      <main className="flex-1 overflow-y-auto px-4 py-4 pb-24 max-w-lg mx-auto w-full">
         {/* User Info */}
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl font-semibold text-primary-foreground">

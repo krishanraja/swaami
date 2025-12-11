@@ -16,15 +16,22 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get("mode");
+    if (mode === "signup") setIsLogin(false);
+    if (mode === "login") setIsLogin(true);
+  }, []);
+
+  useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        navigate("/");
+        navigate("/app");
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        navigate("/");
+        navigate("/app");
       }
     });
 
@@ -72,19 +79,19 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-8">
+    <div className="h-[100dvh] overflow-hidden bg-background flex flex-col items-center justify-center px-4">
+      <div className="w-full max-w-sm flex flex-col gap-6">
         <div className="text-center">
-          <img src={swaamiLogo} alt="Swaami" className="h-20 w-auto mx-auto mb-6" />
+          <img src={swaamiLogo} alt="Swaami" className="h-24 w-auto mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground">
             {isLogin ? "Welcome back" : "Join Swaami"}
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground mt-1 text-sm">
             {isLogin ? "Sign in to help your neighbors" : "Start helping your community"}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {!isLogin && (
             <div className="space-y-2">
               <Label htmlFor="displayName">Display Name</Label>
