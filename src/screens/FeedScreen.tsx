@@ -62,71 +62,66 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
     <div className="h-[100dvh] overflow-hidden bg-background flex flex-col">
       <AppHeader
         actions={
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="h-9 w-9"
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-              />
-            </Button>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="w-2 h-2 rounded-full bg-accent animate-pulse-soft" />
-              <span>{profile?.radius || 500}m</span>
-            </div>
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="h-9 w-9"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+            />
+          </Button>
         }
       />
 
-      {/* Filters */}
+      {/* Filters - Combined compact layout */}
       <div className="sticky top-[73px] bg-background/95 backdrop-blur-sm border-b border-border z-10">
-        <div className="px-4 py-3 max-w-lg mx-auto space-y-3">
-          {/* Category Filter Row */}
-          <div className="overflow-x-auto scrollbar-hide">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-                  !selectedCategory
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                All
-              </button>
-              {categories.map((cat) => (
+        <div className="px-4 py-2.5 max-w-lg mx-auto space-y-2.5">
+          {/* Top row: Categories + Demo toggle */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 overflow-x-auto scrollbar-hide">
+              <div className="flex gap-1.5">
                 <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-3 py-1.5 rounded-full text-sm capitalize whitespace-nowrap transition-colors ${
-                    selectedCategory === cat
+                  onClick={() => setSelectedCategory(null)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                    !selectedCategory
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
                 >
-                  {cat}
+                  All
                 </button>
-              ))}
-              {/* Demo toggle */}
-              <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
-                <FlaskConical className="w-4 h-4 text-muted-foreground" />
-                <Switch
-                  checked={showDemoTasks}
-                  onCheckedChange={setShowDemoTasks}
-                  className="data-[state=checked]:bg-muted"
-                />
-                <span className="text-xs text-muted-foreground whitespace-nowrap">Samples</span>
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize whitespace-nowrap transition-colors ${
+                      selectedCategory === cat
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
+            </div>
+            {/* Demo toggle - compact */}
+            <div className="flex items-center gap-1.5 pl-2 border-l border-border flex-shrink-0">
+              <FlaskConical className="w-3.5 h-3.5 text-muted-foreground" />
+              <Switch
+                checked={showDemoTasks}
+                onCheckedChange={setShowDemoTasks}
+                className="data-[state=checked]:bg-muted scale-90"
+              />
             </div>
           </div>
           
-          {/* Distance Filter Row */}
-          <div className="flex items-center gap-3">
-            <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+          {/* Bottom row: Distance slider with count */}
+          <div className="flex items-center gap-2">
+            <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
             <Slider
               value={[maxDistance]}
               onValueChange={([v]) => setMaxDistance(v)}
@@ -135,23 +130,18 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
               step={100}
               className="flex-1"
             />
-            <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[3.5rem] text-right">
+            <span className="text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[2.5rem] text-right">
               {formatDistance(maxDistance)}
+            </span>
+            <span className="text-xs text-muted-foreground/60 pl-2 border-l border-border">
+              {filteredTasks.length} nearby
             </span>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto px-4 py-4 pb-24 max-w-lg mx-auto w-full">
-        <h1 className="text-xl font-semibold text-foreground mb-1">
-          Nearby needs
-        </h1>
-        <p className="text-sm text-muted-foreground mb-6">
-          {filteredTasks.length > 0
-            ? `${filteredTasks.length} people need help nearby`
-            : "Help requests from your neighbours"}
-        </p>
+      <main className="flex-1 overflow-y-auto px-4 pt-3 pb-24 max-w-lg mx-auto w-full">
 
         {loading ? (
           <div className="space-y-3">

@@ -67,18 +67,17 @@ export function useTasks() {
     let data: any[] | null = null;
     let error: any = null;
 
-    // Use location-based filtering if user has location set
-    if (userLocation && profile?.radius) {
-      const radiusKm = (profile.radius || 500) / 1000; // Convert meters to km
+    // Always try location-based query with 5km radius for client-side filtering
+    if (userLocation) {
       const result = await supabase.rpc("get_nearby_tasks", {
         user_lat: userLocation.lat,
         user_lng: userLocation.lng,
-        radius_km: radiusKm,
+        radius_km: 5, // Fetch 5km radius, let client filter
       });
       data = result.data;
       error = result.error;
     } else {
-      // Fallback to non-location-based query
+      // Fallback to non-location-based query when no location available
       const result = await supabase.rpc("get_public_tasks");
       data = result.data;
       error = result.error;
@@ -113,7 +112,7 @@ export function useTasks() {
       }
     }
     setLoading(false);
-  }, [profile?.id, profile?.radius, userLocation]);
+  }, [profile?.id, userLocation]);
 
   useEffect(() => {
     fetchTasks();
