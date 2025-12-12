@@ -24,7 +24,7 @@ export function ChatsListScreen() {
     <div className="h-full flex flex-col overflow-hidden bg-background">
       <AppHeader title="Chats" />
 
-      <main className="flex-1 overflow-y-auto px-4 py-6 pb-4 max-w-lg mx-auto w-full">
+      <main className="flex-1 overflow-y-auto px-4 py-4 pb-24 max-w-lg mx-auto w-full">
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (

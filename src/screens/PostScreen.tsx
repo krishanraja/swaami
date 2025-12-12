@@ -162,12 +162,12 @@ export function PostScreen() {
       />
       <Confetti active={showConfetti} onComplete={() => setShowConfetti(false)} />
 
-      <main className="flex-1 overflow-y-auto px-4 py-6 pb-4 max-w-lg mx-auto w-full">
+      <main className="flex-1 overflow-y-auto px-4 py-4 pb-24 max-w-lg mx-auto w-full">
         {/* Simplified header for accessibility */}
-        <h1 className="text-2xl font-semibold text-foreground mb-2">
+        <h1 className="text-xl font-semibold text-foreground mb-1">
           What do you need help with?
         </h1>
-        <p className="text-base text-muted-foreground mb-6">
+        <p className="text-sm text-muted-foreground mb-4">
           {settings.simpleMode 
             ? "Speak or type, we'll handle the rest" 
             : "Describe what you need, AI will make it clear"}
@@ -175,7 +175,7 @@ export function PostScreen() {
 
         {/* Post limit indicator for free users */}
         {plan === "free" && !aiRewrite && !isConfirmed && !settings.simpleMode && (
-          <div className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 mb-4 text-sm">
+          <div className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-1.5 mb-3 text-sm">
             <span className="text-muted-foreground">
               Posts remaining
             </span>
@@ -186,9 +186,9 @@ export function PostScreen() {
         )}
 
         {!aiRewrite && !isConfirmed && (
-          <div className="animate-fade-in space-y-6">
+          <div className="animate-fade-in space-y-4">
             {/* Voice Input - PROMINENT for elderly */}
-            <div className="flex flex-col items-center py-6 bg-muted/30 rounded-2xl">
+            <div className="flex flex-col items-center py-4 bg-muted/30 rounded-2xl">
               <VoiceInput onTranscript={handleVoiceTranscript} disabled={isProcessing} />
             </div>
 
@@ -209,15 +209,15 @@ export function PostScreen() {
               <QuickTemplates onSelect={handleTemplateSelect} />
             )}
             
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Textarea
                 placeholder="e.g., Need someone to help me carry groceries upstairs..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                className="min-h-[140px] text-lg resize-none"
+                className="min-h-[100px] text-lg resize-none"
               />
               {!settings.simpleMode && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   💡 Include what you need, when, and any details
                 </p>
               )}
@@ -225,19 +225,19 @@ export function PostScreen() {
 
             <Button
               variant="swaami"
-              size="xl"
-              className="w-full text-lg py-6"
+              size="lg"
+              className="w-full text-base py-4"
               onClick={handleSubmit}
               disabled={!input.trim() || isProcessing}
             >
               {isProcessing ? (
                 <>
-                  <Sparkles className="w-6 h-6 animate-spin" />
+                  <Sparkles className="w-5 h-5 animate-spin" />
                   Working on it...
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-6 h-6" />
+                  <Sparkles className="w-5 h-5" />
                   {settings.simpleMode ? "Post Request" : "Enhance & Post"}
                 </>
               )}
