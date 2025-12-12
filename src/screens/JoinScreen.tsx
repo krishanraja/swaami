@@ -11,19 +11,19 @@ import { SKILLS } from "@/types/swaami";
 import { City, CITY_CONFIG } from "@/hooks/useNeighbourhoods";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CheckCircle, ArrowLeft } from "lucide-react";
+import { Loader2, CheckCircle, ArrowLeft, Shield, MapPin, Heart } from "lucide-react";
 import swaamiIcon from "@/assets/swaami-icon.png";
 
 interface JoinScreenProps {
   onComplete: () => void;
 }
 
-type Step = 'city' | 'neighbourhood' | 'phone' | 'otp' | 'radius' | 'skills' | 'availability';
+type Step = 'welcome' | 'city' | 'neighbourhood' | 'phone' | 'otp' | 'radius' | 'skills' | 'availability';
 
-const STEPS: Step[] = ['city', 'neighbourhood', 'phone', 'otp', 'radius', 'skills', 'availability'];
+const STEPS: Step[] = ['welcome', 'city', 'neighbourhood', 'phone', 'otp', 'radius', 'skills', 'availability'];
 
 export function JoinScreen({ onComplete }: JoinScreenProps) {
-  const [step, setStep] = useState<Step>('city');
+  const [step, setStep] = useState<Step>('welcome');
   const [city, setCity] = useState<City | null>(null);
   const [neighbourhood, setNeighbourhood] = useState('');
   const [phone, setPhone] = useState('');
@@ -161,6 +161,43 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
 
         {/* Steps */}
         <div className="w-full max-w-sm">
+          {step === 'welcome' && (
+            <div className="animate-slide-up space-y-6">
+              <div className="text-center">
+                <h1 className="text-2xl font-semibold text-foreground mb-2">
+                  Welcome to Swaami 👋
+                </h1>
+                <p className="text-muted-foreground">
+                  Get help from verified neighbours in minutes.
+                </p>
+              </div>
+              <div className="bg-card rounded-2xl p-6 border border-border space-y-5">
+                <div className="space-y-4 text-sm text-foreground/80">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-5 w-5 text-primary shrink-0" />
+                    <span>All members are verified by phone</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-5 w-5 text-primary shrink-0" />
+                    <span>Help neighbours within walking distance</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Heart className="h-5 w-5 text-primary shrink-0" />
+                    <span>Give help, earn credits, get help back</span>
+                  </div>
+                </div>
+                <Button
+                  variant="swaami"
+                  size="xl"
+                  className="w-full"
+                  onClick={() => setStep('city')}
+                >
+                  Let's get started
+                </Button>
+              </div>
+            </div>
+          )}
+
           {step === 'city' && (
             <div className="animate-slide-up space-y-6">
               <div className="text-center">
