@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { Clock, Star, Flame, Sparkles, Users, Shield, CheckCircle } from "lucide-react";
+import { Clock, Star, Flame, Sparkles, Users, Shield, CheckCircle, FlaskConical } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { calculateWalkTime } from "@/lib/walkTime";
 import { ReadAloudButton } from "@/components/ReadAloudButton";
+import { toast } from "sonner";
 
 interface NeedCardProps {
   task: {
@@ -21,11 +22,13 @@ interface NeedCardProps {
     availability_time?: string | null;
     physical_level?: string | null;
     people_needed?: number | null;
+    is_demo?: boolean;
     owner?: {
       display_name: string | null;
       tasks_completed?: number;
       reliability_score?: number;
       trust_tier?: string;
+      is_demo?: boolean;
     };
     owner_trust_tier?: string | null;
   };
@@ -42,6 +45,17 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
     : null;
 
   const isUrgent = task.urgency === "urgent";
+  const isDemo = task.is_demo || task.owner?.is_demo;
+
+  const handleHelp = () => {
+    if (isDemo) {
+      toast.info("This is a sample request to show how Swaami works!", {
+        description: "Post your own request to get real help from your neighbours.",
+      });
+      return;
+    }
+    onHelp?.(task.id);
+  };
   
   // Calculate walk time from distance
   const walkTimeDisplay = task.walkTime || calculateWalkTime(task.distance);
@@ -87,12 +101,18 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
         <div className="flex-1 min-w-0">
           {/* Header with urgency, skill match, and time */}
           <div className="flex items-center gap-2 mb-1 flex-wrap">
+            {isDemo && (
+              <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                <FlaskConical className="w-3 h-3" />
+                Sample
+              </span>
+            )}
             {isOwner && (
               <span className="flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                 Your Request
               </span>
             )}
-            {!isOwner && isSkillMatch && (
+            {!isOwner && !isDemo && isSkillMatch && (
               <span className="flex items-center gap-1 text-xs font-medium text-accent bg-accent/10 px-2 py-0.5 rounded-full">
                 <Sparkles className="w-3 h-3" />
                 Perfect for you
@@ -220,11 +240,11 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
           ) : (
             onHelp && (
               <Button
-                variant="swaami"
+                variant={isDemo ? "outline" : "swaami"}
                 size="sm"
-                onClick={() => onHelp(task.id)}
+                onClick={handleHelp}
               >
-                Help
+                {isDemo ? "Sample" : "Help"}
               </Button>
             )
           )}
