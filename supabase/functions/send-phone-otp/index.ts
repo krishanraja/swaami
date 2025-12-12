@@ -38,6 +38,13 @@ async function sendViaTwilio(phone: string, message: string, channel: "sms" | "w
 
   console.log(`Sending ${channel} message to ${toNumber} from ${fromAddr}`);
 
+  console.log("Twilio credentials check:", {
+    hasAccountSid: !!accountSid,
+    hasAuthToken: !!authToken,
+    hasFromNumber: !!fromNumber,
+    fromNumberValue: fromNumber?.substring(0, 4) + "..."
+  });
+
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -51,10 +58,13 @@ async function sendViaTwilio(phone: string, message: string, channel: "sms" | "w
     }),
   });
 
+  const responseText = await response.text();
+  console.log(`Twilio response status: ${response.status}`);
+  console.log(`Twilio response body: ${responseText}`);
+
   if (!response.ok) {
-    const error = await response.text();
-    console.error(`Twilio ${channel} error:`, error);
-    throw new Error(`Failed to send ${channel} message`);
+    console.error(`Twilio ${channel} error:`, responseText);
+    throw new Error(`Twilio error: ${responseText}`);
   }
 
   console.log(`${channel.toUpperCase()} sent successfully to ${phone}`);
