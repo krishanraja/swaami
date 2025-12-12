@@ -140,7 +140,7 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
             <p className={`text-muted-foreground text-sm ${!isExpanded ? 'line-clamp-2' : ''}`}>
               {task.description}
             </p>
-            {task.description && task.description.length > 80 && (
+            {task.description && (
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 mt-1 transition-colors"
