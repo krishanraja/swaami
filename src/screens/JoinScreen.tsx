@@ -153,14 +153,14 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
         )}
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
+      <div className="flex-1 flex flex-col items-center px-6 pt-4 pb-2 overflow-y-auto">
         {/* Logo */}
-        <div className="mb-6 animate-fade-in">
-          <img src={swaamiIcon} alt="Swaami" className="h-32 w-auto" />
+        <div className="mb-4 animate-fade-in shrink-0">
+          <img src={swaamiIcon} alt="Swaami" className="h-20 w-auto" />
         </div>
 
         {/* Steps */}
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-sm shrink-0">
           {step === 'welcome' && (
             <div className="animate-slide-up space-y-6">
               <div className="text-center">
@@ -435,7 +435,7 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       </div>
 
       {/* Progress indicator */}
-      <div className="shrink-0 pb-8 px-6">
+      <div className="shrink-0 pb-4 px-6">
         <div className="flex gap-2 justify-center">
           {STEPS.map((s, i) => (
             <div
