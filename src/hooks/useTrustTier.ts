@@ -124,7 +124,7 @@ export function useTrustTier() {
       .insert({
         user_id: user.id,
         verification_type: type,
-        metadata,
+        metadata: metadata as unknown as null,
       });
 
     if (!error) {
