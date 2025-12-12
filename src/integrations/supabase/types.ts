@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      endorsements: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          endorsed_id: string | null
+          endorser_id: string
+          expires_at: string | null
+          id: string
+          status: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          endorsed_id?: string | null
+          endorser_id: string
+          expires_at?: string | null
+          id?: string
+          status?: string
+          token: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          endorsed_id?: string | null
+          endorser_id?: string
+          expires_at?: string | null
+          id?: string
+          status?: string
+          token?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           created_at: string | null
@@ -137,6 +170,7 @@ export type Database = {
           reliability_score: number | null
           skills: string[] | null
           tasks_completed: number | null
+          trust_tier: Database["public"]["Enums"]["trust_tier"] | null
           updated_at: string | null
           user_id: string | null
         }
@@ -154,6 +188,7 @@ export type Database = {
           reliability_score?: number | null
           skills?: string[] | null
           tasks_completed?: number | null
+          trust_tier?: Database["public"]["Enums"]["trust_tier"] | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -171,8 +206,33 @@ export type Database = {
           reliability_score?: number | null
           skills?: string[] | null
           tasks_completed?: number | null
+          trust_tier?: Database["public"]["Enums"]["trust_tier"] | null
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      social_connections: {
+        Row: {
+          connected_at: string | null
+          id: string
+          provider: string
+          provider_id: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string | null
+          id?: string
+          provider: string
+          provider_id: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string | null
+          id?: string
+          provider?: string
+          provider_id?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -245,15 +305,75 @@ export type Database = {
           },
         ]
       }
+      user_photos: {
+        Row: {
+          id: string
+          photo_type: string
+          photo_url: string
+          uploaded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          photo_type: string
+          photo_url: string
+          uploaded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          photo_type?: string
+          photo_url?: string
+          uploaded_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_verifications: {
+        Row: {
+          id: string
+          metadata: Json | null
+          user_id: string
+          verification_type: Database["public"]["Enums"]["verification_type"]
+          verified_at: string | null
+        }
+        Insert: {
+          id?: string
+          metadata?: Json | null
+          user_id: string
+          verification_type: Database["public"]["Enums"]["verification_type"]
+          verified_at?: string | null
+        }
+        Update: {
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+          verification_type?: Database["public"]["Enums"]["verification_type"]
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_trust_tier: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Enums"]["trust_tier"]
+      }
     }
     Enums: {
-      [_ in never]: never
+      trust_tier: "tier_0" | "tier_1" | "tier_2"
+      verification_type:
+        | "email"
+        | "phone_sms"
+        | "phone_whatsapp"
+        | "social_google"
+        | "social_apple"
+        | "photos_complete"
+        | "endorsement"
+        | "mfa_enabled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -380,6 +500,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      trust_tier: ["tier_0", "tier_1", "tier_2"],
+      verification_type: [
+        "email",
+        "phone_sms",
+        "phone_whatsapp",
+        "social_google",
+        "social_apple",
+        "photos_complete",
+        "endorsement",
+        "mfa_enabled",
+      ],
+    },
   },
 } as const
