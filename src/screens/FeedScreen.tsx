@@ -5,9 +5,10 @@ import { AppHeader } from "@/components/AppHeader";
 import { useTasks } from "@/hooks/useTasks";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import { RefreshCw, PlusCircle, FlaskConical } from "lucide-react";
+import { RefreshCw, PlusCircle, FlaskConical, MapPin } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
 interface FeedScreenProps {
   onNavigateToPost?: () => void;
@@ -20,6 +21,7 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showDemoTasks, setShowDemoTasks] = useState(true);
+  const [maxDistance, setMaxDistance] = useState(2000); // Default 2km max filter
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -46,10 +48,15 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
 
   const categories = ["groceries", "tech", "transport", "pets", "handyman"];
   
-  // Apply filters: category and demo toggle
+  const formatDistance = (meters: number) => {
+    return meters >= 1000 ? `${(meters / 1000).toFixed(1)}km` : `${meters}m`;
+  };
+  
+  // Apply filters: category, demo toggle, and distance
   const filteredTasks = tasks
     .filter((t) => !selectedCategory || t.category === selectedCategory)
-    .filter((t) => showDemoTasks || !t.is_demo);
+    .filter((t) => showDemoTasks || !t.is_demo)
+    .filter((t) => t.distance === null || t.distance === undefined || t.distance <= maxDistance);
 
   return (
     <div className="h-[100dvh] overflow-hidden bg-background flex flex-col">
@@ -75,43 +82,62 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
         }
       />
 
-      {/* Category Filter */}
+      {/* Filters */}
       <div className="sticky top-[73px] bg-background/95 backdrop-blur-sm border-b border-border z-10">
-        <div className="px-4 py-3 max-w-lg mx-auto overflow-x-auto scrollbar-hide">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
-                !selectedCategory
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              All
-            </button>
-            {categories.map((cat) => (
+        <div className="px-4 py-3 max-w-lg mx-auto space-y-3">
+          {/* Category Filter Row */}
+          <div className="overflow-x-auto scrollbar-hide">
+            <div className="flex gap-2">
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-full text-sm capitalize whitespace-nowrap transition-colors ${
-                  selectedCategory === cat
+                onClick={() => setSelectedCategory(null)}
+                className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
+                  !selectedCategory
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 }`}
               >
-                {cat}
+                All
               </button>
-            ))}
-            {/* Demo toggle */}
-            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
-              <FlaskConical className="w-4 h-4 text-muted-foreground" />
-              <Switch
-                checked={showDemoTasks}
-                onCheckedChange={setShowDemoTasks}
-                className="data-[state=checked]:bg-muted"
-              />
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Samples</span>
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1.5 rounded-full text-sm capitalize whitespace-nowrap transition-colors ${
+                    selectedCategory === cat
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+              {/* Demo toggle */}
+              <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
+                <FlaskConical className="w-4 h-4 text-muted-foreground" />
+                <Switch
+                  checked={showDemoTasks}
+                  onCheckedChange={setShowDemoTasks}
+                  className="data-[state=checked]:bg-muted"
+                />
+                <span className="text-xs text-muted-foreground whitespace-nowrap">Samples</span>
+              </div>
             </div>
+          </div>
+          
+          {/* Distance Filter Row */}
+          <div className="flex items-center gap-3">
+            <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <Slider
+              value={[maxDistance]}
+              onValueChange={([v]) => setMaxDistance(v)}
+              min={100}
+              max={5000}
+              step={100}
+              className="flex-1"
+            />
+            <span className="text-sm text-muted-foreground whitespace-nowrap min-w-[3.5rem] text-right">
+              {formatDistance(maxDistance)}
+            </span>
           </div>
         </div>
       </div>
