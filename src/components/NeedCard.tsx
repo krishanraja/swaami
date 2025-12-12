@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, Star, Flame, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { calculateWalkTime } from "@/lib/walkTime";
+import { ReadAloudButton } from "@/components/ReadAloudButton";
 
 interface NeedCardProps {
   task: {
@@ -38,6 +39,11 @@ export function NeedCard({ task, onHelp, userSkills = [] }: NeedCardProps) {
   const isSkillMatch = task.category && userSkills.some(
     skill => skill.toLowerCase() === task.category?.toLowerCase()
   );
+
+  // Build text for read aloud
+  const readAloudText = `${task.title}. ${task.description || ""}. ${
+    isUrgent ? "This is urgent." : ""
+  } Estimated time: ${task.timeEstimate || "unknown"}. Distance: ${walkTimeDisplay}.`;
 
   return (
     <div
@@ -114,14 +120,16 @@ export function NeedCard({ task, onHelp, userSkills = [] }: NeedCardProps) {
           )}
         </div>
 
-        <Button
-          variant="swaami"
-          size="sm"
-          onClick={() => onHelp(task.id)}
-          className="shrink-0"
-        >
-          Help
-        </Button>
+        <div className="flex flex-col gap-2 shrink-0">
+          <Button
+            variant="swaami"
+            size="sm"
+            onClick={() => onHelp(task.id)}
+          >
+            Help
+          </Button>
+          <ReadAloudButton text={readAloudText} />
+        </div>
       </div>
     </div>
   );
