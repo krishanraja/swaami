@@ -139,7 +139,7 @@ export function PostScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="h-full flex flex-col overflow-hidden bg-background">
       <AppHeader 
         title="Ask for Help" 
         actions={
@@ -162,7 +162,7 @@ export function PostScreen() {
       />
       <Confetti active={showConfetti} onComplete={() => setShowConfetti(false)} />
 
-      <main className="px-4 py-6 max-w-lg mx-auto">
+      <main className="flex-1 overflow-y-auto px-4 py-6 pb-4 max-w-lg mx-auto w-full">
         {/* Simplified header for accessibility */}
         <h1 className="text-2xl font-semibold text-foreground mb-2">
           What do you need help with?
