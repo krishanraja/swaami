@@ -2,15 +2,17 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
 import { SKILLS } from "@/types/swaami";
-import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard } from "lucide-react";
+import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard, Flame } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useGamification } from "@/hooks/useGamification";
 import { RadiusSlider } from "@/components/RadiusSlider";
 import { AvailabilitySelector } from "@/components/AvailabilitySelector";
 import { SkillChip } from "@/components/SkillChip";
 import { SwaamiPlusBadge } from "@/components/SwaamiPlusBadge";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { TierProgress } from "@/components/TierProgress";
 import { toast } from "sonner";
 
 interface ProfileScreenProps {
@@ -21,6 +23,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const { user } = useAuth();
   const { profile, loading, updateProfile } = useProfile();
   const { plan, subscribed, subscriptionEnd, startCheckout, openCustomerPortal, loading: subLoading } = useSubscription();
+  const { streakDays, credits, tier, tasksCompleted } = useGamification();
   
   const [editingRadius, setEditingRadius] = useState(false);
   const [editingAvailability, setEditingAvailability] = useState(false);
@@ -178,21 +181,33 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
           </div>
         )}
 
-        {/* Credits */}
-        <div className="bg-primary rounded-2xl p-6 mb-6 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-primary-foreground/80 mb-1">Your credits</p>
-              <p className="text-4xl font-semibold text-primary-foreground">
-                {profile.credits}
-              </p>
-              <p className="text-xs text-primary-foreground/60 mt-1">
-                Earn credits by helping others
-              </p>
+        {/* Tier Progress */}
+        <div className="bg-card border border-border rounded-2xl p-5 mb-6 animate-fade-in">
+          <TierProgress showBadge={true} />
+        </div>
+
+        {/* Credits & Streak */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="bg-primary rounded-2xl p-5 animate-fade-in">
+            <div className="flex items-center justify-between mb-2">
+              <Star className="w-6 h-6 text-primary-foreground/80" />
             </div>
-            <div className="w-14 h-14 rounded-full bg-foreground/10 flex items-center justify-center">
-              <Star className="w-7 h-7 text-primary-foreground" />
+            <p className="text-3xl font-bold text-primary-foreground">
+              {credits}
+            </p>
+            <p className="text-xs text-primary-foreground/70">Credits</p>
+          </div>
+          <div 
+            className="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl p-5 animate-fade-in"
+            style={{ animationDelay: "50ms" }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <Flame className="w-6 h-6 text-white/80 fill-white/80" />
             </div>
+            <p className="text-3xl font-bold text-white">
+              {streakDays}
+            </p>
+            <p className="text-xs text-white/70">Day streak</p>
           </div>
         </div>
 
@@ -200,16 +215,16 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div
             className="bg-card border border-border rounded-xl p-4 animate-fade-in"
-            style={{ animationDelay: "50ms" }}
+            style={{ animationDelay: "100ms" }}
           >
             <p className="text-2xl font-semibold text-foreground">
-              {profile.tasks_completed}
+              {tasksCompleted}
             </p>
             <p className="text-sm text-muted-foreground">People helped</p>
           </div>
           <div
             className="bg-card border border-border rounded-xl p-4 animate-fade-in"
-            style={{ animationDelay: "100ms" }}
+            style={{ animationDelay: "150ms" }}
           >
             <p className="text-2xl font-semibold text-foreground flex items-center gap-1">
               {profile.reliability_score?.toFixed(1) || "5.0"}

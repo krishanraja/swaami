@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Clock, Star, Flame } from "lucide-react";
+import { Clock, Star, Flame, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { calculateWalkTime } from "@/lib/walkTime";
 
 interface NeedCardProps {
   task: {
@@ -20,14 +21,23 @@ interface NeedCardProps {
     };
   };
   onHelp: (taskId: string) => void;
+  userSkills?: string[];
 }
 
-export function NeedCard({ task, onHelp }: NeedCardProps) {
+export function NeedCard({ task, onHelp, userSkills = [] }: NeedCardProps) {
   const timeAgo = task.created_at
     ? formatDistanceToNow(new Date(task.created_at), { addSuffix: true })
     : null;
 
   const isUrgent = task.urgency === "urgent";
+  
+  // Calculate walk time from distance
+  const walkTimeDisplay = task.walkTime || calculateWalkTime(task.distance);
+  
+  // Check if task matches user's skills
+  const isSkillMatch = task.category && userSkills.some(
+    skill => skill.toLowerCase() === task.category?.toLowerCase()
+  );
 
   return (
     <div
@@ -37,8 +47,14 @@ export function NeedCard({ task, onHelp }: NeedCardProps) {
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          {/* Header with urgency and time */}
-          <div className="flex items-center gap-2 mb-1">
+          {/* Header with urgency, skill match, and time */}
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            {isSkillMatch && (
+              <span className="flex items-center gap-1 text-xs font-medium text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                <Sparkles className="w-3 h-3" />
+                Perfect for you
+              </span>
+            )}
             {isUrgent && (
               <span className="flex items-center gap-1 text-xs font-medium text-destructive">
                 <Flame className="w-3 h-3" />
@@ -57,11 +73,11 @@ export function NeedCard({ task, onHelp }: NeedCardProps) {
             {task.description}
           </p>
 
-          {/* Meta info */}
+          {/* Meta info with walk time */}
           <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 font-medium text-foreground">
               <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-              {task.walkTime || "Nearby"}
+              {walkTimeDisplay}
             </span>
             <span>·</span>
             <span className="flex items-center gap-1">
