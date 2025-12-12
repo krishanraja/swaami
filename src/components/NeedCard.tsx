@@ -15,8 +15,8 @@ interface NeedCardProps {
     created_at?: string;
     owner?: {
       display_name: string | null;
-      tasks_completed: number;
-      reliability_score: number;
+      tasks_completed?: number;
+      reliability_score?: number;
     };
   };
   onHelp: (taskId: string) => void;
@@ -85,7 +85,7 @@ export function NeedCard({ task, onHelp }: NeedCardProps) {
               <span className="text-sm text-foreground">
                 {task.owner.display_name || "Neighbor"}
               </span>
-              {task.owner.tasks_completed > 0 && (
+              {(task.owner.tasks_completed ?? 0) > 0 && (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Star className="w-3 h-3 fill-primary text-primary" />
                   {task.owner.reliability_score?.toFixed(1) || "5.0"}

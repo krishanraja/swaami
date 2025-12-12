@@ -5,25 +5,26 @@ import { useProfile } from "./useProfile";
 export interface Task {
   id: string;
   owner_id: string;
-  helper_id: string | null;
+  helper_id?: string | null;
   title: string;
   description: string | null;
-  original_description: string | null;
+  original_description?: string | null;
   time_estimate: string | null;
   urgency: string;
   category: string | null;
-  location_lat: number | null;
-  location_lng: number | null;
   approx_address: string | null;
   status: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   owner?: {
     display_name: string | null;
-    tasks_completed: number;
-    reliability_score: number;
+    tasks_completed?: number;
+    reliability_score?: number;
   };
-  distance?: number;
+  owner_display_name?: string | null;
+  owner_trust_tier?: string | null;
+  owner_reliability_score?: number | null;
+  distance?: number | null;
 }
 
 export function useTasks() {
@@ -32,24 +33,22 @@ export function useTasks() {
   const [loading, setLoading] = useState(true);
 
   const fetchTasks = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("tasks")
-      .select(`
-        *,
-        owner:profiles!tasks_owner_id_fkey(display_name, tasks_completed, reliability_score)
-      `)
-      .eq("status", "open")
-      .order("created_at", { ascending: false });
+    // Use secure RPC function that hides precise location data
+    const { data, error } = await supabase.rpc("get_public_tasks");
 
     if (error) {
       console.error("Error fetching tasks:", error);
     } else {
-      // Distance will be null until we implement real geolocation
-      const tasksWithDistance = (data || []).map(task => ({
+      // Map RPC response to Task interface
+      const tasksWithOwner = (data || []).map((task: any) => ({
         ...task,
+        owner: {
+          display_name: task.owner_display_name,
+          reliability_score: task.owner_reliability_score,
+        },
         distance: null,
       }));
-      setTasks(tasksWithDistance);
+      setTasks(tasksWithOwner);
     }
     setLoading(false);
   }, []);
