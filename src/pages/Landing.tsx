@@ -1,38 +1,37 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Heart } from "lucide-react";
+import { ArrowRight, Shield, Heart, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import swaamiWordmark from "@/assets/swaami-wordmark.png";
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
 
   // Check profile completeness
   const isProfileComplete = profile?.city && profile?.neighbourhood && profile?.phone && profile?.skills?.length > 0;
-  const isLoggedInIncomplete = user && !isProfileComplete;
 
-  // Only redirect logged-in users with COMPLETE profiles to /app
-  useEffect(() => {
-    if (!authLoading && !profileLoading && user && isProfileComplete) {
-      navigate("/app");
-    }
-  }, [user, isProfileComplete, authLoading, profileLoading, navigate]);
+  // Determine CTA based on user state
+  const getPrimaryCTA = () => {
+    if (!user) return { text: "Join Your Neighbourhood", path: "/auth?mode=signup" };
+    if (isProfileComplete) return { text: "Go to Your Neighbourhood", path: "/app" };
+    return { text: "Continue Your Setup", path: "/join" };
+  };
+
+  const primaryCTA = getPrimaryCTA();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   // Show nothing while checking auth/profile to prevent flash
   if (authLoading || profileLoading) {
     return null;
   }
 
-  // If user has complete profile, we're redirecting to /app - show nothing
-  if (user && isProfileComplete) {
-    return null;
-  }
-
-  // Otherwise show landing page (for logged-out users OR logged-in with incomplete profile)
+  // Show landing page for ALL users - no auto-redirects
 
   return (
     <div className="min-h-[100dvh] w-full overflow-hidden bg-background flex flex-col relative">
@@ -73,6 +72,13 @@ export default function Landing() {
             className="animate-fade-in"
             style={{ animationDelay: "100ms" }}
           >
+            {/* Welcome Back Greeting for logged-in users */}
+            {user && (
+              <p className="text-accent font-medium text-lg mb-2 text-shadow-sub">
+                Welcome back!
+              </p>
+            )}
+
             {/* Headline */}
             <div className="space-y-4 mb-8">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight font-display text-shadow-hero">
@@ -106,16 +112,16 @@ export default function Landing() {
         >
           <div className="max-w-lg mx-auto w-full space-y-2 pb-4">
             <Button
-              onClick={() => navigate(isLoggedInIncomplete ? "/join" : "/auth?mode=signup")}
+              onClick={() => navigate(primaryCTA.path)}
               variant="swaami"
               size="xl"
               className="w-full h-14 text-lg font-semibold rounded-2xl shadow-lg"
             >
-              {isLoggedInIncomplete ? "Continue Your Setup" : "Join Your Neighbourhood"}
+              {primaryCTA.text}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             
-            {!isLoggedInIncomplete && (
+            {!user ? (
               <>
                 <p className="text-center text-xs text-muted-foreground">
                   Takes 2 minutes. No credit card.
@@ -130,6 +136,15 @@ export default function Landing() {
                   <span className="ml-1 underline underline-offset-2">Sign in</span>
                 </Button>
               </>
+            ) : (
+              <Button
+                onClick={handleSignOut}
+                variant="ghost"
+                className="w-full text-muted-foreground hover:text-foreground hover:bg-transparent"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign out
+              </Button>
             )}
           </div>
         </footer>
