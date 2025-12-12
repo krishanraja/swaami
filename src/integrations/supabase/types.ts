@@ -462,6 +462,29 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_nearby_tasks: {
+        Args: { radius_km?: number; user_lat: number; user_lng: number }
+        Returns: {
+          approx_address: string
+          category: string
+          created_at: string
+          description: string
+          distance_km: number
+          id: string
+          original_description: string
+          owner_display_name: string
+          owner_id: string
+          owner_is_demo: boolean
+          owner_photo_url: string
+          owner_reliability_score: number
+          owner_trust_tier: Database["public"]["Enums"]["trust_tier"]
+          status: string
+          time_estimate: string
+          title: string
+          updated_at: string
+          urgency: string
+        }[]
+      }
       get_public_profile: {
         Args: { p_profile_id: string }
         Returns: {
