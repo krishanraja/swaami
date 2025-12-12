@@ -493,6 +493,7 @@ export type Database = {
           owner_display_name: string
           owner_id: string
           owner_is_demo: boolean
+          owner_photo_url: string
           owner_reliability_score: number
           owner_trust_tier: Database["public"]["Enums"]["trust_tier"]
           status: string
