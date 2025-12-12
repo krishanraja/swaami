@@ -84,7 +84,17 @@ export function ChatScreen() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1 min-w-0">
-            <h1 className="font-semibold text-foreground truncate">
+            {/* Role clarity - show if helping or getting help */}
+            <div className="flex items-center gap-2">
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                isHelper 
+                  ? "bg-accent/10 text-accent" 
+                  : "bg-primary/10 text-primary"
+              }`}>
+                {isHelper ? "Helping with" : "Getting help"}
+              </span>
+            </div>
+            <h1 className="font-semibold text-foreground truncate mt-1">
               {otherPerson?.display_name || "Chat"}
             </h1>
             <p className="text-xs text-muted-foreground truncate">

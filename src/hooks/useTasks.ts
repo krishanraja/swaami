@@ -37,6 +37,7 @@ export interface Task {
 export function useTasks() {
   const { profile } = useProfile();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchTasks = useCallback(async () => {
@@ -47,7 +48,7 @@ export function useTasks() {
       console.error("Error fetching tasks:", error);
     } else {
       // Map RPC response to Task interface
-      const tasksWithOwner = (data || []).map((task: any) => ({
+      const allTasks = (data || []).map((task: any) => ({
         ...task,
         owner: {
           display_name: task.owner_display_name,
@@ -56,10 +57,20 @@ export function useTasks() {
         },
         distance: null,
       }));
-      setTasks(tasksWithOwner);
+      
+      // Separate own tasks from others' tasks
+      if (profile?.id) {
+        const othersTasks = allTasks.filter((t: Task) => t.owner_id !== profile.id);
+        const ownTasks = allTasks.filter((t: Task) => t.owner_id === profile.id);
+        setTasks(othersTasks);
+        setMyTasks(ownTasks);
+      } else {
+        setTasks(allTasks);
+        setMyTasks([]);
+      }
     }
     setLoading(false);
-  }, []);
+  }, [profile?.id]);
 
   useEffect(() => {
     fetchTasks();
@@ -148,5 +159,21 @@ export function useTasks() {
     return { data: match, error: null };
   };
 
-  return { tasks, loading, fetchTasks, createTask, helpWithTask };
+  const cancelTask = async (taskId: string) => {
+    if (!profile) return { error: new Error("No profile") };
+
+    const { error } = await supabase
+      .from("tasks")
+      .update({ status: "cancelled" })
+      .eq("id", taskId);
+
+    if (!error) {
+      // Refresh tasks to update the lists
+      fetchTasks();
+    }
+
+    return { error };
+  };
+
+  return { tasks, myTasks, loading, fetchTasks, createTask, helpWithTask, cancelTask };
 }

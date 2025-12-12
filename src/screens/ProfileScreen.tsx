@@ -1,18 +1,21 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
 import { SKILLS } from "@/types/swaami";
-import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard, Flame } from "lucide-react";
+import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard, Flame, FileText } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useGamification } from "@/hooks/useGamification";
+import { useTasks } from "@/hooks/useTasks";
 import { RadiusSlider } from "@/components/RadiusSlider";
 import { AvailabilitySelector } from "@/components/AvailabilitySelector";
 import { SkillChip } from "@/components/SkillChip";
 import { SwaamiPlusBadge } from "@/components/SwaamiPlusBadge";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { TierProgress } from "@/components/TierProgress";
+import { NeedCard } from "@/components/NeedCard";
 import { toast } from "sonner";
 
 interface ProfileScreenProps {
@@ -20,8 +23,10 @@ interface ProfileScreenProps {
 }
 
 export function ProfileScreen({ onLogout }: ProfileScreenProps) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { profile, loading, updateProfile } = useProfile();
+  const { myTasks, cancelTask } = useTasks();
   const { plan, subscribed, subscriptionEnd, startCheckout, openCustomerPortal, loading: subLoading } = useSubscription();
   const { streakDays, credits, tier, tasksCompleted } = useGamification();
   
@@ -391,6 +396,51 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
               >
                 + Edit skills
               </button>
+            </div>
+          )}
+
+          {/* My Requests Section */}
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide pt-2">
+            My Requests
+          </h2>
+          {myTasks.length > 0 ? (
+            <div className="space-y-3">
+              {myTasks.map((task) => (
+                <NeedCard
+                  key={task.id}
+                  task={{
+                    ...task,
+                    timeEstimate: task.time_estimate || "~15 mins",
+                  }}
+                  isOwner={true}
+                  onCancel={async (taskId) => {
+                    const { error } = await cancelTask(taskId);
+                    if (error) {
+                      toast.error("Couldn't cancel request");
+                    } else {
+                      toast.success("Request cancelled");
+                    }
+                  }}
+                  onView={(taskId) => {
+                    // Navigate to chat if matched, otherwise just show info
+                    toast.info("Viewing task details coming soon");
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-card border border-border rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <div className="text-left">
+                  <p className="font-medium text-foreground">No active requests</p>
+                  <p className="text-sm text-muted-foreground">
+                    Your help requests will appear here
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 

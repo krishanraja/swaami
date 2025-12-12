@@ -9,6 +9,7 @@ interface NeedCardProps {
     id: string;
     title: string;
     description: string | null;
+    status?: string;
     distance?: number;
     timeEstimate?: string;
     time_estimate?: string;
@@ -28,11 +29,14 @@ interface NeedCardProps {
     };
     owner_trust_tier?: string | null;
   };
-  onHelp: (taskId: string) => void;
+  onHelp?: (taskId: string) => void;
+  onCancel?: (taskId: string) => void;
+  onView?: (taskId: string) => void;
   userSkills?: string[];
+  isOwner?: boolean;
 }
 
-export function NeedCard({ task, onHelp, userSkills = [] }: NeedCardProps) {
+export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOwner = false }: NeedCardProps) {
   const timeAgo = task.created_at
     ? formatDistanceToNow(new Date(task.created_at), { addSuffix: true })
     : null;
@@ -77,13 +81,18 @@ export function NeedCard({ task, onHelp, userSkills = [] }: NeedCardProps) {
     <div
       className={`bg-card border rounded-xl p-4 transition-all duration-200 hover:shadow-sm ${
         isUrgent ? "border-destructive/30 bg-destructive/5" : "border-border"
-      }`}
+      } ${isOwner ? "ring-2 ring-primary/20" : ""}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           {/* Header with urgency, skill match, and time */}
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            {isSkillMatch && (
+            {isOwner && (
+              <span className="flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                Your Request
+              </span>
+            )}
+            {!isOwner && isSkillMatch && (
               <span className="flex items-center gap-1 text-xs font-medium text-accent bg-accent/10 px-2 py-0.5 rounded-full">
                 <Sparkles className="w-3 h-3" />
                 Perfect for you
@@ -186,13 +195,39 @@ export function NeedCard({ task, onHelp, userSkills = [] }: NeedCardProps) {
         </div>
 
         <div className="flex flex-col gap-2 shrink-0">
-          <Button
-            variant="swaami"
-            size="sm"
-            onClick={() => onHelp(task.id)}
-          >
-            Help
-          </Button>
+          {isOwner ? (
+            <>
+              {onView && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onView(task.id)}
+                >
+                  View
+                </Button>
+              )}
+              {onCancel && task.status === "open" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => onCancel(task.id)}
+                >
+                  Cancel
+                </Button>
+              )}
+            </>
+          ) : (
+            onHelp && (
+              <Button
+                variant="swaami"
+                size="sm"
+                onClick={() => onHelp(task.id)}
+              >
+                Help
+              </Button>
+            )
+          )}
           <ReadAloudButton text={readAloudText} />
         </div>
       </div>
