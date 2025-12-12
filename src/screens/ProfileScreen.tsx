@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
@@ -33,6 +33,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const { plan, subscribed, subscriptionEnd, startCheckout, openCustomerPortal, loading: subLoading } = useSubscription();
   const { streakDays, credits, tier, tasksCompleted } = useGamification();
   
+  const settingsRef = useRef<HTMLDivElement>(null);
   const [editingRadius, setEditingRadius] = useState(false);
   const [editingAvailability, setEditingAvailability] = useState(false);
   const [editingSkills, setEditingSkills] = useState(false);
@@ -46,6 +47,10 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [tempNeighbourhood, setTempNeighbourhood] = useState(profile?.neighbourhood || "");
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+
+  const scrollToSettings = () => {
+    settingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   // Sync temp values when profile loads
   useEffect(() => {
@@ -141,7 +146,10 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
     <div className="h-[100dvh] overflow-hidden bg-background flex flex-col">
       <AppHeader
         actions={
-          <button className="p-2 hover:bg-muted rounded-xl transition-colors">
+          <button 
+            onClick={scrollToSettings}
+            className="p-2 hover:bg-muted rounded-xl transition-colors"
+          >
             <Settings className="w-5 h-5 text-muted-foreground" />
           </button>
         }
@@ -268,7 +276,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
         </div>
 
         {/* Settings */}
-        <div className="space-y-4">
+        <div ref={settingsRef} className="space-y-4 scroll-mt-4">
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
             Your settings
           </h2>
