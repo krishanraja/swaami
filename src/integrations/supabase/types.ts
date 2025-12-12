@@ -404,6 +404,81 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: Database["public"]["Enums"]["trust_tier"]
       }
+      get_all_public_profiles: {
+        Args: never
+        Returns: {
+          availability: string
+          city: string
+          created_at: string
+          credits: number
+          display_name: string
+          id: string
+          is_demo: boolean
+          neighbourhood: string
+          radius: number
+          reliability_score: number
+          skills: string[]
+          tasks_completed: number
+          trust_tier: Database["public"]["Enums"]["trust_tier"]
+          user_id: string
+        }[]
+      }
+      get_public_profile: {
+        Args: { p_profile_id: string }
+        Returns: {
+          availability: string
+          city: string
+          created_at: string
+          credits: number
+          display_name: string
+          id: string
+          is_demo: boolean
+          neighbourhood: string
+          radius: number
+          reliability_score: number
+          skills: string[]
+          tasks_completed: number
+          trust_tier: Database["public"]["Enums"]["trust_tier"]
+          user_id: string
+        }[]
+      }
+      get_public_tasks: {
+        Args: never
+        Returns: {
+          approx_address: string
+          category: string
+          created_at: string
+          description: string
+          id: string
+          original_description: string
+          owner_display_name: string
+          owner_id: string
+          owner_reliability_score: number
+          owner_trust_tier: Database["public"]["Enums"]["trust_tier"]
+          status: string
+          time_estimate: string
+          title: string
+          updated_at: string
+          urgency: string
+        }[]
+      }
+      get_task_with_location: {
+        Args: { p_task_id: string }
+        Returns: {
+          approx_address: string
+          category: string
+          created_at: string
+          description: string
+          id: string
+          location_lat: number
+          location_lng: number
+          owner_id: string
+          status: string
+          time_estimate: string
+          title: string
+          urgency: string
+        }[]
+      }
     }
     Enums: {
       subscription_status: "free" | "active" | "cancelled" | "past_due"
