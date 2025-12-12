@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, Star, Flame, Sparkles, Users, Shield, CheckCircle, FlaskConical, ChevronDown, ChevronUp } from "lucide-react";
+import { Clock, Star, Flame, Sparkles, Users, Shield, CheckCircle, FlaskConical, ChevronDown, ChevronUp, MapPin } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { calculateWalkTime } from "@/lib/walkTime";
 import { ReadAloudButton } from "@/components/ReadAloudButton";
@@ -166,13 +166,16 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
             </div>
           )}
 
-          {/* Meta info with walk time and distance */}
+          {/* Meta info with distance prominent */}
           <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
-            <span className="flex items-center gap-1 font-medium text-foreground">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-              {task.distance != null ? `${(task.distance / 1000).toFixed(1)} km` : walkTimeDisplay}
-            </span>
-            <span>·</span>
+            {task.distance != null && (
+              <span className="flex items-center gap-1.5 font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                <MapPin className="w-3.5 h-3.5" />
+                {task.distance >= 1000 
+                  ? `${(task.distance / 1000).toFixed(1)} km` 
+                  : `${Math.round(task.distance)} m`}
+              </span>
+            )}
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               {timeEstimate}

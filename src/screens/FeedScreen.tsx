@@ -1,14 +1,17 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { NeedCard } from "@/components/NeedCard";
 import { AppHeader } from "@/components/AppHeader";
 import { useTasks } from "@/hooks/useTasks";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import { RefreshCw, PlusCircle, FlaskConical, MapPin } from "lucide-react";
+import { RefreshCw, PlusCircle, FlaskConical, MapPin, ArrowUpDown } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type SortOption = "nearest" | "recent" | "urgent";
 
 interface FeedScreenProps {
   onNavigateToPost?: () => void;
@@ -21,7 +24,8 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showDemoTasks, setShowDemoTasks] = useState(true);
-  const [maxDistance, setMaxDistance] = useState(2000); // Default 2km max filter
+  const [maxDistance, setMaxDistance] = useState(2000);
+  const [sortBy, setSortBy] = useState<SortOption>("nearest");
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -52,11 +56,39 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
     return meters >= 1000 ? `${(meters / 1000).toFixed(1)}km` : `${meters}m`;
   };
   
-  // Apply filters: category, demo toggle, and distance
-  const filteredTasks = tasks
-    .filter((t) => !selectedCategory || t.category === selectedCategory)
-    .filter((t) => showDemoTasks || !t.is_demo)
-    .filter((t) => t.distance === null || t.distance === undefined || t.distance <= maxDistance);
+  // Apply filters and sorting
+  const filteredTasks = useMemo(() => {
+    const filtered = tasks
+      .filter((t) => !selectedCategory || t.category === selectedCategory)
+      .filter((t) => showDemoTasks || !t.is_demo)
+      .filter((t) => t.distance === null || t.distance === undefined || t.distance <= maxDistance);
+    
+    // Sort based on selected option
+    return [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "nearest":
+          // Null distances go to end
+          if (a.distance === null || a.distance === undefined) return 1;
+          if (b.distance === null || b.distance === undefined) return -1;
+          return a.distance - b.distance;
+        case "recent":
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA; // Most recent first
+        case "urgent":
+          // Urgent first, then by distance
+          const urgentA = a.urgency === "urgent" ? 0 : 1;
+          const urgentB = b.urgency === "urgent" ? 0 : 1;
+          if (urgentA !== urgentB) return urgentA - urgentB;
+          // Secondary sort by distance
+          if (a.distance === null || a.distance === undefined) return 1;
+          if (b.distance === null || b.distance === undefined) return -1;
+          return a.distance - b.distance;
+        default:
+          return 0;
+      }
+    });
+  }, [tasks, selectedCategory, showDemoTasks, maxDistance, sortBy]);
 
   return (
     <div className="h-[100dvh] overflow-hidden bg-background flex flex-col">
@@ -119,7 +151,7 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
             </div>
           </div>
           
-          {/* Bottom row: Distance slider with count */}
+          {/* Bottom row: Distance slider + Sort */}
           <div className="flex items-center gap-2">
             <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
             <Slider
@@ -133,9 +165,22 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
             <span className="text-xs font-medium text-muted-foreground whitespace-nowrap min-w-[2.5rem] text-right">
               {formatDistance(maxDistance)}
             </span>
-            <span className="text-xs text-muted-foreground/60 pl-2 border-l border-border">
-              {filteredTasks.length} nearby
-            </span>
+            <div className="pl-2 border-l border-border flex-shrink-0">
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+                <SelectTrigger className="h-7 w-[100px] text-xs border-0 bg-muted/50 gap-1">
+                  <ArrowUpDown className="w-3 h-3" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nearest">Nearest</SelectItem>
+                  <SelectItem value="recent">Recent</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground/60 text-center">
+            {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''} within {formatDistance(maxDistance)}
           </div>
         </div>
       </div>
