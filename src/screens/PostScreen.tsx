@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Sparkles, Check, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTasks } from "@/hooks/useTasks";
+import { useSubscription, FREE_LIMITS } from "@/hooks/useSubscription";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 
 interface AIRewrite {
   title: string;
@@ -17,14 +19,22 @@ interface AIRewrite {
 
 export function PostScreen() {
   const { createTask } = useTasks();
+  const { plan, postsRemaining, canPost, incrementPostCount } = useSubscription();
   const [input, setInput] = useState("");
   const [aiRewrite, setAiRewrite] = useState<AIRewrite | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   const handleSubmit = async () => {
     if (!input.trim()) return;
+
+    // Check post limit for free users
+    if (!canPost) {
+      setShowUpgrade(true);
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
@@ -75,6 +85,11 @@ export function PostScreen() {
       return;
     }
 
+    // Increment post count for free users
+    if (plan === "free") {
+      await incrementPostCount();
+    }
+
     setIsConfirmed(true);
     toast.success("Your need is now live!", {
       description: "Neighbours nearby will see your request",
@@ -107,9 +122,21 @@ export function PostScreen() {
         <h1 className="text-xl font-semibold text-foreground mb-1">
           Ask for help
         </h1>
-        <p className="text-sm text-muted-foreground mb-6">
+        <p className="text-sm text-muted-foreground mb-4">
           Describe what you need, AI will make it clear
         </p>
+
+        {/* Post limit indicator for free users */}
+        {plan === "free" && !aiRewrite && !isConfirmed && (
+          <div className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2 mb-4 text-sm">
+            <span className="text-muted-foreground">
+              Posts remaining this month
+            </span>
+            <span className={`font-semibold ${postsRemaining === 0 ? "text-destructive" : "text-foreground"}`}>
+              {postsRemaining}/{FREE_LIMITS.postsPerMonth}
+            </span>
+          </div>
+        )}
 
         {!aiRewrite && !isConfirmed && (
           <div className="animate-fade-in space-y-4">
@@ -222,6 +249,12 @@ export function PostScreen() {
           </div>
         )}
       </main>
+
+      <UpgradePrompt
+        open={showUpgrade}
+        onOpenChange={setShowUpgrade}
+        trigger="post_limit"
+      />
     </div>
   );
 }
