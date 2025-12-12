@@ -265,7 +265,9 @@ export type Database = {
       }
       tasks: {
         Row: {
+          access_instructions: string | null
           approx_address: string | null
+          availability_time: string | null
           category: string | null
           created_at: string | null
           description: string | null
@@ -275,6 +277,8 @@ export type Database = {
           location_lng: number | null
           original_description: string | null
           owner_id: string
+          people_needed: number | null
+          physical_level: string | null
           status: string | null
           time_estimate: string | null
           title: string
@@ -282,7 +286,9 @@ export type Database = {
           urgency: string | null
         }
         Insert: {
+          access_instructions?: string | null
           approx_address?: string | null
+          availability_time?: string | null
           category?: string | null
           created_at?: string | null
           description?: string | null
@@ -292,6 +298,8 @@ export type Database = {
           location_lng?: number | null
           original_description?: string | null
           owner_id: string
+          people_needed?: number | null
+          physical_level?: string | null
           status?: string | null
           time_estimate?: string | null
           title: string
@@ -299,7 +307,9 @@ export type Database = {
           urgency?: string | null
         }
         Update: {
+          access_instructions?: string | null
           approx_address?: string | null
+          availability_time?: string | null
           category?: string | null
           created_at?: string | null
           description?: string | null
@@ -309,6 +319,8 @@ export type Database = {
           location_lng?: number | null
           original_description?: string | null
           owner_id?: string
+          people_needed?: number | null
+          physical_level?: string | null
           status?: string | null
           time_estimate?: string | null
           title?: string
@@ -505,6 +517,23 @@ export type Database = {
           title: string
           urgency: string
         }[]
+      }
+      get_user_profile_id: { Args: { user_uuid: string }; Returns: string }
+      user_is_helper_on_task: {
+        Args: { task_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
+      user_is_match_helper: {
+        Args: { match_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
+      user_owns_match_task: {
+        Args: { match_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
+      user_owns_task: {
+        Args: { task_uuid: string; user_uuid: string }
+        Returns: boolean
       }
     }
     Enums: {
