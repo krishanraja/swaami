@@ -12,7 +12,7 @@ import { City, CITY_CONFIG } from "@/hooks/useNeighbourhoods";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, CheckCircle, ArrowLeft } from "lucide-react";
-import swaamiLogo from "@/assets/swaami-logo.png";
+import swaamiIcon from "@/assets/swaami-icon.png";
 
 interface JoinScreenProps {
   onComplete: () => void;
@@ -156,7 +156,7 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
         {/* Logo */}
         <div className="mb-6 animate-fade-in">
-          <img src={swaamiLogo} alt="Swaami" className="h-32 w-auto" />
+          <img src={swaamiIcon} alt="Swaami" className="h-32 w-auto" />
         </div>
 
         {/* Steps */}

@@ -6,7 +6,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { RefreshCw, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import swaamiLogo from "@/assets/swaami-logo.png";
+import swaamiIcon from "@/assets/swaami-icon.png";
 
 export function FeedScreen() {
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ export function FeedScreen() {
       {/* Header */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="px-4 py-4 max-w-lg mx-auto flex items-center justify-between">
-          <img src={swaamiLogo} alt="Swaami" className="h-16 w-auto" />
+          <img src={swaamiIcon} alt="Swaami" className="h-16 w-auto" />
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"

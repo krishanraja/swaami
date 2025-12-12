@@ -18,8 +18,10 @@ Empower urban neighborhoods to help each other with quick, safe micro-tasks (und
 ## Visual Identity
 
 ### Logo
-- Primary: Swaami wordmark with neighbor icon
-- Location: `src/assets/swaami-logo.png`
+- **Icon**: `src/assets/swaami-icon.png` (used in app headers)
+- **Wordmark**: `src/assets/swaami-wordmark.png` (used with icon on landing page)
+- Landing page displays icon + wordmark side by side
+- All other screens use icon only
 - Always display at minimum 32px height
 
 ### Color Palette

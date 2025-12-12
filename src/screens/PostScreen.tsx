@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Sparkles, Check, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTasks } from "@/hooks/useTasks";
-import swaamiLogo from "@/assets/swaami-logo.png";
+import swaamiIcon from "@/assets/swaami-icon.png";
 
 interface AIRewrite {
   title: string;
@@ -106,7 +106,7 @@ export function PostScreen() {
       {/* Header */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="px-4 py-4 max-w-lg mx-auto">
-          <img src={swaamiLogo} alt="Swaami" className="h-16 w-auto" />
+          <img src={swaamiIcon} alt="Swaami" className="h-16 w-auto" />
         </div>
       </header>
 
