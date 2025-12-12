@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Heart, LogOut } from "lucide-react";
+import { ArrowRight, Shield, Heart, LogOut, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useLiveActivity } from "@/hooks/useLiveActivity";
 
 // Use public folder paths for preloaded assets (faster initial load)
 const swaamiWordmark = "/images/swaami-wordmark.png";
@@ -12,6 +13,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const { user, signOut, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
+  const { tasksCompletedToday, activeHelpers, isLoading: activityLoading } = useLiveActivity();
 
   // Check profile completeness
   const isProfileComplete = profile?.city && profile?.neighbourhood && profile?.phone && profile?.skills?.length > 0;
@@ -111,7 +113,7 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* Trust Badges - simplified to 2 */}
+          {/* Trust Badges + Live Activity */}
           <div className="flex flex-wrap gap-x-6 gap-y-3">
             <div className="flex items-center gap-1.5 text-sm text-white/90 text-shadow-sub">
               <Shield className="h-4 w-4 text-accent drop-shadow-lg" />
@@ -122,6 +124,25 @@ export default function Landing() {
               <span>Free to start</span>
             </div>
           </div>
+          
+          {/* Live Activity Counter */}
+          {!activityLoading && (tasksCompletedToday > 0 || activeHelpers > 0) && (
+            <div 
+              className="mt-6 flex items-center gap-2 text-sm text-white/80 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full w-fit animate-fade-in"
+              style={{ animationDelay: "300ms" }}
+            >
+              <Users className="h-4 w-4 text-accent" />
+              <span>
+                {tasksCompletedToday > 0 && (
+                  <span className="font-semibold text-white">{tasksCompletedToday} neighbours helped today</span>
+                )}
+                {tasksCompletedToday > 0 && activeHelpers > 0 && " · "}
+                {activeHelpers > 0 && (
+                  <span>{activeHelpers} active helpers</span>
+                )}
+              </span>
+            </div>
+          )}
         </div>
       </main>
 

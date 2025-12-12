@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTasks } from "@/hooks/useTasks";
 import { useSubscription, FREE_LIMITS } from "@/hooks/useSubscription";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { QuickTemplates } from "@/components/QuickTemplates";
+import { Confetti } from "@/components/Confetti";
 
 interface AIRewrite {
   title: string;
@@ -26,6 +28,11 @@ export function PostScreen() {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  const handleTemplateSelect = (text: string) => {
+    setInput(text);
+  };
 
   const handleSubmit = async () => {
     if (!input.trim()) return;
@@ -91,6 +98,7 @@ export function PostScreen() {
     }
 
     setIsConfirmed(true);
+    setShowConfetti(true);
     toast.success("Your need is now live!", {
       description: "Neighbours nearby will see your request",
     });
@@ -117,6 +125,7 @@ export function PostScreen() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <AppHeader title="Post" />
+      <Confetti active={showConfetti} onComplete={() => setShowConfetti(false)} />
 
       <main className="px-4 py-6 max-w-lg mx-auto">
         <h1 className="text-xl font-semibold text-foreground mb-1">
@@ -140,6 +149,9 @@ export function PostScreen() {
 
         {!aiRewrite && !isConfirmed && (
           <div className="animate-fade-in space-y-4">
+            {/* Quick templates */}
+            {!input && <QuickTemplates onSelect={handleTemplateSelect} />}
+            
             <div className="space-y-2">
               <Textarea
                 placeholder="e.g., Need someone to help me carry groceries upstairs, can't do heavy lifting today..."
