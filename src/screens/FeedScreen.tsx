@@ -130,10 +130,10 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
                 task={{
                   ...task,
                   timeEstimate: task.time_estimate || "~15 mins",
-                  walkTime: "Nearby",
                   owner: task.owner,
                 }}
                 onHelp={handleHelp}
+                userSkills={profile?.skills || []}
               />
             ))}
           </div>

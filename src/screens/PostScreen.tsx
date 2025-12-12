@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AppHeader } from "@/components/AppHeader";
@@ -10,6 +10,7 @@ import { useSubscription, FREE_LIMITS } from "@/hooks/useSubscription";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { QuickTemplates } from "@/components/QuickTemplates";
 import { Confetti } from "@/components/Confetti";
+import { HelperPreview } from "@/components/HelperPreview";
 
 interface AIRewrite {
   title: string;
@@ -225,6 +226,9 @@ export function PostScreen() {
                   {aiRewrite.urgency}
                 </span>
               </div>
+              
+              {/* Helper Preview */}
+              <HelperPreview category={aiRewrite.category} />
             </div>
 
             <div className="flex gap-3">
