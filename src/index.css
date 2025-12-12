@@ -30,8 +30,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 7%;
 
-    /* Soft yellow primary */
-    --primary: 54 91% 85%;
+    /* Deeper yellow primary for better contrast */
+    --primary: 48 85% 75%;
     --primary-foreground: 0 0% 7%;
 
     /* Subtle grey secondary */
