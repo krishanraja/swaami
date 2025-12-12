@@ -1,253 +1,209 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VoiceInputProps {
   onTranscript: (text: string) => void;
   disabled?: boolean;
 }
 
-// Type for Web Speech API
-interface ISpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((event: ISpeechRecognitionEvent) => void) | null;
-  onerror: ((event: ISpeechRecognitionErrorEvent) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-}
-
-interface ISpeechRecognitionEvent {
-  resultIndex: number;
-  results: ISpeechRecognitionResultList;
-}
-
-interface ISpeechRecognitionResultList {
-  length: number;
-  [index: number]: ISpeechRecognitionResult;
-}
-
-interface ISpeechRecognitionResult {
-  isFinal: boolean;
-  [index: number]: { transcript: string };
-}
-
-interface ISpeechRecognitionErrorEvent {
-  error: string;
-}
-
 export function VoiceInput({ onTranscript, disabled = false }: VoiceInputProps) {
-  const [isListening, setIsListening] = useState(false);
-  const [isSupported, setIsSupported] = useState(true);
-  const [accumulatedTranscript, setAccumulatedTranscript] = useState("");
-  const [interimTranscript, setInterimTranscript] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
   
-  const recognitionRef = useRef<ISpeechRecognition | null>(null);
-  const isListeningRef = useRef(false); // Track intent to listen (vs browser state)
-  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  const SILENCE_TIMEOUT_MS = 10000; // 10 seconds of silence before auto-stop
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        // Remove the data:audio/webm;base64, prefix
+        const base64 = dataUrl.split(",")[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
 
-  const clearAllTimeouts = useCallback(() => {
-    if (silenceTimeoutRef.current) {
-      clearTimeout(silenceTimeoutRef.current);
-      silenceTimeoutRef.current = null;
-    }
-    if (restartTimeoutRef.current) {
-      clearTimeout(restartTimeoutRef.current);
-      restartTimeoutRef.current = null;
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        } 
+      });
+      
+      streamRef.current = stream;
+      audioChunksRef.current = [];
+      
+      const mediaRecorder = new MediaRecorder(stream, { 
+        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
+      });
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start(100); // Collect data every 100ms
+      
+      setIsRecording(true);
+      setRecordingTime(0);
+      
+      // Start timer
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+      toast.success("Recording started", {
+        description: "Take your time. Tap stop when you're done.",
+        duration: 3000,
+      });
+      
+    } catch (error) {
+      console.error("Failed to start recording:", error);
+      toast.error("Couldn't access microphone", {
+        description: "Please allow microphone access in your browser settings",
+      });
     }
   }, []);
 
-  const stopListening = useCallback(() => {
-    clearAllTimeouts();
-    isListeningRef.current = false;
-    setIsListening(false);
+  const stopRecording = useCallback(async () => {
+    if (!mediaRecorderRef.current || !isRecording) return;
     
-    if (recognitionRef.current) {
-      recognitionRef.current.abort();
+    // Stop timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
     
-    // Send accumulated transcript if we have one
-    if (accumulatedTranscript.trim()) {
-      onTranscript(accumulatedTranscript.trim());
-      toast.success("Got it!", {
-        description: "I've captured what you said",
-        duration: 2000,
-      });
+    setIsRecording(false);
+    setIsProcessing(true);
+    
+    // Stop recording and process
+    mediaRecorderRef.current.stop();
+    
+    // Stop all tracks
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
     
-    setAccumulatedTranscript("");
-    setInterimTranscript("");
-  }, [accumulatedTranscript, onTranscript, clearAllTimeouts]);
-
-  const resetSilenceTimeout = useCallback(() => {
-    if (silenceTimeoutRef.current) {
-      clearTimeout(silenceTimeoutRef.current);
-    }
-    
-    silenceTimeoutRef.current = setTimeout(() => {
-      if (isListeningRef.current) {
-        console.log("Auto-stopping after 10s silence");
-        stopListening();
-      }
-    }, SILENCE_TIMEOUT_MS);
-  }, [stopListening]);
-
-  useEffect(() => {
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
-    if (!SpeechRecognitionAPI) {
-      setIsSupported(false);
-      return;
-    }
-
-    const recognition = new SpeechRecognitionAPI() as ISpeechRecognition;
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-AU";
-
-    recognition.onresult = (event) => {
-      // Reset silence timeout - user is speaking
-      resetSilenceTimeout();
-      
-      let finalTranscript = "";
-      let interim = "";
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interim += transcript;
-        }
-      }
-
-      setInterimTranscript(interim);
-
-      // Accumulate final transcripts instead of sending immediately
-      if (finalTranscript) {
-        setAccumulatedTranscript(prev => {
-          const separator = prev ? " " : "";
-          return prev + separator + finalTranscript;
-        });
-      }
-    };
-
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
-      
-      if (event.error === "not-allowed") {
-        toast.error("Microphone access denied", {
-          description: "Please allow microphone access in your browser settings",
-        });
-        isListeningRef.current = false;
-        setIsListening(false);
-        clearAllTimeouts();
-      } else if (event.error === "no-speech") {
-        // This is fine - just means silence, we'll auto-restart
-        console.log("No speech detected - will restart");
-      } else if (event.error !== "aborted") {
-        // Don't show error for intentional aborts
-        console.log("Recognition error:", event.error);
-      }
-    };
-
-    recognition.onend = () => {
-      console.log("Recognition ended, listening intent:", isListeningRef.current);
-      
-      // If user still wants to listen, restart recognition
-      if (isListeningRef.current) {
-        restartTimeoutRef.current = setTimeout(() => {
-          if (isListeningRef.current && recognitionRef.current) {
-            try {
-              console.log("Auto-restarting recognition...");
-              recognitionRef.current.start();
-            } catch (e) {
-              console.log("Restart failed, retrying...", e);
-              // If already started, try again after a brief delay
-              setTimeout(() => {
-                if (isListeningRef.current && recognitionRef.current) {
-                  try {
-                    recognitionRef.current.start();
-                  } catch (e2) {
-                    console.error("Failed to restart recognition:", e2);
-                  }
-                }
-              }, 100);
-            }
-          }
-        }, 50);
-      } else {
-        setIsListening(false);
-      }
-    };
-
-    recognitionRef.current = recognition;
-
-    return () => {
-      clearAllTimeouts();
-      if (recognitionRef.current) {
-        recognitionRef.current.abort();
-      }
-    };
-  }, [resetSilenceTimeout, clearAllTimeouts]);
-
-  const startListening = () => {
-    if (!recognitionRef.current) return;
-
-    setAccumulatedTranscript("");
-    setInterimTranscript("");
-    isListeningRef.current = true;
-    setIsListening(true);
+    // Wait a moment for final data
+    await new Promise(resolve => setTimeout(resolve, 200));
     
     try {
-      recognitionRef.current.start();
-      resetSilenceTimeout();
-      toast.success("I'm listening...", {
-        description: "Take your time. Tap the stop button when you're done.",
-        duration: 3000,
+      const audioBlob = new Blob(audioChunksRef.current, { 
+        type: mediaRecorderRef.current.mimeType || 'audio/webm' 
       });
+      
+      if (audioBlob.size < 1000) {
+        toast.error("Recording too short", {
+          description: "Please hold the button longer and speak clearly",
+        });
+        setIsProcessing(false);
+        return;
+      }
+      
+      console.log("Audio blob size:", audioBlob.size);
+      
+      const base64Audio = await blobToBase64(audioBlob);
+      console.log("Base64 length:", base64Audio.length);
+      
+      // Send to edge function for Whisper transcription
+      const { data, error } = await supabase.functions.invoke("transcribe-audio", {
+        body: { audio: base64Audio },
+      });
+      
+      if (error) {
+        console.error("Transcription error:", error);
+        throw error;
+      }
+      
+      if (data?.error) {
+        console.error("Transcription failed:", data.error);
+        toast.error("Couldn't understand that", {
+          description: data.error,
+        });
+        setIsProcessing(false);
+        return;
+      }
+      
+      const transcribedText = data?.text?.trim();
+      
+      if (transcribedText) {
+        onTranscript(transcribedText);
+        toast.success("Got it!", {
+          description: "I've captured what you said",
+          duration: 2000,
+        });
+      } else {
+        toast.error("Couldn't hear anything", {
+          description: "Please speak a bit louder or closer to the mic",
+        });
+      }
+      
     } catch (error) {
-      console.error("Failed to start recognition:", error);
-      isListeningRef.current = false;
-      setIsListening(false);
+      console.error("Processing error:", error);
+      toast.error("Something went wrong", {
+        description: "Please try again",
+      });
+    } finally {
+      setIsProcessing(false);
+      setRecordingTime(0);
+      audioChunksRef.current = [];
     }
-  };
+  }, [isRecording, onTranscript]);
 
-  const toggleListening = () => {
-    if (isListening) {
-      stopListening();
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
     } else {
-      startListening();
+      startRecording();
     }
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Check for MediaRecorder support
+  const isSupported = typeof MediaRecorder !== 'undefined' && navigator.mediaDevices?.getUserMedia;
+  
   if (!isSupported) {
     return null;
   }
-
-  const displayTranscript = accumulatedTranscript + (interimTranscript ? " " + interimTranscript : "");
 
   return (
     <div className="flex flex-col items-center gap-4">
       <Button
         type="button"
-        variant={isListening ? "destructive" : "swaami"}
+        variant={isRecording ? "destructive" : "swaami"}
         size="xl"
         className={`w-28 h-28 rounded-full shadow-lg transition-all duration-300 ${
-          isListening ? "animate-pulse-soft scale-110" : ""
-        }`}
-        onClick={toggleListening}
-        disabled={disabled}
-        aria-label={isListening ? "Stop recording" : "Start recording"}
+          isRecording ? "animate-pulse-soft scale-110" : ""
+        } ${isProcessing ? "opacity-50" : ""}`}
+        onClick={toggleRecording}
+        disabled={disabled || isProcessing}
+        aria-label={isRecording ? "Stop recording" : "Start recording"}
       >
-        {isListening ? (
+        {isProcessing ? (
+          <Loader2 className="w-10 h-10 animate-spin" />
+        ) : isRecording ? (
           <Square className="w-10 h-10" />
         ) : (
           <Mic className="w-12 h-12" />
@@ -255,38 +211,47 @@ export function VoiceInput({ onTranscript, disabled = false }: VoiceInputProps) 
       </Button>
 
       <div className="text-center space-y-1">
-        <p className="text-xl font-medium text-foreground">
-          {isListening ? (
-            <span className="flex items-center justify-center gap-2">
+        {isProcessing ? (
+          <>
+            <p className="text-xl font-medium text-foreground flex items-center justify-center gap-2">
               <Loader2 className="w-5 h-5 animate-spin" />
-              Listening...
-            </span>
-          ) : (
-            "Tap to speak"
-          )}
-        </p>
-        <p className="text-base text-muted-foreground">
-          {isListening 
-            ? "Take your time. Tap the red button when done." 
-            : "I'll write down what you say"
-          }
-        </p>
+              Processing...
+            </p>
+            <p className="text-base text-muted-foreground">
+              Converting your speech to text
+            </p>
+          </>
+        ) : isRecording ? (
+          <>
+            <p className="text-xl font-medium text-destructive flex items-center justify-center gap-2">
+              <span className="w-3 h-3 bg-destructive rounded-full animate-pulse" />
+              Recording {formatTime(recordingTime)}
+            </p>
+            <p className="text-base text-muted-foreground">
+              Take your time. Tap the red button when done.
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-xl font-medium text-foreground">
+              Tap to speak
+            </p>
+            <p className="text-base text-muted-foreground">
+              I'll accurately transcribe what you say
+            </p>
+          </>
+        )}
       </div>
 
-      {displayTranscript && (
-        <div className="bg-muted rounded-xl p-4 w-full max-w-md text-center animate-fade-in border-2 border-primary/20">
-          <p className="text-sm text-muted-foreground mb-1">What I'm hearing:</p>
-          <p className="text-lg text-foreground leading-relaxed">
-            "{displayTranscript}"
-            {isListening && <span className="animate-pulse">|</span>}
-          </p>
-        </div>
-      )}
-
-      {isListening && !displayTranscript && (
-        <div className="bg-muted/50 rounded-xl p-4 w-full max-w-md text-center animate-fade-in">
+      {isRecording && (
+        <div className="bg-destructive/10 border-2 border-destructive/30 rounded-xl p-4 w-full max-w-md text-center animate-fade-in">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
+            <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+            <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+          </div>
           <p className="text-muted-foreground">
-            Go ahead, I'm listening... 👂
+            Speak clearly... I'm listening 👂
           </p>
         </div>
       )}

@@ -21,10 +21,10 @@ export function ChatsListScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="h-full flex flex-col overflow-hidden bg-background">
       <AppHeader title="Chats" />
 
-      <main className="px-4 py-6 max-w-lg mx-auto">
+      <main className="flex-1 overflow-y-auto px-4 py-6 pb-4 max-w-lg mx-auto w-full">
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
