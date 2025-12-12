@@ -11,27 +11,28 @@ export default function Landing() {
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
 
-  // Redirect logged-in users based on profile completeness
+  // Check profile completeness
+  const isProfileComplete = profile?.city && profile?.neighbourhood && profile?.phone && profile?.skills?.length > 0;
+  const isLoggedInIncomplete = user && !isProfileComplete;
+
+  // Only redirect logged-in users with COMPLETE profiles to /app
   useEffect(() => {
-    if (!authLoading && !profileLoading && user) {
-      const isProfileComplete = profile?.city && profile?.neighbourhood && profile?.phone && profile?.skills?.length > 0;
-      if (isProfileComplete) {
-        navigate("/app");
-      } else {
-        navigate("/join");
-      }
+    if (!authLoading && !profileLoading && user && isProfileComplete) {
+      navigate("/app");
     }
-  }, [user, profile, authLoading, profileLoading, navigate]);
+  }, [user, isProfileComplete, authLoading, profileLoading, navigate]);
 
   // Show nothing while checking auth/profile to prevent flash
   if (authLoading || profileLoading) {
     return null;
   }
 
-  // If user is logged in, we're redirecting - show nothing
-  if (user) {
+  // If user has complete profile, we're redirecting to /app - show nothing
+  if (user && isProfileComplete) {
     return null;
   }
+
+  // Otherwise show landing page (for logged-out users OR logged-in with incomplete profile)
 
   return (
     <div className="min-h-[100dvh] w-full overflow-hidden bg-background flex flex-col relative">
@@ -105,27 +106,31 @@ export default function Landing() {
         >
           <div className="max-w-lg mx-auto w-full space-y-2 pb-4">
             <Button
-              onClick={() => navigate("/auth?mode=signup")}
+              onClick={() => navigate(isLoggedInIncomplete ? "/join" : "/auth?mode=signup")}
               variant="swaami"
               size="xl"
               className="w-full h-14 text-lg font-semibold rounded-2xl shadow-lg"
             >
-              Join Your Neighbourhood
+              {isLoggedInIncomplete ? "Continue Your Setup" : "Join Your Neighbourhood"}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
             
-            <p className="text-center text-xs text-muted-foreground">
-              Takes 2 minutes. No credit card.
-            </p>
+            {!isLoggedInIncomplete && (
+              <>
+                <p className="text-center text-xs text-muted-foreground">
+                  Takes 2 minutes. No credit card.
+                </p>
 
-            <Button
-              onClick={() => navigate("/auth?mode=login")}
-              variant="ghost"
-              className="w-full text-muted-foreground hover:text-foreground hover:bg-transparent"
-            >
-              Already a member?{" "}
-              <span className="ml-1 underline underline-offset-2">Sign in</span>
-            </Button>
+                <Button
+                  onClick={() => navigate("/auth?mode=login")}
+                  variant="ghost"
+                  className="w-full text-muted-foreground hover:text-foreground hover:bg-transparent"
+                >
+                  Already a member?{" "}
+                  <span className="ml-1 underline underline-offset-2">Sign in</span>
+                </Button>
+              </>
+            )}
           </div>
         </footer>
       </div>
