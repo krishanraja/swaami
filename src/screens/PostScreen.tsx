@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AppHeader } from "@/components/AppHeader";
 import { toast } from "sonner";
-import { Sparkles, Check, AlertCircle, Settings } from "lucide-react";
+import { Sparkles, Check, AlertCircle, Settings, MessageCircleQuestion } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTasks } from "@/hooks/useTasks";
 import { useSubscription, FREE_LIMITS } from "@/hooks/useSubscription";
@@ -28,6 +28,23 @@ interface AIRewrite {
   time_estimate: string;
   category: string;
   urgency: string;
+  availability_time?: string;
+  physical_level?: string;
+  people_needed?: number;
+  access_instructions?: string;
+  safety_note?: string;
+}
+
+interface ClarificationNeeded {
+  question: string;
+  options: string[];
+  field: string;
+}
+
+interface PartialInference {
+  category?: string;
+  physical_level?: string;
+  urgency?: string;
 }
 
 export function PostScreen() {
@@ -36,6 +53,8 @@ export function PostScreen() {
   const { settings } = useAccessibility();
   const [input, setInput] = useState("");
   const [aiRewrite, setAiRewrite] = useState<AIRewrite | null>(null);
+  const [clarification, setClarification] = useState<ClarificationNeeded | null>(null);
+  const [partialInference, setPartialInference] = useState<PartialInference | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +69,7 @@ export function PostScreen() {
     setInput((prev) => prev + (prev ? " " : "") + transcript);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (clarificationAnswer?: string) => {
     if (!input.trim()) return;
 
     // Check post limit for free users
@@ -63,17 +82,37 @@ export function PostScreen() {
     setError(null);
 
     try {
+      const requestBody: { description: string; type: string; clarification_context?: string } = { 
+        description: input, 
+        type: "rewrite" 
+      };
+      
+      // If answering a clarification question, include the context
+      if (clarificationAnswer) {
+        requestBody.clarification_context = `For "${clarification?.field}": ${clarificationAnswer}`;
+      }
+
       const { data, error: fnError } = await supabase.functions.invoke(
         "rewrite-need",
-        {
-          body: { description: input, type: "rewrite" },
-        }
+        { body: requestBody }
       );
 
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
-      setAiRewrite(data.result);
+      const result = data.result;
+      
+      // Check if AI needs clarification
+      if (result.clarification_needed) {
+        setClarification(result.clarification_needed);
+        setPartialInference(result.partial_inference || null);
+        setAiRewrite(null);
+      } else {
+        // Complete response - set the rewrite
+        setAiRewrite(result);
+        setClarification(null);
+        setPartialInference(null);
+      }
     } catch (err: any) {
       console.error("AI rewrite error:", err);
       setAiRewrite({
@@ -82,11 +121,19 @@ export function PostScreen() {
         time_estimate: "15-20 mins",
         category: "other",
         urgency: "normal",
+        availability_time: "Flexible",
+        physical_level: "light",
+        people_needed: 1,
       });
+      setClarification(null);
       setError("AI enhancement unavailable, using your original text.");
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleClarificationAnswer = (answer: string) => {
+    handleSubmit(answer);
   };
 
   const handleConfirm = async () => {
@@ -99,6 +146,10 @@ export function PostScreen() {
       time_estimate: aiRewrite.time_estimate,
       category: aiRewrite.category,
       urgency: aiRewrite.urgency,
+      availability_time: aiRewrite.availability_time,
+      physical_level: aiRewrite.physical_level,
+      people_needed: aiRewrite.people_needed,
+      access_instructions: aiRewrite.access_instructions,
     });
 
     if (createError) {
@@ -122,6 +173,8 @@ export function PostScreen() {
     setTimeout(() => {
       setInput("");
       setAiRewrite(null);
+      setClarification(null);
+      setPartialInference(null);
       setIsConfirmed(false);
       setError(null);
     }, 2000);
@@ -129,6 +182,8 @@ export function PostScreen() {
 
   const handleEdit = () => {
     setAiRewrite(null);
+    setClarification(null);
+    setPartialInference(null);
     setError(null);
   };
 
@@ -136,6 +191,12 @@ export function PostScreen() {
     urgent: "bg-destructive/10 text-destructive",
     normal: "bg-muted text-muted-foreground",
     flexible: "bg-muted text-muted-foreground",
+  };
+
+  const physicalLevelLabels: Record<string, { label: string; emoji: string }> = {
+    light: { label: "Light", emoji: "🚶" },
+    moderate: { label: "Moderate", emoji: "💪" },
+    heavy: { label: "Heavy lifting", emoji: "🏋️" },
   };
 
   return (
@@ -174,7 +235,7 @@ export function PostScreen() {
         </p>
 
         {/* Post limit indicator for free users */}
-        {plan === "free" && !aiRewrite && !isConfirmed && !settings.simpleMode && (
+        {plan === "free" && !aiRewrite && !isConfirmed && !clarification && !settings.simpleMode && (
           <div className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-1.5 mb-3 text-sm">
             <span className="text-muted-foreground">
               Posts remaining
@@ -185,7 +246,8 @@ export function PostScreen() {
           </div>
         )}
 
-        {!aiRewrite && !isConfirmed && (
+        {/* Initial input state */}
+        {!aiRewrite && !isConfirmed && !clarification && (
           <div className="animate-fade-in space-y-4">
             {/* Voice Input - PROMINENT for elderly */}
             <div className="flex flex-col items-center py-4 bg-muted/30 rounded-2xl">
@@ -218,7 +280,7 @@ export function PostScreen() {
               />
               {!settings.simpleMode && (
                 <p className="text-xs text-muted-foreground">
-                  💡 Include what you need, when, and any details
+                  💡 Just describe what you need - AI will ask if it needs more info
                 </p>
               )}
             </div>
@@ -227,7 +289,7 @@ export function PostScreen() {
               variant="swaami"
               size="lg"
               className="w-full text-base py-4"
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               disabled={!input.trim() || isProcessing}
             >
               {isProcessing ? (
@@ -245,6 +307,64 @@ export function PostScreen() {
           </div>
         )}
 
+        {/* Clarification question from AI */}
+        {clarification && !aiRewrite && !isConfirmed && (
+          <div className="animate-slide-up space-y-4">
+            <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+              <div className="flex items-center gap-2 text-sm text-accent">
+                <MessageCircleQuestion className="w-5 h-5" />
+                <span className="font-medium">Quick question</span>
+              </div>
+              
+              <p className="text-foreground text-lg font-medium">
+                {clarification.question}
+              </p>
+
+              {/* Partial inference preview */}
+              {partialInference && !settings.simpleMode && (
+                <div className="flex flex-wrap gap-2 text-sm">
+                  {partialInference.category && (
+                    <span className="px-2 py-1 rounded-full bg-muted text-muted-foreground capitalize">
+                      📁 {partialInference.category}
+                    </span>
+                  )}
+                  {partialInference.physical_level && partialInference.physical_level !== "light" && (
+                    <span className="px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                      {physicalLevelLabels[partialInference.physical_level]?.emoji} {physicalLevelLabels[partialInference.physical_level]?.label}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Quick-tap options */}
+              <div className="grid grid-cols-1 gap-2">
+                {clarification.options.map((option, index) => (
+                  <Button
+                    key={index}
+                    variant={option === "Other" ? "outline" : "secondary"}
+                    size="lg"
+                    className="w-full justify-start text-left h-auto py-3 px-4"
+                    onClick={() => handleClarificationAnswer(option)}
+                    disabled={isProcessing}
+                  >
+                    {option}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground"
+              onClick={handleEdit}
+            >
+              ← Start over
+            </Button>
+          </div>
+        )}
+
+        {/* AI rewrite preview */}
         {aiRewrite && !isConfirmed && (
           <div className="animate-slide-up space-y-4">
             {error && (
@@ -271,12 +391,30 @@ export function PostScreen() {
 
               {!settings.simpleMode && (
                 <div className="flex flex-wrap gap-2">
+                  {/* Timing - prominent */}
+                  {aiRewrite.availability_time && (
+                    <span className="text-sm px-3 py-1 rounded-full bg-accent/10 text-accent font-medium">
+                      🕐 {aiRewrite.availability_time}
+                    </span>
+                  )}
                   <span className="text-sm px-3 py-1 rounded-full bg-muted text-muted-foreground">
                     ⏱ {aiRewrite.time_estimate}
                   </span>
                   <span className="text-sm px-3 py-1 rounded-full bg-muted text-muted-foreground capitalize">
                     📁 {aiRewrite.category}
                   </span>
+                  {/* Physical level - only show if not light */}
+                  {aiRewrite.physical_level && aiRewrite.physical_level !== "light" && (
+                    <span className="text-sm px-3 py-1 rounded-full bg-muted text-muted-foreground">
+                      {physicalLevelLabels[aiRewrite.physical_level]?.emoji} {physicalLevelLabels[aiRewrite.physical_level]?.label}
+                    </span>
+                  )}
+                  {/* People needed - only show if >1 */}
+                  {(aiRewrite.people_needed ?? 1) > 1 && (
+                    <span className="text-sm px-3 py-1 rounded-full bg-muted text-muted-foreground">
+                      👥 {aiRewrite.people_needed} people
+                    </span>
+                  )}
                   <span
                     className={`text-sm px-3 py-1 rounded-full capitalize ${
                       urgencyColors[aiRewrite.urgency]
@@ -286,6 +424,13 @@ export function PostScreen() {
                     {aiRewrite.urgency}
                   </span>
                 </div>
+              )}
+
+              {/* Safety note if present */}
+              {aiRewrite.safety_note && !settings.simpleMode && (
+                <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
+                  ⚠️ {aiRewrite.safety_note}
+                </p>
               )}
               
               {/* Helper Preview - hidden in simple mode */}

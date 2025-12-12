@@ -16,10 +16,17 @@ export interface Task {
   status: string;
   created_at: string;
   updated_at?: string;
+  // Enhanced fields
+  availability_time?: string | null;
+  physical_level?: string | null;
+  people_needed?: number | null;
+  access_instructions?: string | null;
+  // Owner info
   owner?: {
     display_name: string | null;
     tasks_completed?: number;
     reliability_score?: number;
+    trust_tier?: string;
   };
   owner_display_name?: string | null;
   owner_trust_tier?: string | null;
@@ -45,6 +52,7 @@ export function useTasks() {
         owner: {
           display_name: task.owner_display_name,
           reliability_score: task.owner_reliability_score,
+          trust_tier: task.owner_trust_tier,
         },
         distance: null,
       }));
@@ -80,6 +88,10 @@ export function useTasks() {
     time_estimate?: string;
     urgency?: string;
     category?: string;
+    availability_time?: string;
+    physical_level?: string;
+    people_needed?: number;
+    access_instructions?: string;
   }) => {
     if (!profile) return { error: new Error("No profile") };
 

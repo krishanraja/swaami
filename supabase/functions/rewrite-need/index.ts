@@ -53,6 +53,7 @@ function checkContentSafety(content: string): { safe: boolean; reason?: string; 
 
 const VALID_CATEGORIES = ["groceries", "tech", "transport", "cooking", "pets", "handyman", "childcare", "language", "medical", "garden", "other"];
 const VALID_URGENCIES = ["urgent", "normal", "flexible"];
+const VALID_PHYSICAL_LEVELS = ["light", "moderate", "heavy"];
 
 interface AIResponse {
   title?: string;
@@ -61,10 +62,27 @@ interface AIResponse {
   category?: string;
   urgency?: string;
   safety_note?: string | null;
+  availability_time?: string;
+  physical_level?: string;
+  people_needed?: number;
+  access_instructions?: string;
+  clarification_needed?: {
+    question: string;
+    options: string[];
+    field: string;
+  };
 }
 
 function validateAIResponse(response: AIResponse, requestId: string): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
+
+  // If clarification needed, that's a valid response
+  if (response.clarification_needed) {
+    if (!response.clarification_needed.question || !response.clarification_needed.options) {
+      errors.push("Invalid clarification structure");
+    }
+    return { valid: errors.length === 0, errors };
+  }
 
   if (!response.title || typeof response.title !== "string") {
     errors.push("Missing or invalid title");
@@ -86,6 +104,10 @@ function validateAIResponse(response: AIResponse, requestId: string): { valid: b
 
   if (!response.urgency || !VALID_URGENCIES.includes(response.urgency)) {
     errors.push(`Invalid urgency: ${response.urgency}`);
+  }
+
+  if (response.physical_level && !VALID_PHYSICAL_LEVELS.includes(response.physical_level)) {
+    response.physical_level = "light"; // Default fallback
   }
 
   if (errors.length > 0) {
@@ -118,12 +140,13 @@ serve(async (req) => {
   try {
     // Parse request
     const body = await req.json();
-    const { description, type = "rewrite" } = body;
+    const { description, type = "rewrite", clarification_context } = body;
 
     log(requestId, "INFO", "REQUEST_PARSED", {
       type,
       descriptionLength: description?.length ?? 0,
       hasDescription: !!description,
+      hasClarificationContext: !!clarification_context,
     });
 
     // Content safety check for rewrite requests
@@ -164,43 +187,76 @@ serve(async (req) => {
     let userPrompt = "";
 
     if (type === "rewrite") {
-      systemPrompt = `You are a helpful assistant that rewrites informal need descriptions into clear, structured task posts for a neighborhood help app called Swaami.
+      systemPrompt = `You are a smart assistant that helps neighbors post clear, helpful task requests on Swaami, a neighborhood micro-help app.
 
 Your job is to:
-1. Extract the core task from messy/informal text
-2. Create a clear, friendly title (max 50 chars)
-3. Write a helpful description that includes key details
-4. Estimate time needed (max 45 minutes - this is a micro-help app)
-5. Suggest the best category
-6. Determine urgency based on context
-7. Add a safety reminder if this involves meeting in person
+1. Analyze the input for COMPLETENESS - do you have enough info for a volunteer to decide if they can help?
+2. If CRITICAL INFO IS MISSING, ask ONE clarifying question with quick-tap options
+3. If you have enough info, create a structured task post with smart inferences
+
+CRITICAL INFO CHECKLIST - Does the request specify:
+- WHAT they need (required - if missing, you can't proceed)
+- WHEN they need it (if missing, ask - timing matters for volunteers!)
+- SIZE/SCOPE for physical tasks (lifting, moving, carrying - ask about size/weight if unclear)
+- LOCATION context for pickup/delivery tasks (which store, how far, etc.)
+
+SMART INFERENCE RULES - Extract these from context:
+- Timing: "this arvo" → "Today afternoon", "tomorrow morning" → "Tomorrow AM", "ASAP" → "Now", "whenever" → "Flexible"
+- Physical level: "carry groceries" → "light", "move furniture" → "moderate", "move couch upstairs" → "heavy"
+- People needed: Single item → 1, Large furniture → 2, Moving multiple heavy items → 2-3
+- Urgency: "urgent", "ASAP", "now" → "urgent", normal requests → "normal", "no rush" → "flexible"
 
 Categories: groceries, tech, transport, cooking, pets, handyman, childcare, language, medical, garden, other
 
-QUALITY STANDARDS:
-- GROUNDED: Only include information present in the original request. If crucial info is missing, note it.
-- ACTIONABLE: The helper must know exactly what to do from reading this.
-- SPECIFIC: Reference exact details from the input, not generic placeholders.
-- SAFE: Include safety notes for any in-person meetings.
-- CONCISE: This is micro-help. Keep title under 50 chars, description under 200.
+RESPONSE FORMAT:
 
-DO NOT:
-- Invent details not in the original (locations, times, specifics)
-- Suggest tasks that would take over 45 minutes
-- Use formal/corporate language - keep it neighborly
-- Ignore safety considerations for in-person tasks
-- Generate generic filler text like "great opportunity"
-
-Return ONLY valid JSON with this structure:
+If asking for clarification, return:
 {
-  "title": "string",
-  "description": "string",
-  "time_estimate": "string (e.g., '15-20 mins', max '45 mins')",
-  "category": "string",
-  "urgency": "urgent" | "normal" | "flexible",
-  "safety_note": "string or null (e.g., 'Meet in a public place')"
-}`;
-      userPrompt = `Rewrite this informal need into a structured task post:\n\n"${description}"`;
+  "clarification_needed": {
+    "question": "Clear, friendly question",
+    "options": ["Option 1", "Option 2", "Option 3", "Other"],
+    "field": "field_name being clarified (e.g., 'timing', 'size', 'location')"
+  },
+  "partial_inference": {
+    "category": "inferred category",
+    "physical_level": "light|moderate|heavy if applicable",
+    "urgency": "inferred urgency"
+  }
+}
+
+If complete, return:
+{
+  "title": "Clear title under 50 chars",
+  "description": "Helpful description with key details, 200 chars max",
+  "time_estimate": "e.g., '15-20 mins' (max 45 mins - this is micro-help)",
+  "category": "one of the valid categories",
+  "urgency": "urgent|normal|flexible",
+  "availability_time": "When they need it (e.g., 'Now', 'Today 3-5pm', 'Tomorrow morning', 'This week - flexible')",
+  "physical_level": "light|moderate|heavy",
+  "people_needed": 1-3,
+  "access_instructions": "Optional: How to meet/access if applicable",
+  "safety_note": "Optional safety reminder for in-person meetings"
+}
+
+QUALITY RULES:
+- GROUNDED: Only include info present in the request. If missing, ask or note it.
+- ACTIONABLE: Volunteer must know exactly what to do.
+- SPECIFIC: Reference actual details, not generic placeholders.
+- NEIGHBORLY: Friendly tone, not corporate.
+- ASK SMART QUESTIONS: One question at a time, with 3-4 quick-tap options.`;
+
+      if (clarification_context) {
+        // This is a follow-up after user answered a question
+        userPrompt = `Original request: "${description}"
+
+User's clarification: ${clarification_context}
+
+Now create the complete structured task post with this additional context.`;
+      } else {
+        userPrompt = `Analyze this request and either ask a clarifying question if critical info is missing, or create a structured task post:
+
+"${description}"`;
+      }
     } else if (type === "generate") {
       systemPrompt = `You are a creative assistant for Swaami, a neighborhood help app. Generate realistic, diverse sample needs that neighbors might post. Make them feel authentic and varied. All tasks should be completable in under 45 minutes.
 
@@ -219,6 +275,9 @@ Return ONLY valid JSON array with 3-5 needs:
   "time_estimate": "string (max 45 mins)",
   "category": "string",
   "urgency": "urgent" | "normal" | "flexible",
+  "availability_time": "When needed",
+  "physical_level": "light|moderate|heavy",
+  "people_needed": 1,
   "distance": number (50-800 meters)
 }]`;
       userPrompt = "Generate 4 diverse, realistic sample needs for a neighborhood help feed.";
@@ -229,6 +288,7 @@ Return ONLY valid JSON array with 3-5 needs:
       type,
       model: "google/gemini-2.5-flash",
       promptLength: systemPrompt.length + userPrompt.length,
+      hasClarificationContext: !!clarification_context,
     });
 
     const aiStartTime = Date.now();
@@ -312,6 +372,13 @@ Return ONLY valid JSON array with 3-5 needs:
         log(requestId, "WARN", "AI_VALIDATION_FAILED", { errors: validation.errors });
         // Continue anyway but log the issues
       }
+      
+      // Apply defaults for optional fields
+      if (!result.clarification_needed) {
+        result.physical_level = result.physical_level || "light";
+        result.people_needed = result.people_needed || 1;
+        result.availability_time = result.availability_time || "Flexible";
+      }
     }
 
     const totalDuration = Date.now() - startTime;
@@ -322,6 +389,7 @@ Return ONLY valid JSON array with 3-5 needs:
       aiLatencyMs: aiLatency,
       resultType: Array.isArray(result) ? "array" : "object",
       resultCount: Array.isArray(result) ? result.length : 1,
+      hasClarification: !!result.clarification_needed,
     });
 
     return new Response(JSON.stringify({ result }), {
