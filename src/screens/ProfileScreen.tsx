@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { AppHeader } from "@/components/AppHeader";
 import { SKILLS } from "@/types/swaami";
 import { Settings, Star, MapPin, Clock, History, ChevronRight } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
@@ -8,7 +9,6 @@ import { RadiusSlider } from "@/components/RadiusSlider";
 import { AvailabilitySelector } from "@/components/AvailabilitySelector";
 import { SkillChip } from "@/components/SkillChip";
 import { toast } from "sonner";
-import swaamiIcon from "@/assets/swaami-icon.png";
 
 interface ProfileScreenProps {
   onLogout: () => void;
@@ -76,17 +76,14 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
 
   return (
     <div className="h-[100dvh] overflow-hidden bg-background flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
-        <div className="px-4 py-4 max-w-lg mx-auto flex items-center justify-between">
-          <img src={swaamiIcon} alt="Swaami" className="h-16 w-auto" />
+      <AppHeader
+        actions={
           <button className="p-2 hover:bg-muted rounded-xl transition-colors">
             <Settings className="w-5 h-5 text-muted-foreground" />
           </button>
-        </div>
-      </header>
+        }
+      />
 
-      {/* Content - scrollable */}
       <main className="flex-1 overflow-y-auto px-4 py-4 pb-24 max-w-lg mx-auto w-full">
         {/* User Info */}
         <div className="flex items-center gap-4 mb-6">
@@ -95,7 +92,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-foreground">
-              {profile.display_name || "Neighbor"}
+              {profile.display_name || "Neighbour"}
             </h2>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>

@@ -44,10 +44,10 @@ export function useTasks() {
     if (error) {
       console.error("Error fetching tasks:", error);
     } else {
-      // Add mock distance for now (would use geolocation in production)
+      // Distance will be null until we implement real geolocation
       const tasksWithDistance = (data || []).map(task => ({
         ...task,
-        distance: Math.floor(Math.random() * 700) + 50,
+        distance: null,
       }));
       setTasks(tasksWithDistance);
     }

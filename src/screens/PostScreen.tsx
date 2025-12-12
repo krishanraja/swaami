@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { AppHeader } from "@/components/AppHeader";
 import { toast } from "sonner";
 import { Sparkles, Check, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTasks } from "@/hooks/useTasks";
-import swaamiIcon from "@/assets/swaami-icon.png";
 
 interface AIRewrite {
   title: string;
@@ -43,7 +43,6 @@ export function PostScreen() {
       setAiRewrite(data.result);
     } catch (err: any) {
       console.error("AI rewrite error:", err);
-      // Fallback to simple formatting
       setAiRewrite({
         title: input.slice(0, 50),
         description: input,
@@ -81,7 +80,6 @@ export function PostScreen() {
       description: "Neighbours nearby will see your request",
     });
 
-    // Reset after animation
     setTimeout(() => {
       setInput("");
       setAiRewrite(null);
@@ -97,20 +95,14 @@ export function PostScreen() {
 
   const urgencyColors: Record<string, string> = {
     urgent: "bg-destructive/10 text-destructive",
-    normal: "bg-primary/10 text-primary-foreground",
+    normal: "bg-muted text-muted-foreground",
     flexible: "bg-muted text-muted-foreground",
   };
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
-        <div className="px-4 py-4 max-w-lg mx-auto">
-          <img src={swaamiIcon} alt="Swaami" className="h-16 w-auto" />
-        </div>
-      </header>
+      <AppHeader title="Post" />
 
-      {/* Content */}
       <main className="px-4 py-6 max-w-lg mx-auto">
         <h1 className="text-xl font-semibold text-foreground mb-1">
           Ask for help

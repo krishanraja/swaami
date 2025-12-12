@@ -41,9 +41,18 @@ const Index = () => {
     );
   }
 
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
   if (!user) {
-    navigate("/auth");
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
   }
 
   if (!hasCompletedOnboarding) {
@@ -53,7 +62,7 @@ const Index = () => {
   const renderScreen = () => {
     switch (activeTab) {
       case "feed":
-        return <FeedScreen />;
+        return <FeedScreen onNavigateToPost={() => setActiveTab("post")} />;
       case "post":
         return <PostScreen />;
       case "chats":
