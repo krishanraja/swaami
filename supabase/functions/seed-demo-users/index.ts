@@ -283,7 +283,7 @@ serve(async (req) => {
               reliability_score: parseFloat(reliabilityScore.toFixed(1)),
               radius: 5 + Math.floor(Math.random() * 10), // 5-15 min walk
               credits: 10 + Math.floor(Math.random() * 40), // 10-50 credits
-              availability: ["morning", "afternoon", "evening", "flexible"][Math.floor(Math.random() * 4)],
+              availability: ["now", "later", "this-week"][Math.floor(Math.random() * 3)],
               is_demo: true,
             })
             .select()

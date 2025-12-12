@@ -29,6 +29,7 @@ export interface Task {
     reliability_score?: number;
     trust_tier?: string;
     is_demo?: boolean;
+    photo_url?: string | null;
   };
   owner_display_name?: string | null;
   owner_trust_tier?: string | null;
@@ -58,6 +59,7 @@ export function useTasks() {
           reliability_score: task.owner_reliability_score,
           trust_tier: task.owner_trust_tier,
           is_demo: task.owner_is_demo,
+          photo_url: task.owner_photo_url,
         },
         distance: null,
       }));

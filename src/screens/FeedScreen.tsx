@@ -5,7 +5,8 @@ import { AppHeader } from "@/components/AppHeader";
 import { useTasks } from "@/hooks/useTasks";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import { RefreshCw, PlusCircle } from "lucide-react";
+import { RefreshCw, PlusCircle, FlaskConical } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 
 interface FeedScreenProps {
@@ -18,6 +19,7 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
   const { profile } = useProfile();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showDemoTasks, setShowDemoTasks] = useState(true);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -43,9 +45,11 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
   };
 
   const categories = ["groceries", "tech", "transport", "pets", "handyman"];
-  const filteredTasks = selectedCategory
-    ? tasks.filter((t) => t.category === selectedCategory)
-    : tasks;
+  
+  // Apply filters: category and demo toggle
+  const filteredTasks = tasks
+    .filter((t) => !selectedCategory || t.category === selectedCategory)
+    .filter((t) => showDemoTasks || !t.is_demo);
 
   return (
     <div className="h-[100dvh] overflow-hidden bg-background flex flex-col">
@@ -98,6 +102,16 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
                 {cat}
               </button>
             ))}
+            {/* Demo toggle */}
+            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-border">
+              <FlaskConical className="w-4 h-4 text-muted-foreground" />
+              <Switch
+                checked={showDemoTasks}
+                onCheckedChange={setShowDemoTasks}
+                className="data-[state=checked]:bg-muted"
+              />
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Samples</span>
+            </div>
           </div>
         </div>
       </div>

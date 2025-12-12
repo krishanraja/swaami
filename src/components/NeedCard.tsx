@@ -29,6 +29,7 @@ interface NeedCardProps {
       reliability_score?: number;
       trust_tier?: string;
       is_demo?: boolean;
+      photo_url?: string | null;
     };
     owner_trust_tier?: string | null;
   };
@@ -184,9 +185,17 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
           {/* Owner info with reputation and trust badges */}
           {task.owner && (
             <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
-              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium">
-                {task.owner.display_name?.[0]?.toUpperCase() || "?"}
-              </div>
+              {task.owner.photo_url ? (
+                <img 
+                  src={task.owner.photo_url} 
+                  alt={task.owner.display_name || "User"} 
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium">
+                  {task.owner.display_name?.[0]?.toUpperCase() || "?"}
+                </div>
+              )}
               <span className="text-sm text-foreground">
                 {task.owner.display_name || "Neighbor"}
               </span>
