@@ -42,7 +42,7 @@ export default function Landing() {
 
       {/* Content Container */}
       <div className="relative z-10 flex flex-col min-h-[100dvh]">
-        {/* Header - Wordmark Only */}
+        {/* Header - Wordmark with Tagline */}
         <header className="pt-safe px-6 py-8">
           <div className="animate-fade-in">
             <img
@@ -50,6 +50,12 @@ export default function Landing() {
               alt="Swaami"
               className="h-10 md:h-12 w-auto drop-shadow-2xl"
             />
+            <p 
+              className="text-sm md:text-base font-medium text-accent mt-1 tracking-wide"
+              style={{ textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}
+            >
+              serve all.
+            </p>
           </div>
         </header>
 
