@@ -21,6 +21,12 @@ const Index = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
   const handleOnboardingComplete = () => {
     localStorage.setItem("swaami_onboarded", "true");
     setHasCompletedOnboarding(true);
@@ -40,12 +46,6 @@ const Index = () => {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate]);
 
   if (!user) {
     return (
