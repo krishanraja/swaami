@@ -21,12 +21,14 @@ export interface Task {
   physical_level?: string | null;
   people_needed?: number | null;
   access_instructions?: string | null;
+  is_demo?: boolean;
   // Owner info
   owner?: {
     display_name: string | null;
     tasks_completed?: number;
     reliability_score?: number;
     trust_tier?: string;
+    is_demo?: boolean;
   };
   owner_display_name?: string | null;
   owner_trust_tier?: string | null;
@@ -50,10 +52,12 @@ export function useTasks() {
       // Map RPC response to Task interface
       const allTasks = (data || []).map((task: any) => ({
         ...task,
+        is_demo: task.owner_is_demo,
         owner: {
           display_name: task.owner_display_name,
           reliability_score: task.owner_reliability_score,
           trust_tier: task.owner_trust_tier,
+          is_demo: task.owner_is_demo,
         },
         distance: null,
       }));
