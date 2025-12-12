@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
 import { SKILLS } from "@/types/swaami";
-import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard, Flame, FileText } from "lucide-react";
+import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard, Flame, FileText, Globe } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -16,6 +16,9 @@ import { SwaamiPlusBadge } from "@/components/SwaamiPlusBadge";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { TierProgress } from "@/components/TierProgress";
 import { NeedCard } from "@/components/NeedCard";
+import { CitySelector } from "@/components/onboarding/CitySelector";
+import { NeighbourhoodSelector } from "@/components/onboarding/NeighbourhoodSelector";
+import { CITY_CONFIG, type City } from "@/hooks/useNeighbourhoods";
 import { toast } from "sonner";
 
 interface ProfileScreenProps {
@@ -33,13 +36,24 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [editingRadius, setEditingRadius] = useState(false);
   const [editingAvailability, setEditingAvailability] = useState(false);
   const [editingSkills, setEditingSkills] = useState(false);
+  const [editingLocation, setEditingLocation] = useState(false);
   const [tempRadius, setTempRadius] = useState(profile?.radius || 500);
   const [tempAvailability, setTempAvailability] = useState<'now' | 'later' | 'this-week'>(
     (profile?.availability as 'now' | 'later' | 'this-week') || 'now'
   );
   const [tempSkills, setTempSkills] = useState<string[]>(profile?.skills || []);
+  const [tempCity, setTempCity] = useState<City | null>((profile?.city as City) || null);
+  const [tempNeighbourhood, setTempNeighbourhood] = useState(profile?.neighbourhood || "");
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+
+  // Sync temp values when profile loads
+  useEffect(() => {
+    if (profile) {
+      setTempCity((profile.city as City) || null);
+      setTempNeighbourhood(profile.neighbourhood || "");
+    }
+  }, [profile]);
 
   const userSkills = SKILLS.filter((s) => profile?.skills?.includes(s.id));
   const isPremium = plan === "swaami_plus";
@@ -79,6 +93,20 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
     } else {
       toast.success("Skills updated!");
       setEditingSkills(false);
+    }
+  };
+
+  const handleSaveLocation = async () => {
+    if (!tempCity || !tempNeighbourhood) {
+      toast.error("Please select both city and suburb");
+      return;
+    }
+    const { error } = await updateProfile({ city: tempCity, neighbourhood: tempNeighbourhood });
+    if (error) {
+      toast.error("Couldn't update location");
+    } else {
+      toast.success("Location updated!");
+      setEditingLocation(false);
     }
   };
 
@@ -246,6 +274,70 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
           </h2>
 
           <div className="bg-card border border-border rounded-xl divide-y divide-border">
+            {/* Location */}
+            <div className="p-4">
+              {editingLocation ? (
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-foreground">City</label>
+                    <CitySelector
+                      value={tempCity}
+                      onChange={(city) => {
+                        setTempCity(city);
+                        setTempNeighbourhood(""); // Reset neighbourhood when city changes
+                      }}
+                    />
+                  </div>
+                  {tempCity && (
+                    <div className="space-y-3">
+                      <label className="text-sm font-medium text-foreground">Suburb</label>
+                      <NeighbourhoodSelector
+                        city={tempCity}
+                        value={tempNeighbourhood}
+                        onChange={setTempNeighbourhood}
+                      />
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingLocation(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button variant="swaami" size="sm" onClick={handleSaveLocation}>
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setTempCity((profile.city as City) || null);
+                    setTempNeighbourhood(profile.neighbourhood || "");
+                    setEditingLocation(true);
+                  }}
+                  className="w-full flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                      <Globe className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-foreground">Location</p>
+                      <p className="text-sm text-muted-foreground">
+                        {profile.neighbourhood && profile.city
+                          ? `${profile.neighbourhood}, ${CITY_CONFIG[profile.city as City]?.label || profile.city}`
+                          : "Not set"}
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+
             {/* Radius */}
             <div className="p-4">
               {editingRadius ? (

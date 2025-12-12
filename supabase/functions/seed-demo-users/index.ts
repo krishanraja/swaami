@@ -203,6 +203,18 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Fetch neighbourhood coordinates for location-aware task creation
+    const { data: neighbourhoodData } = await supabase
+      .from("neighbourhoods")
+      .select("name, city, latitude, longitude");
+    
+    const neighbourhoodCoords: Record<string, { lat: number; lng: number }> = {};
+    (neighbourhoodData || []).forEach((n: any) => {
+      if (n.latitude && n.longitude) {
+        neighbourhoodCoords[`${n.city}:${n.name}`] = { lat: n.latitude, lng: n.longitude };
+      }
+    });
+
     const { action, count = 200, generatePhotos = true } = await req.json();
 
     if (action === "cleanup") {
@@ -390,6 +402,12 @@ serve(async (req) => {
               "Tomorrow",
             ];
 
+            // Get coordinates for task location (with slight random offset)
+            const coordKey = `${city}:${neighbourhood}`;
+            const coords = neighbourhoodCoords[coordKey];
+            const locationLat = coords ? coords.lat + (Math.random() - 0.5) * 0.004 : null; // ~200m offset
+            const locationLng = coords ? coords.lng + (Math.random() - 0.5) * 0.004 : null;
+
             const { error: taskError } = await supabase.from("tasks").insert({
               owner_id: profile.id,
               title: template.title,
@@ -403,6 +421,8 @@ serve(async (req) => {
               availability_time: availabilityTimes[Math.floor(Math.random() * availabilityTimes.length)],
               people_needed: Math.random() > 0.9 ? 2 : 1,
               approx_address: neighbourhood,
+              location_lat: locationLat,
+              location_lng: locationLng,
             });
 
             if (!taskError) {

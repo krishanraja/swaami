@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "./useProfile";
+import { useNeighbourhoods, type City } from "./useNeighbourhoods";
 
 export interface Task {
   id: string;
@@ -42,10 +43,46 @@ export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Fetch user's neighbourhood coordinates
+  const { data: neighbourhoods = [] } = useNeighbourhoods((profile?.city as City) || null);
+
+  // Update user location when profile or neighbourhoods change
+  useEffect(() => {
+    if (profile?.neighbourhood && neighbourhoods.length > 0) {
+      const userNeighbourhood = neighbourhoods.find(
+        (n) => n.name === profile.neighbourhood
+      );
+      if (userNeighbourhood?.latitude && userNeighbourhood?.longitude) {
+        setUserLocation({
+          lat: userNeighbourhood.latitude,
+          lng: userNeighbourhood.longitude,
+        });
+      }
+    }
+  }, [profile?.neighbourhood, neighbourhoods]);
 
   const fetchTasks = useCallback(async () => {
-    // Use secure RPC function that hides precise location data
-    const { data, error } = await supabase.rpc("get_public_tasks");
+    let data: any[] | null = null;
+    let error: any = null;
+
+    // Use location-based filtering if user has location set
+    if (userLocation && profile?.radius) {
+      const radiusKm = (profile.radius || 500) / 1000; // Convert meters to km
+      const result = await supabase.rpc("get_nearby_tasks", {
+        user_lat: userLocation.lat,
+        user_lng: userLocation.lng,
+        radius_km: radiusKm,
+      });
+      data = result.data;
+      error = result.error;
+    } else {
+      // Fallback to non-location-based query
+      const result = await supabase.rpc("get_public_tasks");
+      data = result.data;
+      error = result.error;
+    }
 
     if (error) {
       console.error("Error fetching tasks:", error);
@@ -61,7 +98,7 @@ export function useTasks() {
           is_demo: task.owner_is_demo,
           photo_url: task.owner_photo_url,
         },
-        distance: null,
+        distance: task.distance_km != null ? Math.round(task.distance_km * 1000) : null, // Convert to meters
       }));
       
       // Separate own tasks from others' tasks
@@ -76,7 +113,7 @@ export function useTasks() {
       }
     }
     setLoading(false);
-  }, [profile?.id]);
+  }, [profile?.id, profile?.radius, userLocation]);
 
   useEffect(() => {
     fetchTasks();

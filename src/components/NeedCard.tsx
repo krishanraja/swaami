@@ -145,11 +145,11 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
             </div>
           )}
 
-          {/* Meta info with walk time */}
+          {/* Meta info with walk time and distance */}
           <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1 font-medium text-foreground">
               <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-              {walkTimeDisplay}
+              {task.distance != null ? `${(task.distance / 1000).toFixed(1)} km` : walkTimeDisplay}
             </span>
             <span>·</span>
             <span className="flex items-center gap-1">
