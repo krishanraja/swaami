@@ -33,7 +33,7 @@ const Index = () => {
 
   const handleLogout = async () => {
     await signOut();
-    navigate("/auth");
+    navigate("/");
   };
 
   const isLoading = authLoading || profileLoading;
