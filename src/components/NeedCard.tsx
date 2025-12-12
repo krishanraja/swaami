@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, Star, Flame, Sparkles, Users, Shield, CheckCircle, FlaskConical } from "lucide-react";
+import { Clock, Star, Flame, Sparkles, Users, Shield, CheckCircle, FlaskConical, ChevronDown, ChevronUp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { calculateWalkTime } from "@/lib/walkTime";
 import { ReadAloudButton } from "@/components/ReadAloudButton";
@@ -41,6 +42,8 @@ interface NeedCardProps {
 }
 
 export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOwner = false }: NeedCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
   const timeAgo = task.created_at
     ? formatDistanceToNow(new Date(task.created_at), { addSuffix: true })
     : null;
@@ -133,9 +136,27 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
           <h3 className="font-semibold text-foreground text-base leading-tight mb-1">
             {task.title}
           </h3>
-          <p className="text-muted-foreground text-sm line-clamp-2 mb-3">
-            {task.description}
-          </p>
+          <div className="mb-3">
+            <p className={`text-muted-foreground text-sm ${!isExpanded ? 'line-clamp-2' : ''}`}>
+              {task.description}
+            </p>
+            {task.description && task.description.length > 80 && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 mt-1 transition-colors"
+              >
+                {isExpanded ? (
+                  <>
+                    Show less <ChevronUp className="w-3 h-3" />
+                  </>
+                ) : (
+                  <>
+                    Read more <ChevronDown className="w-3 h-3" />
+                  </>
+                )}
+              </button>
+            )}
+          </div>
 
           {/* Availability time - prominent if present */}
           {task.availability_time && task.availability_time !== "Flexible" && (
