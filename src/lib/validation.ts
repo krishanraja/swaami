@@ -52,10 +52,10 @@ export const phoneSchema = z
   .max(15)
   .regex(/^[0-9+\-\s()]+$/, 'Invalid phone number format');
 
-// OTP validation
+// OTP validation (6-digit codes)
 export const otpSchema = z
   .string()
-  .length(4, 'OTP must be exactly 4 digits')
+  .length(6, 'OTP must be exactly 6 digits')
   .regex(/^[0-9]+$/, 'OTP must contain only numbers');
 
 // Validation helpers
