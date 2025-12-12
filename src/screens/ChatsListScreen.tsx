@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { MessageCircle } from "lucide-react";
+import { AppHeader } from "@/components/AppHeader";
 import { useMatches } from "@/hooks/useMatches";
 import { useProfile } from "@/hooks/useProfile";
-import swaamiIcon from "@/assets/swaami-icon.png";
 
 export function ChatsListScreen() {
   const navigate = useNavigate();
@@ -13,21 +13,26 @@ export function ChatsListScreen() {
     (m) => m.status !== "cancelled" && m.task
   );
 
+  const statusColors: Record<string, string> = {
+    pending: "bg-[hsl(var(--status-pending))]/10 text-[hsl(var(--status-pending))]",
+    accepted: "bg-[hsl(var(--status-active))]/10 text-[hsl(var(--status-active))]",
+    arrived: "bg-primary/10 text-primary-foreground",
+    completed: "bg-accent/10 text-accent",
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
-        <div className="px-4 py-4 max-w-lg mx-auto flex items-center justify-between">
-          <img src={swaamiIcon} alt="Swaami" className="h-12 w-auto" />
-          <h1 className="text-lg font-semibold text-foreground">Chats</h1>
-        </div>
-      </header>
+      <AppHeader title="Chats" />
 
-      {/* Content */}
       <main className="px-4 py-6 max-w-lg mx-auto">
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-pulse text-muted-foreground">Loading chats...</div>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-20 bg-muted rounded-xl animate-pulse"
+              />
+            ))}
           </div>
         ) : activeMatches.length === 0 ? (
           <div className="text-center py-12">
@@ -44,12 +49,6 @@ export function ChatsListScreen() {
             {activeMatches.map((match) => {
               const isHelper = match.helper_id === profile?.id;
               const otherPerson = isHelper ? match.task?.owner : match.helper;
-              const statusColors: Record<string, string> = {
-                pending: "bg-yellow-500/10 text-yellow-600",
-                accepted: "bg-blue-500/10 text-blue-600",
-                arrived: "bg-purple-500/10 text-purple-600",
-                completed: "bg-accent/10 text-accent",
-              };
 
               return (
                 <button

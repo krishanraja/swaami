@@ -32,6 +32,11 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
+    /* Status colors */
+    --status-pending: 45 100% 50%;
+    --status-active: 200 80% 50%;
+    --status-success: 145 43% 59%;
+
     --border: 0 0% 91%;
     --input: 0 0% 91%;
     --ring: 54 91% 85%;

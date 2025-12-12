@@ -61,7 +61,7 @@ export function NeedCard({ task, onHelp }: NeedCardProps) {
           <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-              {task.walkTime || `${task.distance}m`}
+              {task.walkTime || "Nearby"}
             </span>
             <span>·</span>
             <span className="flex items-center gap-1">

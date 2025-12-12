@@ -137,7 +137,7 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-primary flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header with back button */}
       <div className="shrink-0 p-4">
         {canGoBack && (
