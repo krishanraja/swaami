@@ -138,7 +138,7 @@ export default function Auth() {
     <div className="h-[100dvh] overflow-hidden bg-background flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm flex flex-col gap-6">
         <div className="text-center">
-          <img src={swaamiIcon} alt="Swaami" className="h-24 w-auto mx-auto mb-4" />
+          <img src={swaamiIcon} alt="Swaami" className="h-12 w-auto mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground">
             {isLogin ? "Welcome back" : "Join Swaami"}
           </h1>

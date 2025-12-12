@@ -113,6 +113,15 @@
   .pt-safe {
     padding-top: max(1rem, env(safe-area-inset-top));
   }
+
+  /* Text shadow utilities for video/image overlays */
+  .text-shadow-hero {
+    text-shadow: 0 2px 20px rgba(0,0,0,0.8), 0 4px 40px rgba(0,0,0,0.5);
+  }
+
+  .text-shadow-sub {
+    text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+  }
 }
 
 /* Swaami specific animations */

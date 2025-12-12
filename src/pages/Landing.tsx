@@ -1,27 +1,25 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { MapPin, ArrowRight, Shield, Clock, Users } from "lucide-react";
+import { ArrowRight, Shield, Heart } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import swaamiWordmark from "@/assets/swaami-wordmark.png";
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [nearbyCount, setNearbyCount] = useState(0);
+  const { user, loading } = useAuth();
 
-  // Simulate nearby helpers count with gentle animation
+  // Redirect logged-in users to app
   useEffect(() => {
-    const target = Math.floor(Math.random() * 12) + 8; // 8-19 helpers
-    let current = 0;
-    const interval = setInterval(() => {
-      if (current < target) {
-        current++;
-        setNearbyCount(current);
-      } else {
-        clearInterval(interval);
-      }
-    }, 80);
-    return () => clearInterval(interval);
-  }, []);
+    if (!loading && user) {
+      navigate("/app");
+    }
+  }, [user, loading, navigate]);
+
+  // Show nothing while checking auth to prevent flash
+  if (loading) {
+    return null;
+  }
 
   return (
     <div className="min-h-[100dvh] w-full overflow-hidden bg-background flex flex-col relative">
@@ -50,16 +48,13 @@ export default function Landing() {
               alt="Swaami"
               className="h-10 md:h-12 w-auto drop-shadow-2xl"
             />
-            <p 
-              className="text-sm md:text-base font-medium text-accent mt-1 tracking-wide"
-              style={{ textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}
-            >
+            <p className="text-sm md:text-base font-medium text-accent mt-1 tracking-wide text-shadow-sub">
               serve all.
             </p>
           </div>
         </header>
 
-        {/* Main Hero Content - Open Layout with Text Shadows */}
+        {/* Main Hero Content */}
         <main className="flex-1 flex flex-col justify-center px-6 py-6 max-w-lg mx-auto w-full">
           <div 
             className="animate-fade-in"
@@ -67,52 +62,25 @@ export default function Landing() {
           >
             {/* Headline */}
             <div className="space-y-4 mb-8">
-              <h1 
-                className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight font-display"
-                style={{ textShadow: "0 2px 20px rgba(0,0,0,0.8), 0 4px 40px rgba(0,0,0,0.5)" }}
-              >
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight font-display text-shadow-hero">
                 Get help from verified neighbours{" "}
                 <span className="text-accent">in minutes.</span>
               </h1>
               
-              <p 
-                className="text-lg md:text-xl text-white/90"
-                style={{ textShadow: "0 2px 12px rgba(0,0,0,0.7)" }}
-              >
+              <p className="text-lg md:text-xl text-white/90 text-shadow-sub">
                 Quick favours. Trusted faces. Walking distance.
               </p>
             </div>
 
-            {/* Live Activity Indicator */}
-            <div className="mb-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-black/30 backdrop-blur-sm border border-white/20">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-                </span>
-                <MapPin className="h-4 w-4 text-white/80" />
-                <span 
-                  className="text-sm font-medium text-white"
-                  style={{ textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}
-                >
-                  {nearbyCount} neighbours helping nearby
-                </span>
-              </div>
-            </div>
-
-            {/* Trust Badges */}
-            <div className="flex flex-wrap gap-x-5 gap-y-3">
-              <div className="flex items-center gap-1.5 text-sm text-white/90" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}>
+            {/* Trust Badges - simplified to 2 */}
+            <div className="flex flex-wrap gap-x-6 gap-y-3">
+              <div className="flex items-center gap-1.5 text-sm text-white/90 text-shadow-sub">
                 <Shield className="h-4 w-4 text-accent drop-shadow-lg" />
-                <span>Verified members</span>
+                <span>Verified neighbours</span>
               </div>
-              <div className="flex items-center gap-1.5 text-sm text-white/90" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}>
-                <Clock className="h-4 w-4 text-accent drop-shadow-lg" />
-                <span>Response in minutes</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-sm text-white/90" style={{ textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}>
-                <Users className="h-4 w-4 text-accent drop-shadow-lg" />
-                <span>100% free</span>
+              <div className="flex items-center gap-1.5 text-sm text-white/90 text-shadow-sub">
+                <Heart className="h-4 w-4 text-accent drop-shadow-lg" />
+                <span>Free, always</span>
               </div>
             </div>
           </div>
@@ -123,15 +91,20 @@ export default function Landing() {
           className="px-6 pb-safe pt-4 bg-gradient-to-t from-background via-background/95 to-transparent animate-fade-in"
           style={{ animationDelay: "500ms" }}
         >
-          <div className="max-w-lg mx-auto w-full space-y-3 pb-4">
+          <div className="max-w-lg mx-auto w-full space-y-2 pb-4">
             <Button
               onClick={() => navigate("/auth?mode=signup")}
-              size="lg"
-              className="w-full h-14 text-lg font-semibold bg-accent hover:bg-accent/90 text-accent-foreground rounded-2xl shadow-lg shadow-accent/20 font-display"
+              variant="swaami"
+              size="xl"
+              className="w-full h-14 text-lg font-semibold rounded-2xl shadow-lg"
             >
-              Find Help Near You
+              Join Your Neighbourhood
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
+            
+            <p className="text-center text-xs text-muted-foreground">
+              Takes 2 minutes. No credit card.
+            </p>
 
             <Button
               onClick={() => navigate("/auth?mode=login")}
