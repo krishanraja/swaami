@@ -48,7 +48,7 @@ export default function Landing() {
               alt="Swaami"
               className="h-10 md:h-12 w-auto drop-shadow-2xl"
             />
-            <p className="text-sm md:text-base font-medium text-accent mt-1 tracking-wide text-shadow-sub">
+            <p className="text-sm md:text-base font-medium text-primary mt-1 tracking-wide text-shadow-sub">
               serve all.
             </p>
           </div>
