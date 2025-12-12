@@ -44,17 +44,17 @@ export default function Landing() {
       {/* Content Container */}
       <div className="relative z-10 flex flex-col min-h-[100dvh]">
         {/* Header - Large Logo */}
-        <header className="pt-safe px-6 py-6 flex justify-center">
-          <div className="animate-fade-in flex items-center gap-4">
+        <header className="pt-safe px-6 py-6">
+          <div className="animate-fade-in flex items-center gap-3 max-w-[75%]">
             <img
               src={swaamiIcon}
               alt=""
-              className="h-24 md:h-32 w-auto drop-shadow-2xl"
+              className="h-20 md:h-24 w-auto drop-shadow-2xl flex-shrink-0"
             />
             <img
               src={swaamiWordmark}
               alt="Swaami"
-              className="h-16 md:h-20 w-auto drop-shadow-2xl"
+              className="h-20 md:h-24 w-auto drop-shadow-2xl"
             />
           </div>
         </header>
