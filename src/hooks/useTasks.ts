@@ -98,6 +98,9 @@ export function useTasks() {
   const helpWithTask = async (taskId: string) => {
     if (!profile) return { error: new Error("No profile") };
 
+    // Get the task details for the auto-intro message
+    const task = tasks.find(t => t.id === taskId);
+
     // Create a match
     const { data: match, error: matchError } = await supabase
       .from("matches")
@@ -117,7 +120,20 @@ export function useTasks() {
       .update({ status: "matched", helper_id: profile.id })
       .eq("id", taskId);
 
-    return { data: match, error: taskError };
+    if (taskError) return { data: match, error: taskError };
+
+    // Send auto-intro message
+    const introMessage = task 
+      ? `Hi! I can help with "${task.title}". I'm on my way! 👋`
+      : "Hi! I'm here to help. On my way! 👋";
+
+    await supabase.from("messages").insert({
+      match_id: match.id,
+      sender_id: profile.id,
+      content: introMessage,
+    });
+
+    return { data: match, error: null };
   };
 
   return { tasks, loading, fetchTasks, createTask, helpWithTask };

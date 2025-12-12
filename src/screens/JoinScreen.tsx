@@ -8,19 +8,20 @@ import { CitySelector } from "@/components/onboarding/CitySelector";
 import { NeighbourhoodSelector } from "@/components/onboarding/NeighbourhoodSelector";
 import { PhoneInput, isValidPhone } from "@/components/onboarding/PhoneInput";
 import { SKILLS } from "@/types/swaami";
-import { City, CITY_CONFIG } from "@/hooks/useNeighbourhoods";
+import { City } from "@/hooks/useNeighbourhoods";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CheckCircle, ArrowLeft, Shield, MapPin, Heart } from "lucide-react";
+import { Loader2, CheckCircle, ArrowLeft, Shield, MapPin, Heart, Gift } from "lucide-react";
 import swaamiIcon from "@/assets/swaami-icon.png";
 
 interface JoinScreenProps {
   onComplete: () => void;
 }
 
-type Step = 'welcome' | 'city' | 'neighbourhood' | 'phone' | 'otp' | 'radius' | 'skills' | 'availability';
+// Streamlined 4-step flow: Welcome → Location → Phone → Skills+Preferences
+type Step = 'welcome' | 'location' | 'phone' | 'otp' | 'preferences';
 
-const STEPS: Step[] = ['welcome', 'city', 'neighbourhood', 'phone', 'otp', 'radius', 'skills', 'availability'];
+const STEPS: Step[] = ['welcome', 'location', 'phone', 'otp', 'preferences'];
 
 export function JoinScreen({ onComplete }: JoinScreenProps) {
   const [step, setStep] = useState<Step>('welcome');
@@ -86,7 +87,7 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       if (data?.verified) {
         toast.success("Phone verified!");
         setPhoneVerified(true);
-        setStep('radius');
+        setStep('preferences');
       }
     } catch (error: any) {
       console.error("OTP verify error:", error);
@@ -126,7 +127,9 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
 
       if (error) throw error;
 
-      toast.success("Welcome to Swaami!");
+      toast.success("Welcome to Swaami! 🎉", {
+        description: "You've earned 5 credits to get started!"
+      });
       onComplete();
     } catch (error: any) {
       console.error("Profile update error:", error);
@@ -186,11 +189,20 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
                     <span>Give help, earn credits, get help back</span>
                   </div>
                 </div>
+                
+                {/* Welcome gift teaser */}
+                <div className="flex items-center gap-3 p-3 bg-accent/10 rounded-xl">
+                  <Gift className="h-5 w-5 text-accent shrink-0" />
+                  <span className="text-sm text-accent font-medium">
+                    Complete setup to get 5 free credits!
+                  </span>
+                </div>
+                
                 <Button
                   variant="swaami"
                   size="xl"
                   className="w-full"
-                  onClick={() => setStep('city')}
+                  onClick={() => setStep('location')}
                 >
                   Let's get started
                 </Button>
@@ -198,53 +210,41 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
             </div>
           )}
 
-          {step === 'city' && (
+          {/* Combined Location Step (City + Neighbourhood) */}
+          {step === 'location' && (
             <div className="animate-slide-up space-y-6">
               <div className="text-center">
                 <h1 className="text-2xl font-semibold text-foreground mb-2">
                   Where are you?
                 </h1>
                 <p className="text-muted-foreground">
-                  Select your city to get started
+                  We'll connect you with nearby neighbours
                 </p>
               </div>
               <div className="bg-card rounded-2xl p-6 border border-border space-y-4">
-                <CitySelector value={city} onChange={setCity} />
-                <Button
-                  variant="swaami"
-                  size="xl"
-                  className="w-full"
-                  onClick={() => setStep('neighbourhood')}
-                  disabled={!city}
-                >
-                  Continue
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 'neighbourhood' && city && (
-            <div className="animate-slide-up space-y-6">
-              <div className="text-center">
-                <h1 className="text-2xl font-semibold text-foreground mb-2">
-                  Your neighbourhood
-                </h1>
-                <p className="text-muted-foreground">
-                  Where do you call home?
-                </p>
-              </div>
-              <div className="bg-card rounded-2xl p-6 border border-border space-y-4">
-                <NeighbourhoodSelector
-                  city={city}
-                  value={neighbourhood}
-                  onChange={setNeighbourhood}
-                />
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground mb-2">City</p>
+                    <CitySelector value={city} onChange={setCity} />
+                  </div>
+                  
+                  {city && (
+                    <div className="animate-fade-in">
+                      <p className="text-sm font-medium text-foreground mb-2">Neighbourhood</p>
+                      <NeighbourhoodSelector
+                        city={city}
+                        value={neighbourhood}
+                        onChange={setNeighbourhood}
+                      />
+                    </div>
+                  )}
+                </div>
                 <Button
                   variant="swaami"
                   size="xl"
                   className="w-full"
                   onClick={() => setStep('phone')}
-                  disabled={!neighbourhood}
+                  disabled={!city || !neighbourhood}
                 >
                   Continue
                 </Button>
@@ -338,7 +338,8 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
             </div>
           )}
 
-          {step === 'radius' && (
+          {/* Combined Preferences Step (Radius + Skills + Availability) */}
+          {step === 'preferences' && (
             <div className="animate-slide-up space-y-6">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
@@ -346,78 +347,46 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
                   <span className="text-sm text-green-600">Phone verified</span>
                 </div>
                 <h1 className="text-2xl font-semibold text-foreground mb-2">
-                  Set your help radius
+                  Almost there!
                 </h1>
                 <p className="text-muted-foreground">
-                  How far are you willing to go?
+                  Set your preferences
                 </p>
               </div>
               <div className="bg-card rounded-2xl p-6 border border-border space-y-6">
-                <RadiusSlider value={radius} onChange={setRadius} />
+                {/* Radius */}
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-3">How far will you go to help?</p>
+                  <RadiusSlider value={radius} onChange={setRadius} />
+                </div>
+                
+                {/* Skills */}
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-3">What can you help with?</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SKILLS.map((skill) => (
+                      <SkillChip
+                        key={skill.id}
+                        skill={skill}
+                        selected={selectedSkills.includes(skill.id)}
+                        onToggle={() => toggleSkill(skill.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Availability */}
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-3">When are you usually available?</p>
+                  <AvailabilitySelector value={availability} onChange={setAvailability} />
+                </div>
+                
                 <Button
                   variant="swaami"
                   size="xl"
                   className="w-full"
-                  onClick={() => setStep('skills')}
-                >
-                  Continue
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 'skills' && (
-            <div className="animate-slide-up space-y-6">
-              <div className="text-center">
-                <h1 className="text-2xl font-semibold text-foreground mb-2">
-                  What can you help with?
-                </h1>
-                <p className="text-muted-foreground">
-                  Select your skills
-                </p>
-              </div>
-              <div className="bg-card rounded-2xl p-6 border border-border space-y-4">
-                <div className="flex flex-wrap gap-2 stagger-children">
-                  {SKILLS.map((skill) => (
-                    <SkillChip
-                      key={skill.id}
-                      skill={skill}
-                      selected={selectedSkills.includes(skill.id)}
-                      onToggle={() => toggleSkill(skill.id)}
-                    />
-                  ))}
-                </div>
-                <Button
-                  variant="swaami"
-                  size="xl"
-                  className="w-full mt-4"
-                  onClick={() => setStep('availability')}
-                  disabled={selectedSkills.length === 0}
-                >
-                  Continue
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {step === 'availability' && (
-            <div className="animate-slide-up space-y-6">
-              <div className="text-center">
-                <h1 className="text-2xl font-semibold text-foreground mb-2">
-                  When are you available?
-                </h1>
-                <p className="text-muted-foreground">
-                  Set your default availability
-                </p>
-              </div>
-              <div className="bg-card rounded-2xl p-6 border border-border space-y-4">
-                <AvailabilitySelector value={availability} onChange={setAvailability} />
-                <Button
-                  variant="swaami"
-                  size="xl"
-                  className="w-full mt-4"
                   onClick={handleComplete}
-                  disabled={loading}
+                  disabled={selectedSkills.length === 0 || loading}
                 >
                   {loading ? (
                     <>
@@ -425,7 +394,10 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
                       Saving...
                     </>
                   ) : (
-                    "Join Swaami"
+                    <>
+                      <Gift className="h-5 w-5 mr-2" />
+                      Join & Get 5 Credits
+                    </>
                   )}
                 </Button>
               </div>
@@ -434,19 +406,23 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
         </div>
       </div>
 
-      {/* Progress indicator */}
+      {/* Progress indicator - simplified for 4 steps */}
       <div className="shrink-0 pb-4 px-6">
         <div className="flex gap-2 justify-center">
-          {STEPS.map((s, i) => (
-            <div
-              key={s}
-              className={`h-1 rounded-full transition-all duration-300 ${
-                currentStepIndex >= i
-                  ? 'bg-foreground w-8'
-                  : 'bg-foreground/20 w-4'
-              }`}
-            />
-          ))}
+          {STEPS.filter(s => s !== 'otp').map((s, i) => {
+            const stepIndex = STEPS.indexOf(s);
+            const isActive = currentStepIndex >= stepIndex || (s === 'preferences' && step === 'otp');
+            return (
+              <div
+                key={s}
+                className={`h-1 rounded-full transition-all duration-300 ${
+                  isActive
+                    ? 'bg-foreground w-8'
+                    : 'bg-foreground/20 w-4'
+                }`}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
