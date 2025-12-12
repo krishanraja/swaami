@@ -329,6 +329,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          posts_reset_at: string
+          posts_used_this_month: number
+          status: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          posts_reset_at?: string
+          posts_used_this_month?: number
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          posts_reset_at?: string
+          posts_used_this_month?: number
+          status?: Database["public"]["Enums"]["subscription_status"]
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_verifications: {
         Row: {
           id: string
@@ -364,6 +406,7 @@ export type Database = {
       }
     }
     Enums: {
+      subscription_status: "free" | "active" | "cancelled" | "past_due"
       trust_tier: "tier_0" | "tier_1" | "tier_2"
       verification_type:
         | "email"
@@ -501,6 +544,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      subscription_status: ["free", "active", "cancelled", "past_due"],
       trust_tier: ["tier_0", "tier_1", "tier_2"],
       verification_type: [
         "email",

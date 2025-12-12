@@ -2,12 +2,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
 import { SKILLS } from "@/types/swaami";
-import { Settings, Star, MapPin, Clock, History, ChevronRight } from "lucide-react";
+import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { RadiusSlider } from "@/components/RadiusSlider";
 import { AvailabilitySelector } from "@/components/AvailabilitySelector";
 import { SkillChip } from "@/components/SkillChip";
+import { SwaamiPlusBadge } from "@/components/SwaamiPlusBadge";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { toast } from "sonner";
 
 interface ProfileScreenProps {
@@ -17,6 +20,8 @@ interface ProfileScreenProps {
 export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const { user } = useAuth();
   const { profile, loading, updateProfile } = useProfile();
+  const { plan, subscribed, subscriptionEnd, startCheckout, openCustomerPortal, loading: subLoading } = useSubscription();
+  
   const [editingRadius, setEditingRadius] = useState(false);
   const [editingAvailability, setEditingAvailability] = useState(false);
   const [editingSkills, setEditingSkills] = useState(false);
@@ -25,8 +30,11 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
     (profile?.availability as 'now' | 'later' | 'this-week') || 'now'
   );
   const [tempSkills, setTempSkills] = useState<string[]>(profile?.skills || []);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   const userSkills = SKILLS.filter((s) => profile?.skills?.includes(s.id));
+  const isPremium = plan === "swaami_plus";
 
   const handleSaveRadius = async () => {
     const { error } = await updateProfile({ radius: tempRadius });
@@ -66,6 +74,25 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
     }
   };
 
+  const handleUpgrade = async () => {
+    setUpgradeLoading(true);
+    try {
+      await startCheckout();
+    } catch (err) {
+      toast.error("Couldn't start checkout");
+    } finally {
+      setUpgradeLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    try {
+      await openCustomerPortal();
+    } catch (err) {
+      toast.error("Couldn't open subscription management");
+    }
+  };
+
   if (loading || !profile) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -91,12 +118,65 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
             {profile.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "?"}
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-foreground">
-              {profile.display_name || "Neighbour"}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-foreground">
+                {profile.display_name || "Neighbour"}
+              </h2>
+              {isPremium && <SwaamiPlusBadge />}
+            </div>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
         </div>
+
+        {/* Swaami+ Card */}
+        {isPremium ? (
+          <div className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-5 mb-6 text-white">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5" />
+                <span className="font-semibold">Swaami+</span>
+              </div>
+              <span className="text-sm opacity-80">Active</span>
+            </div>
+            <p className="text-sm opacity-90 mb-3">
+              Unlimited posts • 2km radius • Priority matching
+            </p>
+            {subscriptionEnd && (
+              <p className="text-xs opacity-70">
+                Renews {new Date(subscriptionEnd).toLocaleDateString()}
+              </p>
+            )}
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="mt-3 bg-white/20 hover:bg-white/30 text-white border-0"
+              onClick={handleManageSubscription}
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Manage subscription
+            </Button>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-5 mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-5 h-5 text-amber-600" />
+              <span className="font-semibold text-foreground">Upgrade to Swaami+</span>
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              Unlimited posts, 2km radius, and priority matching
+            </p>
+            <div className="flex items-center justify-between">
+              <span className="text-2xl font-bold text-foreground">$2<span className="text-sm font-normal text-muted-foreground">/mo</span></span>
+              <Button 
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                onClick={handleUpgrade}
+                disabled={upgradeLoading}
+              >
+                {upgradeLoading ? "Loading..." : "Upgrade"}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Credits */}
         <div className="bg-primary rounded-2xl p-6 mb-6 animate-fade-in">
@@ -150,7 +230,12 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
             <div className="p-4">
               {editingRadius ? (
                 <div className="space-y-4">
-                  <RadiusSlider value={tempRadius} onChange={setTempRadius} />
+                  <RadiusSlider 
+                    value={tempRadius} 
+                    onChange={setTempRadius}
+                    isPremium={isPremium}
+                    onUpgradeClick={() => setShowUpgrade(true)}
+                  />
                   <div className="flex gap-2">
                     <Button
                       variant="ghost"
@@ -326,6 +411,12 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
           </Button>
         </div>
       </main>
+
+      <UpgradePrompt
+        open={showUpgrade}
+        onOpenChange={setShowUpgrade}
+        trigger="radius"
+      />
     </div>
   );
 }
