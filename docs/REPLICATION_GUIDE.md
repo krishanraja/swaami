@@ -34,7 +34,9 @@ Add your own secrets in Cloud → Secrets:
 ## Step 3: Customize Branding
 
 ### Logo
-Replace `src/assets/swaami-logo.png` with your logo.
+Replace the logo files:
+- `src/assets/swaami-icon.png` - Icon used in app headers
+- `src/assets/swaami-wordmark.png` - Wordmark used alongside icon on landing page
 
 ### Colors
 Update `src/index.css`:
@@ -130,7 +132,7 @@ To add more storage:
 |---------|-----------------|
 | App name | `index.html`, Landing, Join screens |
 | Colors | `src/index.css`, `tailwind.config.ts` |
-| Logo | `src/assets/swaami-logo.png` |
+| Logo | `src/assets/swaami-icon.png`, `src/assets/swaami-wordmark.png` |
 | Categories | `rewrite-need`, NeedCard |
 | Max task time | `rewrite-need` prompt |
 | Radius default | RadiusSlider, profiles table |

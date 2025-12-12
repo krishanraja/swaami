@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { MapPin, ArrowRight, Shield, Clock, Users } from "lucide-react";
-import swaamiLogo from "@/assets/swaami-logo.png";
+import swaamiIcon from "@/assets/swaami-icon.png";
+import swaamiWordmark from "@/assets/swaami-wordmark.png";
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -44,11 +45,16 @@ export default function Landing() {
       <div className="relative z-10 flex flex-col min-h-[100dvh]">
         {/* Header - Large Logo */}
         <header className="pt-safe px-6 py-6 flex justify-center">
-          <div className="animate-fade-in">
+          <div className="animate-fade-in flex items-center gap-4">
             <img
-              src={swaamiLogo}
+              src={swaamiIcon}
+              alt=""
+              className="h-24 md:h-32 w-auto drop-shadow-2xl"
+            />
+            <img
+              src={swaamiWordmark}
               alt="Swaami"
-              className="h-48 md:h-56 w-auto drop-shadow-2xl"
+              className="h-16 md:h-20 w-auto drop-shadow-2xl"
             />
           </div>
         </header>

@@ -8,7 +8,7 @@ import { RadiusSlider } from "@/components/RadiusSlider";
 import { AvailabilitySelector } from "@/components/AvailabilitySelector";
 import { SkillChip } from "@/components/SkillChip";
 import { toast } from "sonner";
-import swaamiLogo from "@/assets/swaami-logo.png";
+import swaamiIcon from "@/assets/swaami-icon.png";
 
 interface ProfileScreenProps {
   onLogout: () => void;
@@ -79,7 +79,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
       {/* Header */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="px-4 py-4 max-w-lg mx-auto flex items-center justify-between">
-          <img src={swaamiLogo} alt="Swaami" className="h-16 w-auto" />
+          <img src={swaamiIcon} alt="Swaami" className="h-16 w-auto" />
           <button className="p-2 hover:bg-muted rounded-xl transition-colors">
             <Settings className="w-5 h-5 text-muted-foreground" />
           </button>

@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { MessageCircle } from "lucide-react";
 import { useMatches } from "@/hooks/useMatches";
 import { useProfile } from "@/hooks/useProfile";
-import swaamiLogo from "@/assets/swaami-logo.png";
+import swaamiIcon from "@/assets/swaami-icon.png";
 
 export function ChatsListScreen() {
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ export function ChatsListScreen() {
       {/* Header */}
       <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
         <div className="px-4 py-4 max-w-lg mx-auto flex items-center justify-between">
-          <img src={swaamiLogo} alt="Swaami" className="h-12 w-auto" />
+          <img src={swaamiIcon} alt="Swaami" className="h-12 w-auto" />
           <h1 className="text-lg font-semibold text-foreground">Chats</h1>
         </div>
       </header>
