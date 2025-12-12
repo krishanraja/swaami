@@ -3,21 +3,33 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import swaamiWordmark from "@/assets/swaami-wordmark.png";
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
 
-  // Redirect logged-in users to app
+  // Redirect logged-in users based on profile completeness
   useEffect(() => {
-    if (!loading && user) {
-      navigate("/app");
+    if (!authLoading && !profileLoading && user) {
+      const isProfileComplete = profile?.city && profile?.neighbourhood && profile?.phone && profile?.skills?.length > 0;
+      if (isProfileComplete) {
+        navigate("/app");
+      } else {
+        navigate("/join");
+      }
     }
-  }, [user, loading, navigate]);
+  }, [user, profile, authLoading, profileLoading, navigate]);
 
-  // Show nothing while checking auth to prevent flash
-  if (loading) {
+  // Show nothing while checking auth/profile to prevent flash
+  if (authLoading || profileLoading) {
+    return null;
+  }
+
+  // If user is logged in, we're redirecting - show nothing
+  if (user) {
     return null;
   }
 
@@ -80,7 +92,7 @@ export default function Landing() {
               </div>
               <div className="flex items-center gap-1.5 text-sm text-white/90 text-shadow-sub">
                 <Heart className="h-4 w-4 text-accent drop-shadow-lg" />
-                <span>Free, always</span>
+                <span>Free to start</span>
               </div>
             </div>
           </div>

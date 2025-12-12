@@ -7,12 +7,16 @@ export interface Profile {
   user_id: string;
   display_name: string | null;
   phone: string | null;
+  city: string | null;
+  neighbourhood: string | null;
   radius: number;
   skills: string[];
   availability: string;
   credits: number;
   tasks_completed: number;
   reliability_score: number;
+  trust_tier: "tier_0" | "tier_1" | "tier_2" | null;
+  is_demo: boolean | null;
   created_at: string;
   updated_at: string;
 }
