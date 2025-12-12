@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Join from "./pages/Join";
 import NotFound from "./pages/NotFound";
 import { ChatScreen } from "./screens/ChatScreen";
+import { VerificationScreen } from "./screens/VerificationScreen";
 
 const queryClient = new QueryClient();
 
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/join" element={<Join />} />
           <Route path="/chat/:matchId" element={<ChatScreen />} />
+          <Route path="/verify" element={<VerificationScreen />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
