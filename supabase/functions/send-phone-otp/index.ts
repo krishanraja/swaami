@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,10 +36,23 @@ interface OtpRequest {
   action: "send" | "verify";
   channel?: "sms" | "whatsapp";
   code?: string;
+  otp?: string; // Also accept 'otp' as alias for 'code'
 }
 
-// Simple in-memory OTP store (in production, use Redis or DB)
-const otpStore = new Map<string, { code: string; expiresAt: number; channel: string }>();
+// ============================================================================
+// SUPABASE CLIENT
+// ============================================================================
+
+function getSupabaseClient() {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Missing Supabase configuration");
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceKey);
+}
 
 // ============================================================================
 // UTILITIES
@@ -162,8 +176,11 @@ const handler = async (req: Request): Promise<Response> => {
   });
 
   try {
+    const supabase = getSupabaseClient();
     const body: OtpRequest = await req.json();
-    const { phone, action, channel = "sms", code } = body;
+    const { phone, action, channel = "sms" } = body;
+    // Accept both 'code' and 'otp' fields
+    const code = body.code || body.otp;
 
     log(requestId, "INFO", "REQUEST_PARSED", {
       action,
@@ -196,15 +213,37 @@ const handler = async (req: Request): Promise<Response> => {
         channel,
       });
 
-      // Generate and store OTP with channel info
+      // Generate OTP
       const otp = generateOtp();
-      const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes expiry
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes expiry
       
-      otpStore.set(phone, { code: otp, expiresAt, channel });
+      // Delete any existing OTPs for this phone first
+      await supabase
+        .from('otp_verifications')
+        .delete()
+        .eq('phone', phone);
       
-      log(requestId, "DEBUG", "OTP_GENERATED", {
-        expiresInSeconds: 300,
-        storeSize: otpStore.size,
+      // Store OTP in database
+      const { error: insertError } = await supabase
+        .from('otp_verifications')
+        .insert({
+          phone,
+          code: otp,
+          channel,
+          expires_at: expiresAt,
+        });
+
+      if (insertError) {
+        log(requestId, "ERROR", "OTP_STORE_FAILED", { error: insertError.message });
+        return new Response(
+          JSON.stringify({ error: "Failed to generate verification code" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      log(requestId, "DEBUG", "OTP_STORED", {
+        expiresAt,
+        channel,
       });
 
       // Send via selected channel
@@ -219,7 +258,10 @@ const handler = async (req: Request): Promise<Response> => {
         });
 
         // Clean up stored OTP on failure
-        otpStore.delete(phone);
+        await supabase
+          .from('otp_verifications')
+          .delete()
+          .eq('phone', phone);
 
         return new Response(
           JSON.stringify({ error: sendResult.error || `Failed to send ${channel} message` }),
@@ -257,10 +299,17 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      const stored = otpStore.get(phone);
+      // Look up OTP from database
+      const { data: stored, error: lookupError } = await supabase
+        .from('otp_verifications')
+        .select('*')
+        .eq('phone', phone)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
       
-      if (!stored) {
-        log(requestId, "WARN", "VERIFY_NO_OTP", { phone: maskPhone(phone) });
+      if (lookupError || !stored) {
+        log(requestId, "WARN", "VERIFY_NO_OTP", { phone: maskPhone(phone), error: lookupError?.message });
         return new Response(
           JSON.stringify({ error: "No OTP found for this number. Please request a new code." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -270,11 +319,16 @@ const handler = async (req: Request): Promise<Response> => {
       log(requestId, "DEBUG", "OTP_LOOKUP", {
         found: true,
         channel: stored.channel,
-        expired: Date.now() > stored.expiresAt,
+        expired: new Date() > new Date(stored.expires_at),
       });
 
-      if (Date.now() > stored.expiresAt) {
-        otpStore.delete(phone);
+      if (new Date() > new Date(stored.expires_at)) {
+        // Delete expired OTP
+        await supabase
+          .from('otp_verifications')
+          .delete()
+          .eq('id', stored.id);
+        
         log(requestId, "WARN", "VERIFY_EXPIRED", { phone: maskPhone(phone) });
         return new Response(
           JSON.stringify({ error: "OTP expired. Please request a new code." }),
@@ -290,9 +344,12 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      // OTP verified successfully - return which channel was used
+      // OTP verified successfully - delete it and return channel
       const verifiedChannel = stored.channel;
-      otpStore.delete(phone);
+      await supabase
+        .from('otp_verifications')
+        .delete()
+        .eq('id', stored.id);
 
       const duration = Date.now() - startTime;
       log(requestId, "INFO", "VERIFY_SUCCESS", {

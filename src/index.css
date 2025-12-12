@@ -59,10 +59,10 @@
 
     --radius: 1rem;
 
-    /* Custom Swaami tokens */
-    --swaami-yellow: 54 91% 85%;
-    --swaami-yellow-deep: 54 80% 55%;
-    --swaami-yellow-highlight: 54 91% 92%;
+    /* Custom Swaami tokens - improved contrast */
+    --swaami-yellow: 48 85% 70%;
+    --swaami-yellow-deep: 48 90% 50%;
+    --swaami-yellow-highlight: 48 85% 85%;
     --swaami-text: 0 0% 7%;
     --swaami-subtle: 0 0% 91%;
 
