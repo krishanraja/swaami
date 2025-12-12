@@ -203,3 +203,80 @@
 .stagger-children > *:nth-child(6) { animation-delay: 250ms; }
 .stagger-children > *:nth-child(7) { animation-delay: 300ms; }
 .stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+
+/* ============================================
+   ACCESSIBILITY MODES
+   ============================================ */
+
+/* Large Text Mode - 25% larger everything */
+.accessibility-large-text {
+  font-size: 1.25rem;
+}
+
+.accessibility-large-text h1 {
+  font-size: 2.5rem !important;
+}
+
+.accessibility-large-text h2 {
+  font-size: 2rem !important;
+}
+
+.accessibility-large-text h3 {
+  font-size: 1.5rem !important;
+}
+
+.accessibility-large-text p,
+.accessibility-large-text span,
+.accessibility-large-text label {
+  font-size: 1.125rem;
+}
+
+.accessibility-large-text button {
+  font-size: 1.125rem;
+  min-height: 3.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.accessibility-large-text input,
+.accessibility-large-text textarea {
+  font-size: 1.25rem;
+  min-height: 3.5rem;
+}
+
+.accessibility-large-text .text-xs {
+  font-size: 1rem !important;
+}
+
+.accessibility-large-text .text-sm {
+  font-size: 1.125rem !important;
+}
+
+/* High Contrast Mode - Stronger colors */
+.accessibility-high-contrast {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --muted-foreground: 0 0% 25%;
+  --primary: 48 100% 50%;
+  --accent: 145 60% 40%;
+  --border: 0 0% 50%;
+}
+
+.accessibility-high-contrast .text-muted-foreground {
+  color: hsl(0 0% 25%) !important;
+}
+
+.accessibility-high-contrast button {
+  border-width: 2px;
+  font-weight: 600;
+}
+
+.accessibility-high-contrast a {
+  text-decoration: underline;
+}
+
+/* Focus states for high contrast */
+.accessibility-high-contrast *:focus-visible {
+  outline: 3px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
