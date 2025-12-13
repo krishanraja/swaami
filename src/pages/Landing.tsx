@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Heart, LogOut, Users } from "lucide-react";
@@ -7,69 +7,63 @@ import { useProfile } from "@/hooks/useProfile";
 import { useLiveActivity } from "@/hooks/useLiveActivity";
 import { SplashScreen } from "@/components/SplashScreen";
 
-// Use public folder paths for preloaded assets (faster initial load)
 const swaamiWordmark = "/images/swaami-wordmark.png";
 const videoPoster = "/videos/swaami-poster.jpg";
 
+type LoadingPhase = "splash" | "ready";
+
 export default function Landing() {
-  const [showSplash, setShowSplash] = useState(true);
   const navigate = useNavigate();
   const { user, signOut, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const { tasksCompletedToday, activeHelpers, isLoading: activityLoading } = useLiveActivity();
+  
+  const [phase, setPhase] = useState<LoadingPhase>("splash");
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
-  // Hide splash after minimum display time and auth loads
+  // Single timer for minimum splash display
   useEffect(() => {
-    const minDisplayTime = 1500; // 1.5 seconds minimum
-    const timer = setTimeout(() => {
-      if (!authLoading) {
-        setShowSplash(false);
-      }
-    }, minDisplayTime);
-    
+    const timer = setTimeout(() => setMinTimeElapsed(true), 1400);
     return () => clearTimeout(timer);
-  }, [authLoading]);
+  }, []);
 
-  // Also hide splash when auth finishes after minimum time
+  // Transition to ready when both conditions met
   useEffect(() => {
-    if (!authLoading && !showSplash) return;
-    const timer = setTimeout(() => {
-      if (!authLoading) setShowSplash(false);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [authLoading, showSplash]);
+    if (minTimeElapsed && !authLoading && !profileLoading) {
+      // Small delay for smoother transition
+      const timer = setTimeout(() => setPhase("ready"), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [minTimeElapsed, authLoading, profileLoading]);
 
-  // Single unified loading state - wait for auth and profile together
-  const isLoading = authLoading || profileLoading;
+  // Derived state - computed once, no flicker
+  const isProfileComplete = useMemo(() => {
+    if (!profile) return false;
+    return !!(profile.city && profile.neighbourhood && profile.phone && profile.skills?.length > 0);
+  }, [profile]);
 
-  // Check profile completeness (safe access when profile is null)
-  const isProfileComplete = profile?.city && profile?.neighbourhood && profile?.phone && profile?.skills?.length > 0;
-
-  // Determine CTA based on user state
-  const getPrimaryCTA = () => {
+  const primaryCTA = useMemo(() => {
     if (!user) return { text: "Join Your Neighbourhood", path: "/auth?mode=signup" };
     if (isProfileComplete) return { text: "Go to Your Neighbourhood", path: "/app" };
     return { text: "Continue Your Setup", path: "/join" };
-  };
+  }, [user, isProfileComplete]);
 
-  const primaryCTA = getPrimaryCTA();
+  const hasActivityData = tasksCompletedToday > 0 || activeHelpers > 0;
+  const showActivity = !activityLoading && hasActivityData;
 
   const handleSignOut = async () => {
     await signOut();
   };
 
-  // Check if we have activity data to show
-  const hasActivityData = tasksCompletedToday > 0 || activeHelpers > 0;
+  // Render splash during splash phase
+  if (phase === "splash") {
+    return <SplashScreen />;
+  }
 
   return (
-    <>
-      {/* Splash Screen */}
-      {showSplash && <SplashScreen />}
-      
-      <div className="min-h-[100dvh] w-full overflow-hidden bg-background flex flex-col relative">
-      {/* Background with poster - shows immediately, never re-renders */}
+    <div className="min-h-[100dvh] w-full overflow-hidden bg-background flex flex-col relative">
+      {/* Background Layer - static, no re-renders */}
       <div className="absolute inset-0 z-0">
-        {/* Poster image - displays instantly while video loads */}
         <img
           src={videoPoster}
           alt=""
@@ -77,7 +71,6 @@ export default function Landing() {
           className="absolute inset-0 w-full h-full object-cover object-[25%_center]"
           loading="eager"
         />
-        {/* Video overlays poster once loaded */}
         <video
           autoPlay
           loop
@@ -88,14 +81,13 @@ export default function Landing() {
         >
           <source src="/videos/swaami-background.mp4" type="video/mp4" />
         </video>
-        {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-black/50 to-background/90" />
       </div>
-      
-      {/* Content Container - single animation on stable outer container */}
-      <div className="relative z-10 flex flex-col min-h-[100dvh] animate-fade-in">
-        {/* Header - always shows logo immediately */}
-        <header className="pt-safe px-6 py-8">
+
+      {/* Content - staggered entrance animation */}
+      <div className="relative z-10 flex flex-col min-h-[100dvh]">
+        {/* Header */}
+        <header className="pt-safe px-6 py-8 animate-in fade-in slide-in-from-top-4 duration-500">
           <div>
             <img
               src={swaamiWordmark}
@@ -109,19 +101,15 @@ export default function Landing() {
           </div>
         </header>
 
-        {/* Main Hero Content - always rendered, opacity controlled by loading state */}
-        <main 
-          className="flex-1 flex flex-col justify-center px-6 py-6 max-w-lg mx-auto w-full transition-opacity duration-300"
-          style={{ opacity: isLoading ? 0 : 1 }}
-        >
-          <div>
-            {/* Welcome Back Greeting - use opacity instead of conditional render */}
-            <p 
-              className="text-accent font-medium text-lg mb-2 text-shadow-sub transition-opacity duration-200"
-              style={{ opacity: user ? 1 : 0, height: user ? 'auto' : 0, marginBottom: user ? '0.5rem' : 0 }}
-            >
-              Welcome back!
-            </p>
+        {/* Main Hero Content */}
+        <main className="flex-1 flex flex-col justify-center px-6 py-6 max-w-lg mx-auto w-full">
+          <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150 fill-mode-both">
+            {/* Welcome Back Greeting */}
+            {user && (
+              <p className="text-accent font-medium text-lg mb-2 text-shadow-sub animate-in fade-in duration-300 delay-300 fill-mode-both">
+                Welcome back!
+              </p>
+            )}
 
             {/* Headline */}
             <div className="space-y-4 mb-8">
@@ -146,33 +134,29 @@ export default function Landing() {
                 <span>Free to start</span>
               </div>
             </div>
-            
-            {/* Live Activity Counter - reserved space, opacity transition */}
-            <div 
-              className="mt-6 min-h-[40px] transition-opacity duration-300"
-              style={{ opacity: (!activityLoading && hasActivityData) ? 1 : 0 }}
-            >
-              <div className="flex items-center gap-2 text-sm text-white/80 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full w-fit">
-                <Users className="h-4 w-4 text-accent" />
-                <span>
-                  {tasksCompletedToday > 0 && (
-                    <span className="font-semibold text-white">{tasksCompletedToday} neighbours helped today</span>
-                  )}
-                  {tasksCompletedToday > 0 && activeHelpers > 0 && " · "}
-                  {activeHelpers > 0 && (
-                    <span>{activeHelpers} active helpers</span>
-                  )}
-                </span>
+
+            {/* Live Activity Counter */}
+            {showActivity && (
+              <div className="mt-6 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-500 fill-mode-both">
+                <div className="flex items-center gap-2 text-sm text-white/80 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full w-fit">
+                  <Users className="h-4 w-4 text-accent" />
+                  <span>
+                    {tasksCompletedToday > 0 && (
+                      <span className="font-semibold text-white">{tasksCompletedToday} neighbours helped today</span>
+                    )}
+                    {tasksCompletedToday > 0 && activeHelpers > 0 && " · "}
+                    {activeHelpers > 0 && (
+                      <span>{activeHelpers} active helpers</span>
+                    )}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </main>
 
-        {/* Bottom CTAs - always rendered, opacity controlled */}
-        <footer 
-          className="px-6 pb-safe pt-4 bg-gradient-to-t from-background via-background/95 to-transparent transition-opacity duration-300"
-          style={{ opacity: isLoading ? 0 : 1 }}
-        >
+        {/* Bottom CTAs */}
+        <footer className="px-6 pb-safe pt-4 bg-gradient-to-t from-background via-background/95 to-transparent animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 fill-mode-both">
           <div className="max-w-lg mx-auto w-full space-y-2 pb-4">
             <Button
               onClick={() => navigate(primaryCTA.path)}
@@ -183,14 +167,18 @@ export default function Landing() {
               {primaryCTA.text}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            
-            {/* User state CTAs - always render both, show one with opacity */}
-            <div className="relative">
-              {/* Logged out state */}
-              <div 
-                className="transition-opacity duration-200"
-                style={{ opacity: !user ? 1 : 0, pointerEvents: !user ? 'auto' : 'none', position: user ? 'absolute' : 'relative', inset: 0 }}
+
+            {user ? (
+              <Button
+                onClick={handleSignOut}
+                variant="ghost"
+                className="w-full text-muted-foreground hover:text-foreground hover:bg-transparent"
               >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign out
+              </Button>
+            ) : (
+              <>
                 <p className="text-center text-xs text-muted-foreground">
                   Takes 2 minutes. No credit card.
                 </p>
@@ -202,27 +190,11 @@ export default function Landing() {
                   Already a member?{" "}
                   <span className="ml-1 underline underline-offset-2">Sign in</span>
                 </Button>
-              </div>
-
-              {/* Logged in state */}
-              <div 
-                className="transition-opacity duration-200"
-                style={{ opacity: user ? 1 : 0, pointerEvents: user ? 'auto' : 'none', position: !user ? 'absolute' : 'relative', inset: 0 }}
-              >
-                <Button
-                  onClick={handleSignOut}
-                  variant="ghost"
-                  className="w-full text-muted-foreground hover:text-foreground hover:bg-transparent"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign out
-                </Button>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         </footer>
       </div>
     </div>
-    </>
   );
 }
