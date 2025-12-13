@@ -56,16 +56,16 @@ export default function Join() {
     navigate("/app");
   };
 
-  if (isLoading) {
+  // Keep showing loading state during redirects - never return null
+  if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-primary flex items-center justify-center">
-        <div className="animate-pulse text-foreground">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-muted-foreground animate-pulse">Loading...</span>
+        </div>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   return <JoinScreen onComplete={handleComplete} />;

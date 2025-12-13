@@ -47,8 +47,8 @@ const Index = () => {
     navigate("/");
   };
 
-  // Loading state - clean, branded
-  if (appState === "loading") {
+  // Keep showing loading state during redirects - never return null (causes flash)
+  if (appState !== "ready") {
     return (
       <div className="h-[100dvh] bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -57,11 +57,6 @@ const Index = () => {
         </div>
       </div>
     );
-  }
-
-  // These states will redirect, but render nothing while that happens
-  if (appState === "unauthenticated" || appState === "incomplete") {
-    return null;
   }
 
   const renderScreen = () => {
