@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
 import { SKILLS } from "@/types/swaami";
-import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard, Flame, FileText, Globe, AlertTriangle } from "lucide-react";
+import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard, Flame, FileText, Globe, AlertTriangle, HelpCircle, BookOpen } from "lucide-react";
 import { ProfilePhotoUpload } from "@/components/ProfilePhotoUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
@@ -654,6 +654,39 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
             </div>
             <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
+        </div>
+
+        {/* Help & Support */}
+        <div className="space-y-2 pt-4">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Help & Support
+          </h2>
+          <div className="bg-card border border-border rounded-xl divide-y divide-border">
+            <button 
+              onClick={() => navigate('/faq')}
+              className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                  <HelpCircle className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <span className="font-medium text-foreground">Help Center & FAQ</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </button>
+            <button 
+              onClick={() => navigate('/blog')}
+              className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                  <BookOpen className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <span className="font-medium text-foreground">Community Blog</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
         </div>
 
         {/* Logout */}

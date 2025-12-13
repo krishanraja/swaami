@@ -104,6 +104,7 @@ See the `/docs` folder for detailed documentation:
 - [Design System](docs/DESIGN_SYSTEM.md) - Visual guidelines
 - [Audit Status](docs/AUDIT_STATUS.md) - Security & quality status
 - [Purpose](docs/PURPOSE.md) - Mission & values
+- [SEO Strategy](docs/SEO_STRATEGY.md) - Content marketing & SEO plan
 
 ## 🤝 Contributing
 

@@ -11,6 +11,9 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Join from "./pages/Join";
 import NotFound from "./pages/NotFound";
+import FAQ from "./pages/FAQ";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import { ChatScreen } from "./screens/ChatScreen";
 import { VerificationScreen } from "./screens/VerificationScreen";
 
@@ -32,6 +35,12 @@ const App = () => (
               <Route path="/join" element={<Join />} />
               <Route path="/chat/:matchId" element={<ChatScreen />} />
               <Route path="/verify" element={<VerificationScreen />} />
+              
+              {/* SEO Pages - Public, indexable */}
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
