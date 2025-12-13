@@ -1,19 +1,43 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Heart, LogOut, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useLiveActivity } from "@/hooks/useLiveActivity";
+import { SplashScreen } from "@/components/SplashScreen";
 
 // Use public folder paths for preloaded assets (faster initial load)
 const swaamiWordmark = "/images/swaami-wordmark.png";
 const videoPoster = "/videos/swaami-poster.jpg";
 
 export default function Landing() {
+  const [showSplash, setShowSplash] = useState(true);
   const navigate = useNavigate();
   const { user, signOut, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const { tasksCompletedToday, activeHelpers, isLoading: activityLoading } = useLiveActivity();
+
+  // Hide splash after minimum display time and auth loads
+  useEffect(() => {
+    const minDisplayTime = 1500; // 1.5 seconds minimum
+    const timer = setTimeout(() => {
+      if (!authLoading) {
+        setShowSplash(false);
+      }
+    }, minDisplayTime);
+    
+    return () => clearTimeout(timer);
+  }, [authLoading]);
+
+  // Also hide splash when auth finishes after minimum time
+  useEffect(() => {
+    if (!authLoading && !showSplash) return;
+    const timer = setTimeout(() => {
+      if (!authLoading) setShowSplash(false);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [authLoading, showSplash]);
 
   // Single unified loading state - wait for auth and profile together
   const isLoading = authLoading || profileLoading;
@@ -38,7 +62,11 @@ export default function Landing() {
   const hasActivityData = tasksCompletedToday > 0 || activeHelpers > 0;
 
   return (
-    <div className="min-h-[100dvh] w-full overflow-hidden bg-background flex flex-col relative">
+    <>
+      {/* Splash Screen */}
+      {showSplash && <SplashScreen />}
+      
+      <div className="min-h-[100dvh] w-full overflow-hidden bg-background flex flex-col relative">
       {/* Background with poster - shows immediately, never re-renders */}
       <div className="absolute inset-0 z-0">
         {/* Poster image - displays instantly while video loads */}
@@ -195,5 +223,6 @@ export default function Landing() {
         </footer>
       </div>
     </div>
+    </>
   );
 }
