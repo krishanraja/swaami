@@ -16,6 +16,7 @@
 ├─────────────────────────────────────────────────────────────────┤
 │                        Custom Hooks                              │
 │  useAuth │ useProfile │ useTasks │ useMatches │ useMessages      │
+│  useTrustTier │ useSubscription │ useNetworkStatus │ useLiveActivity │
 ├─────────────────────────────────────────────────────────────────┤
 │                        Utilities                                 │
 │  logger.ts │ validation.ts │ safety.ts │ utils.ts                │

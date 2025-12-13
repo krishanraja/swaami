@@ -14,6 +14,7 @@ import { HelperPreview } from "@/components/HelperPreview";
 import { VoiceInput } from "@/components/VoiceInput";
 import { AccessibilitySettings } from "@/components/AccessibilitySettings";
 import { useAccessibility } from "@/contexts/AccessibilityContext";
+import { checkContentSafety } from "@/lib/safety";
 import {
   Sheet,
   SheetContent,
@@ -75,6 +76,13 @@ export function PostScreen() {
     // Check post limit for free users
     if (!canPost) {
       setShowUpgrade(true);
+      return;
+    }
+
+    // Content safety check before AI processing
+    const safetyCheck = checkContentSafety(input);
+    if (safetyCheck.blocked) {
+      setError(safetyCheck.reason || "This content cannot be posted.");
       return;
     }
 
