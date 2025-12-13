@@ -7,52 +7,56 @@ interface SplashScreenProps {
 export function SplashScreen({ onComplete }: SplashScreenProps) {
   return (
     <div className="fixed inset-0 z-50 bg-background flex items-center justify-center">
-      {/* Subtle gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
-      
-      {/* Loading container */}
-      <div className="relative flex flex-col items-center gap-6">
-        {/* Icon with loading ring */}
+      <div className="relative flex flex-col items-center gap-8">
+        {/* Icon container */}
         <div className="relative">
-          {/* Animated loading ring */}
+          {/* Single smooth loading ring */}
           <svg 
-            className="absolute inset-0 w-28 h-28 -m-2 animate-spin" 
-            style={{ animationDuration: '2s' }}
+            className="absolute inset-0 w-32 h-32 -m-4"
             viewBox="0 0 100 100"
           >
+            {/* Track */}
             <circle
               cx="50"
               cy="50"
-              r="45"
+              r="46"
               fill="none"
-              stroke="hsl(var(--muted))"
-              strokeWidth="3"
+              stroke="hsl(var(--muted)/0.3)"
+              strokeWidth="2"
             />
+            {/* Progress arc - CSS animation */}
             <circle
               cx="50"
               cy="50"
-              r="45"
+              r="46"
               fill="none"
               stroke="hsl(var(--primary))"
-              strokeWidth="3"
+              strokeWidth="2"
               strokeLinecap="round"
-              strokeDasharray="70 213"
-              className="origin-center"
+              strokeDasharray="72 217"
+              className="origin-center animate-[spin_1.4s_linear_infinite]"
+              style={{ transformOrigin: '50% 50%' }}
             />
           </svg>
           
-          {/* Swaami icon */}
+          {/* Static icon - no animation */}
           <img
             src={swaamiIcon}
             alt="Swaami"
-            className="w-24 h-24 object-contain drop-shadow-lg animate-pulse-soft"
+            className="w-24 h-24 object-contain"
           />
         </div>
         
-        {/* Loading text */}
-        <p className="text-sm text-muted-foreground font-medium tracking-wide animate-pulse">
-          Loading...
-        </p>
+        {/* Subtle dots loader instead of pulsing text */}
+        <div className="flex gap-1">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60 animate-[bounce_1s_ease-in-out_infinite]"
+              style={{ animationDelay: `${i * 0.15}s` }}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
