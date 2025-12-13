@@ -349,6 +349,7 @@ export type Database = {
           id: string
           photo_type: string
           photo_url: string
+          profile_id: string | null
           uploaded_at: string | null
           user_id: string
         }
@@ -356,6 +357,7 @@ export type Database = {
           id?: string
           photo_type: string
           photo_url: string
+          profile_id?: string | null
           uploaded_at?: string | null
           user_id: string
         }
@@ -363,10 +365,19 @@ export type Database = {
           id?: string
           photo_type?: string
           photo_url?: string
+          profile_id?: string | null
           uploaded_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_photos_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_subscriptions: {
         Row: {

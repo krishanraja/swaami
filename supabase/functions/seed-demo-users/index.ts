@@ -232,8 +232,8 @@ serve(async (req) => {
       if (demoIds.length > 0) {
         // Delete tasks owned by demo users
         await supabase.from("tasks").delete().in("owner_id", demoIds);
-        // Delete demo photos
-        await supabase.from("user_photos").delete().in("user_id", demoIds);
+        // Delete demo photos (by profile_id since demo users have no user_id)
+        await supabase.from("user_photos").delete().in("profile_id", demoIds);
         // Delete demo profiles
         await supabase.from("profiles").delete().eq("is_demo", true);
       }
@@ -354,12 +354,12 @@ serve(async (req) => {
                       .from("profile-photos")
                       .getPublicUrl(fileName);
 
-                    // Record in user_photos table
-                    await supabase.from("user_photos").upsert({
-                      user_id: profile.id,
+                    // Record in user_photos table using profile_id (demo users have no user_id)
+                    await supabase.from("user_photos").insert({
+                      profile_id: profile.id,
                       photo_type: "profile",
                       photo_url: urlData.publicUrl,
-                    }, { onConflict: "user_id,photo_type" });
+                    });
 
                     results.photosGenerated++;
                     console.log(`Generated photo for ${displayName}`);

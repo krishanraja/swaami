@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
 import { SKILLS } from "@/types/swaami";
 import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard, Flame, FileText, Globe } from "lucide-react";
+import { ProfilePhotoUpload } from "@/components/ProfilePhotoUpload";
+import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -34,6 +36,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const { streakDays, credits, tier, tasksCompleted } = useGamification();
   
   const settingsRef = useRef<HTMLDivElement>(null);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [editingRadius, setEditingRadius] = useState(false);
   const [editingAvailability, setEditingAvailability] = useState(false);
   const [editingSkills, setEditingSkills] = useState(false);
@@ -47,6 +50,24 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [tempNeighbourhood, setTempNeighbourhood] = useState(profile?.neighbourhood || "");
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+
+  // Fetch profile photo
+  useEffect(() => {
+    const fetchPhoto = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('user_photos')
+        .select('photo_url')
+        .eq('user_id', user.id)
+        .eq('photo_type', 'profile')
+        .maybeSingle();
+      
+      if (data?.photo_url) {
+        setProfilePhotoUrl(data.photo_url);
+      }
+    };
+    fetchPhoto();
+  }, [user]);
 
   const scrollToSettings = () => {
     settingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -156,12 +177,13 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
       />
 
       <main className="flex-1 overflow-y-auto px-4 py-4 pb-24 max-w-lg mx-auto w-full">
-        {/* User Info */}
+        {/* User Info with Photo Upload */}
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl font-semibold text-primary-foreground">
-            {profile.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "?"}
-          </div>
-          <div>
+          <ProfilePhotoUpload 
+            existingPhotoUrl={profilePhotoUrl} 
+            onPhotoChange={setProfilePhotoUrl} 
+          />
+          <div className="flex-1">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-foreground">
                 {profile.display_name || "Neighbour"}
