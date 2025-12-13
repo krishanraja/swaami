@@ -1,64 +1,36 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { JoinScreen } from "@/screens/JoinScreen";
 
 export default function Join() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const [emailVerified, setEmailVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
-        // Not logged in, redirect to auth
-        navigate("/auth?mode=signup");
-        return;
-      }
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    
+    // No user = send to signup
+    if (!user) {
+      navigate("/auth?mode=signup");
+      return;
+    }
+    
+    // Check email verification once (OAuth users are pre-verified)
+    const isOAuth = user.app_metadata?.provider !== 'email';
+    if (!isOAuth && !user.email_confirmed_at) {
+      navigate("/auth?mode=login");
+      return;
+    }
+    
+    // User is authenticated and verified - ready to show JoinScreen
+    setEmailVerified(true);
+  }, [user, authLoading, navigate]);
 
-      // Check if email is confirmed (skip for OAuth users - they're verified by provider)
-      const isOAuthUser = session.user.app_metadata?.provider !== 'email';
-      if (!isOAuthUser && !session.user.email_confirmed_at) {
-        navigate("/auth?mode=login");
-        return;
-      }
-
-      // Check if profile is already complete
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("city, neighbourhood, phone, skills")
-        .eq("user_id", session.user.id)
-        .single();
-
-      if (profile?.city && profile?.neighbourhood && profile?.phone && profile?.skills?.length > 0) {
-        // Profile already complete, go to app
-        navigate("/app");
-        return;
-      }
-
-      setIsAuthenticated(true);
-      setIsLoading(false);
-    };
-
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        navigate("/auth?mode=signup");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const handleComplete = () => {
-    navigate("/app");
-  };
-
-  // Keep showing loading state during redirects - never return null
-  if (isLoading || !isAuthenticated) {
+  // Show loading state until we confirm email verification
+  if (authLoading || emailVerified === null) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -69,5 +41,5 @@ export default function Join() {
     );
   }
 
-  return <JoinScreen onComplete={handleComplete} />;
+  return <JoinScreen onComplete={() => navigate("/app")} />;
 }
