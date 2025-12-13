@@ -27,6 +27,40 @@
     <link rel="preload" href="/images/swaami-wordmark.png" as="image" fetchpriority="high" />
     <link rel="preload" href="/videos/swaami-background.mp4" as="video" type="video/mp4" />
     
+    <!-- Inline critical splash screen styles for instant render -->
+    <style>
+      /* Immediate splash placeholder before React hydrates */
+      #splash-placeholder {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        transition: opacity 0.3s ease-out;
+      }
+      #splash-placeholder.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash-placeholder .pulse-dot {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #f5e6a3 0%, #d4a853 100%);
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(0.95); opacity: 0.7; }
+        50% { transform: scale(1.05); opacity: 1; }
+      }
+      /* Hide once React takes over */
+      .react-loaded #splash-placeholder {
+        display: none;
+      }
+    </style>
+    
     <!-- Fonts with display swap for performance -->
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 
@@ -103,7 +137,29 @@
   </head>
 
   <body>
+    <!-- Instant splash placeholder (no JS required) -->
+    <div id="splash-placeholder" aria-hidden="true">
+      <div class="pulse-dot"></div>
+    </div>
+    
     <div id="root"></div>
+    
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Hide placeholder once React app loads -->
+    <script>
+      // Remove placeholder after a short delay to ensure React has rendered
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var placeholder = document.getElementById('splash-placeholder');
+          if (placeholder) {
+            placeholder.classList.add('hidden');
+            setTimeout(function() {
+              placeholder.remove();
+            }, 300);
+          }
+        }, 100);
+      });
+    </script>
   </body>
 </html>

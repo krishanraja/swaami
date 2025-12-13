@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Heart, LogOut, Users } from "lucide-react";
@@ -19,22 +19,24 @@ export default function Landing() {
   const { tasksCompletedToday, activeHelpers, isLoading: activityLoading } = useLiveActivity();
   
   const [phase, setPhase] = useState<LoadingPhase>("splash");
-  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const [splashComplete, setSplashComplete] = useState(false);
+  
+  // Data is ready when both auth and profile have loaded
+  const dataReady = !authLoading && !profileLoading;
 
-  // Single timer for minimum splash display
+  // Transition to ready when BOTH splash is done AND data is ready
   useEffect(() => {
-    const timer = setTimeout(() => setMinTimeElapsed(true), 1400);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Transition to ready when both conditions met
-  useEffect(() => {
-    if (minTimeElapsed && !authLoading && !profileLoading) {
-      // Small delay for smoother transition
-      const timer = setTimeout(() => setPhase("ready"), 100);
+    if (splashComplete && dataReady) {
+      // Small delay for smoother visual transition
+      const timer = setTimeout(() => setPhase("ready"), 50);
       return () => clearTimeout(timer);
     }
-  }, [minTimeElapsed, authLoading, profileLoading]);
+  }, [splashComplete, dataReady]);
+
+  // Callback when splash finishes its animation
+  const handleSplashComplete = useCallback(() => {
+    setSplashComplete(true);
+  }, []);
 
   // Derived state - computed once, no flicker
   const isProfileComplete = useMemo(() => {
@@ -57,7 +59,7 @@ export default function Landing() {
 
   // Render splash during splash phase
   if (phase === "splash") {
-    return <SplashScreen />;
+    return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
   return (

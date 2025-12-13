@@ -128,6 +128,18 @@
 
 **Files**: `src/components/VoiceInput.tsx`, `supabase/functions/transcribe-audio/`
 
+### 13. Premium Splash Screen
+**Status**: ✅ Complete
+
+- Google-app-level stable loading experience
+- HTML-level instant placeholder (no JS required)
+- Image preload detection before animation
+- Two-phase loading: CSS-only → full splash
+- Coordinated timing with auth/profile data
+- Fallback handling if assets fail
+
+**Files**: `src/components/SplashScreen.tsx`, `index.html`
+
 ---
 
 ## Planned Features

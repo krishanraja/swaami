@@ -12,8 +12,15 @@ All notable changes to Swaami.
 - Message sanitization in ChatScreen
 - Enhanced ErrorBoundary with dev info and "Go Home" option
 - Safe localStorage access wrapper in AccessibilityContext
+- HTML-level instant splash placeholder (no JS required)
+- Image preload detection in SplashScreen for guaranteed stable loading
 
 ### Changed
+- **SplashScreen rewritten for Google-app-level stability**:
+  - Two-phase loading: CSS-only preload state → full splash once icon loads
+  - Proper image preloading with onLoad/onError handling
+  - Coordinated timing with data fetching
+  - Fallback if image fails to load
 - Improved NotFound page with better design and styling
 - Enhanced BottomNav with proper accessibility attributes
 - Better loading state indicator for chat message sending

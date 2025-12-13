@@ -64,6 +64,13 @@
 
 ## UI Issues
 
+### Splash screen icon not appearing
+**Cause**: Image not yet cached on first load
+**Solution**: The splash screen now uses a two-phase approach:
+1. Shows a CSS-only pulse animation while the icon loads
+2. Only starts the full animation once the icon is ready
+3. If the icon fails to load, it proceeds after a timeout
+
 ### Logo appears distorted
 **Cause**: Aspect ratio not preserved
 **Solution**: Always use `w-auto` with fixed height: `className="h-16 w-auto"`
