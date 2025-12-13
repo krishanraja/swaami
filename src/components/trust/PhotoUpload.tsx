@@ -111,11 +111,11 @@ export function PhotoUpload({ existingPhotos, onComplete, onCancel }: PhotoUploa
         title: "Photo uploaded",
         description: `Your ${type} photo has been saved`,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
       toast({
         title: "Upload failed",
-        description: error.message || "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {
@@ -134,7 +134,7 @@ export function PhotoUpload({ existingPhotos, onComplete, onCancel }: PhotoUploa
         .eq('photo_type', type);
 
       setPhotos(prev => ({ ...prev, [type]: null }));
-    } catch (error: any) {
+    } catch (error) {
       console.error('Delete error:', error);
     }
   };

@@ -66,16 +66,18 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
     // Sort based on selected option
     return [...filtered].sort((a, b) => {
       switch (sortBy) {
-        case "nearest":
+        case "nearest": {
           // Null distances go to end
           if (a.distance === null || a.distance === undefined) return 1;
           if (b.distance === null || b.distance === undefined) return -1;
           return a.distance - b.distance;
-        case "recent":
+        }
+        case "recent": {
           const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
           const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
           return dateB - dateA; // Most recent first
-        case "urgent":
+        }
+        case "urgent": {
           // Urgent first, then by distance
           const urgentA = a.urgency === "urgent" ? 0 : 1;
           const urgentB = b.urgency === "urgent" ? 0 : 1;
@@ -84,6 +86,7 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
           if (a.distance === null || a.distance === undefined) return 1;
           if (b.distance === null || b.distance === undefined) return -1;
           return a.distance - b.distance;
+        }
         default:
           return 0;
       }

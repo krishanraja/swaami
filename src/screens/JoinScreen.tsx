@@ -61,9 +61,9 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
 
       toast.success("Verification code sent!");
       setStep('otp');
-    } catch (error: any) {
+    } catch (error) {
       console.error("OTP send error:", error);
-      toast.error(error.message || "Failed to send verification code");
+      toast.error(error instanceof Error ? error.message : "Failed to send verification code");
     } finally {
       setLoading(false);
     }
@@ -89,9 +89,9 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
         setPhoneVerified(true);
         setStep('preferences');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("OTP verify error:", error);
-      toast.error(error.message || "Invalid verification code");
+      toast.error(error instanceof Error ? error.message : "Invalid verification code");
     } finally {
       setLoading(false);
     }
@@ -131,9 +131,9 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
         description: "You've earned 5 credits to get started!"
       });
       onComplete();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Profile update error:", error);
-      toast.error(error.message || "Failed to save profile");
+      toast.error(error instanceof Error ? error.message : "Failed to save profile");
     } finally {
       setLoading(false);
     }

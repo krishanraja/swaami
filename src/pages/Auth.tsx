@@ -82,9 +82,9 @@ export default function Auth() {
         },
       });
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error) {
       console.error("Google sign-in error:", error);
-      toast.error(error.message || "Failed to sign in with Google");
+      toast.error(error instanceof Error ? error.message : "Failed to sign in with Google");
       setGoogleLoading(false);
     }
   };
@@ -128,14 +128,15 @@ export default function Auth() {
         // Show email confirmation message
         setEmailSent(true);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Auth error:", error);
-      if (error.message?.includes("already registered")) {
+      const errorMessage = error instanceof Error ? error.message : "";
+      if (errorMessage.includes("already registered")) {
         toast.error("This email is already registered. Try logging in.");
-      } else if (error.message?.includes("Invalid login")) {
+      } else if (errorMessage.includes("Invalid login")) {
         toast.error("Invalid email or password.");
       } else {
-        toast.error(error.message || "Authentication failed");
+        toast.error(errorMessage || "Authentication failed");
       }
     } finally {
       setLoading(false);

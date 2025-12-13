@@ -113,7 +113,7 @@ export function PostScreen() {
         setClarification(null);
         setPartialInference(null);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("AI rewrite error:", err);
       setAiRewrite({
         title: input.slice(0, 50),

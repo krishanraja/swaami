@@ -14,9 +14,9 @@ export function ChatsListScreen() {
   );
 
   const statusColors: Record<string, string> = {
-    pending: "bg-[hsl(var(--status-pending))]/10 text-[hsl(var(--status-pending))]",
-    accepted: "bg-[hsl(var(--status-active))]/10 text-[hsl(var(--status-active))]",
-    arrived: "bg-primary/10 text-primary-foreground",
+    pending: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
+    accepted: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+    arrived: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400",
     completed: "bg-accent/10 text-accent",
   };
 

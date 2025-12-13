@@ -37,11 +37,11 @@ export function MFASetup({ onComplete, onCancel }: MFASetupProps) {
       setSecret(data.totp.secret);
       setFactorId(data.id);
       setStep('qr');
-    } catch (error: any) {
+    } catch (error) {
       console.error('MFA enroll error:', error);
       toast({
         title: "Setup failed",
-        description: error.message || "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {
@@ -73,11 +73,11 @@ export function MFASetup({ onComplete, onCancel }: MFASetupProps) {
         description: "Your account is now protected with two-factor authentication",
       });
       onComplete();
-    } catch (error: any) {
+    } catch (error) {
       console.error('MFA verify error:', error);
       toast({
         title: "Verification failed",
-        description: error.message || "Please check your code and try again",
+        description: error instanceof Error ? error.message : "Please check your code and try again",
         variant: "destructive",
       });
     } finally {
