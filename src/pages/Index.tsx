@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { FeedScreen } from "@/screens/FeedScreen";
@@ -8,56 +8,60 @@ import { ChatsListScreen } from "@/screens/ChatsListScreen";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 
+type AppState = "loading" | "unauthenticated" | "incomplete" | "ready";
+
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"feed" | "post" | "chats" | "profile">("feed");
+  const [hasAnimated, setHasAnimated] = useState(false);
 
-  // Redirect to auth if not logged in
+  // Derive app state from auth/profile - single source of truth
+  const appState = useMemo((): AppState => {
+    if (authLoading || profileLoading) return "loading";
+    if (!user) return "unauthenticated";
+    
+    const isComplete = profile?.city && 
+                       profile?.neighbourhood && 
+                       profile?.phone && 
+                       profile?.skills?.length > 0;
+    
+    return isComplete ? "ready" : "incomplete";
+  }, [authLoading, profileLoading, user, profile]);
+
+  // Handle redirects based on app state
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (appState === "unauthenticated") {
       navigate("/auth");
+    } else if (appState === "incomplete") {
+      navigate("/join");
+    } else if (appState === "ready" && !hasAnimated) {
+      // Trigger entrance animation once when ready
+      setHasAnimated(true);
     }
-  }, [user, authLoading, navigate]);
-
-  // Redirect to onboarding if profile incomplete
-  useEffect(() => {
-    if (!authLoading && !profileLoading && user && profile) {
-      const isProfileComplete = profile.city && profile.neighbourhood && profile.phone && profile.skills?.length > 0;
-      if (!isProfileComplete) {
-        navigate("/join");
-      }
-    }
-  }, [user, profile, authLoading, profileLoading, navigate]);
+  }, [appState, navigate, hasAnimated]);
 
   const handleLogout = async () => {
     await signOut();
     navigate("/");
   };
 
-  const isLoading = authLoading || profileLoading;
-
-  if (isLoading) {
+  // Loading state - clean, branded
+  if (appState === "loading") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className="h-[100dvh] bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-muted-foreground animate-pulse">Loading your neighbourhood...</span>
+        </div>
       </div>
     );
   }
 
-  if (!user) {
+  // These states will redirect, but render nothing while that happens
+  if (appState === "unauthenticated" || appState === "incomplete") {
     return null;
-  }
-
-  // Check profile completeness - if incomplete, we'll redirect via useEffect
-  const isProfileComplete = profile?.city && profile?.neighbourhood && profile?.phone && profile?.skills?.length > 0;
-  if (!isProfileComplete) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
-      </div>
-    );
   }
 
   const renderScreen = () => {
@@ -77,7 +81,11 @@ const Index = () => {
 
   return (
     <div className="h-[100dvh] flex flex-col overflow-hidden bg-background">
-      <div className="flex-1 overflow-hidden">
+      <div 
+        className={`flex-1 overflow-hidden transition-opacity duration-300 ${
+          hasAnimated ? 'animate-in fade-in duration-300' : ''
+        }`}
+      >
         {renderScreen()}
       </div>
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
