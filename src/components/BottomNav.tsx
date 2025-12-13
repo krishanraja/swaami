@@ -33,10 +33,10 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               <div
                 className={cn(
                   "p-1.5 rounded-xl transition-all duration-200",
-                  isActive && "bg-primary"
+                  isActive && "bg-primary text-primary-foreground"
                 )}
               >
-                <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+                <Icon className={cn("w-5 h-5", isActive && "text-primary-foreground")} strokeWidth={isActive ? 2.5 : 2} />
               </div>
               <span className="text-xs font-medium">{tab.label}</span>
             </button>
