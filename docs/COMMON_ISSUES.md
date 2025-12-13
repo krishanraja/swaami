@@ -103,9 +103,34 @@
 6. **Verify RLS**: Do policies allow the operation?
 7. **Check Realtime**: Is subscription active?
 
+## Network Issues
+
+### App appears frozen or unresponsive
+**Cause**: Network disconnection
+**Solution**: The app now shows an OfflineBanner when offline. Wait for connection to restore.
+
+### Data not syncing
+**Cause**: Real-time subscription interrupted
+**Solution**: Refresh the page. Check the OfflineBanner for network status.
+
+---
+
+## Accessibility Issues
+
+### Text-to-speech not working
+**Cause**: Browser doesn't support Web Speech API
+**Solution**: Use Chrome, Safari, or Edge. Firefox has limited support.
+
+### Large text mode not applying
+**Cause**: localStorage blocked
+**Solution**: Check browser privacy settings, allow localStorage
+
+---
+
 ## Getting Help
 
 1. Check this document first
 2. Search existing issues in project
 3. Enable verbose logging with `logger.debug()`
 4. Capture full error context before reporting
+5. Check the browser console for detailed error messages

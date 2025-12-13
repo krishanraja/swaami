@@ -14,10 +14,10 @@ export function AppHeader({ title, actions, showGamification = true }: AppHeader
   const { tier, tasksCompleted, streakDays, isLoading } = useGamification();
 
   return (
-    <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10">
+    <header className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border z-10" role="banner">
       <div className="px-4 py-4 max-w-lg mx-auto flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src={swaamiIcon} alt="Swaami" className="h-8 w-auto" />
+          <img src={swaamiIcon} alt="Swaami - Home" className="h-8 w-auto" />
           {title && (
             <h1 className="text-lg font-semibold text-foreground">{title}</h1>
           )}

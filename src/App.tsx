@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AccessibilityProvider } from "@/contexts/AccessibilityContext";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -20,6 +21,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <AccessibilityProvider>
         <TooltipProvider>
+          <OfflineBanner />
           <Toaster />
           <Sonner />
           <BrowserRouter>

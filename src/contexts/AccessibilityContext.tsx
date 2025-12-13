@@ -20,24 +20,37 @@ const AccessibilityContext = createContext<AccessibilityContextType | undefined>
 
 const STORAGE_KEY = "swaami-accessibility";
 
-export function AccessibilityProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<AccessibilitySettings>(() => {
+const defaultSettings: AccessibilitySettings = { 
+  largeText: false, 
+  highContrast: false, 
+  simpleMode: false 
+};
+
+function getStoredSettings(): AccessibilitySettings {
+  try {
+    if (typeof window === 'undefined') return defaultSettings;
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {
-        return { largeText: false, highContrast: false, simpleMode: false };
-      }
+      return JSON.parse(stored);
     }
-    return { largeText: false, highContrast: false, simpleMode: false };
-  });
+  } catch {
+    // localStorage may be blocked or unavailable
+  }
+  return defaultSettings;
+}
+
+export function AccessibilityProvider({ children }: { children: ReactNode }) {
+  const [settings, setSettings] = useState<AccessibilitySettings>(getStoredSettings);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Persist settings to localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    } catch {
+      // localStorage may be blocked or unavailable - fail silently
+    }
   }, [settings]);
 
   // Apply CSS classes to body

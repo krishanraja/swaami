@@ -2,6 +2,42 @@
 
 All notable changes to Swaami.
 
+## [0.2.0] - 2024-12-13
+
+### Added
+- `useNetworkStatus` hook for offline detection
+- `OfflineBanner` component for network status feedback
+- ARIA labels and roles for accessibility compliance
+- Content safety check before AI processing in PostScreen
+- Message sanitization in ChatScreen
+- Enhanced ErrorBoundary with dev info and "Go Home" option
+- Safe localStorage access wrapper in AccessibilityContext
+
+### Changed
+- Improved NotFound page with better design and styling
+- Enhanced BottomNav with proper accessibility attributes
+- Better loading state indicator for chat message sending
+- Updated AppHeader with semantic role="banner"
+- Improved NeedCard expand/collapse with aria-expanded
+
+### Fixed
+- All ESLint errors resolved (30 → 0 errors)
+- Switch case lexical declaration issues in FeedScreen
+- Type safety issues with `any` types across codebase
+- Empty interface issues in UI components
+- require() usage replaced with ESM imports in tailwind.config
+- Missing useEffect dependencies in multiple components
+- localStorage access without try-catch in AccessibilityContext
+- Incorrect metadata type casting in useTrustTier
+
+### Security
+- Pre-AI content safety validation in PostScreen
+- Message content sanitization before sending
+- Proper error messages that don't leak internals
+- Safe localStorage access with fallback
+
+---
+
 ## [0.1.0] - 2024-12-11
 
 ### Added
