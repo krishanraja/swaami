@@ -52,16 +52,20 @@ export default function Auth() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        // Check if email is confirmed before proceeding
-        if (session.user.email_confirmed_at) {
+        // OAuth users are always verified, email users need confirmation
+        const isOAuthUser = session.user.app_metadata?.provider !== 'email';
+        if (isOAuthUser || session.user.email_confirmed_at) {
           navigate("/join");
         }
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && session.user.email_confirmed_at) {
-        navigate("/join");
+      if (session?.user) {
+        const isOAuthUser = session.user.app_metadata?.provider !== 'email';
+        if (isOAuthUser || session.user.email_confirmed_at) {
+          navigate("/join");
+        }
       }
     });
 
@@ -97,8 +101,9 @@ export default function Auth() {
         });
         if (error) throw error;
         
-        // Check if email is confirmed
-        if (!data.user?.email_confirmed_at) {
+        // Check if email is confirmed (only for email/password users)
+        const isOAuthUser = data.user?.app_metadata?.provider !== 'email';
+        if (!isOAuthUser && !data.user?.email_confirmed_at) {
           toast.error("Please confirm your email before signing in.");
           setLoading(false);
           return;
@@ -189,23 +194,17 @@ export default function Auth() {
           </p>
         </div>
 
-        {/* Google Sign-In Button */}
+        {/* Google Sign-In Button - disabled until backend OAuth is configured */}
         <Button
           type="button"
           variant="outline"
           size="xl"
-          className="w-full relative"
-          onClick={handleGoogleSignIn}
-          disabled={googleLoading}
+          className="w-full relative opacity-50"
+          disabled={true}
+          title="Coming soon"
         >
-          {googleLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <>
-              <GoogleIcon className="h-5 w-5 mr-2" />
-              Continue with Google
-            </>
-          )}
+          <GoogleIcon className="h-5 w-5 mr-2" />
+          Continue with Google
         </Button>
 
         <div className="relative">
