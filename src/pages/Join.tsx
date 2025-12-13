@@ -18,8 +18,9 @@ export default function Join() {
         return;
       }
 
-      // Check if email is confirmed
-      if (!session.user.email_confirmed_at) {
+      // Check if email is confirmed (skip for OAuth users - they're verified by provider)
+      const isOAuthUser = session.user.app_metadata?.provider !== 'email';
+      if (!isOAuthUser && !session.user.email_confirmed_at) {
         navigate("/auth?mode=login");
         return;
       }
