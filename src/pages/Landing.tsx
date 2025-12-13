@@ -5,7 +5,7 @@ import { ArrowRight, Shield, Heart, LogOut, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useLiveActivity } from "@/hooks/useLiveActivity";
-import { SplashScreen } from "@/components/SplashScreen";
+import SplashScreen from "@/components/SplashScreen";
 
 const swaamiWordmark = "/images/swaami-wordmark.png";
 const videoPoster = "/videos/swaami-poster.jpg";
