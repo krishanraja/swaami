@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, User, Coffee, MapPin, Check, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ const PHOTO_CONFIG: Record<PhotoType, {
 
 export function PhotoUpload({ existingPhotos, onComplete, onCancel }: PhotoUploadProps) {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const { toast } = useToast();
   const [photos, setPhotos] = useState<Record<PhotoType, string | null>>({
     profile: existingPhotos.find(p => p.photo_type === 'profile')?.photo_url || null,
@@ -52,7 +54,7 @@ export function PhotoUpload({ existingPhotos, onComplete, onCancel }: PhotoUploa
   };
 
   const handleFileSelect = async (type: PhotoType, file: File) => {
-    if (!user) return;
+    if (!user || !profile) return;
     
     if (!file.type.startsWith('image/')) {
       toast({
@@ -91,11 +93,12 @@ export function PhotoUpload({ existingPhotos, onComplete, onCancel }: PhotoUploa
 
       const photoUrl = urlData.publicUrl;
 
-      // Upsert to user_photos table
+      // Upsert to user_photos table with both user_id and profile_id
       const { error: dbError } = await supabase
         .from('user_photos')
         .upsert({
           user_id: user.id,
+          profile_id: profile.id,
           photo_type: type,
           photo_url: photoUrl,
         }, { onConflict: 'user_id,photo_type' });
