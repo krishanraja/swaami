@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import wellwellIcon from "@/assets/wellwell-icon.png";
+import swaamiIcon from "@/assets/swaami-icon.png";
 
 interface SplashScreenProps {
-  onComplete: () => void;
+  onComplete?: () => void;
 }
 
 const SplashScreen = ({ onComplete }: SplashScreenProps) => {
@@ -88,8 +88,8 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         
         {/* Icon - centered within the ring */}
         <img 
-          src={wellwellIcon} 
-          alt="WellWell" 
+          src={swaamiIcon} 
+          alt="Swaami" 
           className={`w-14 h-14 relative z-10 transition-all duration-500 ease-out ${
             phase === 'enter' ? 'opacity-0 scale-75' : 'opacity-100 scale-100'
           }`}
