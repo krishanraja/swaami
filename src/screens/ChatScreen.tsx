@@ -8,6 +8,7 @@ import { useMatches } from "@/hooks/useMatches";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeText } from "@/lib/validation";
 
 export function ChatScreen() {
   const { matchId } = useParams<{ matchId: string }>();
@@ -31,7 +32,9 @@ export function ChatScreen() {
     if (!newMessage.trim() || sending) return;
 
     setSending(true);
-    const { error } = await sendMessage(newMessage.trim());
+    // Sanitize message content before sending
+    const sanitizedMessage = sanitizeText(newMessage.trim());
+    const { error } = await sendMessage(sanitizedMessage);
     if (error) {
       toast.error("Failed to send message");
     } else {
@@ -80,6 +83,7 @@ export function ChatScreen() {
             size="icon"
             onClick={() => navigate(-1)}
             className="shrink-0"
+            aria-label="Go back"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -210,6 +214,7 @@ export function ChatScreen() {
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message..."
             className="flex-1"
+            aria-label="Message input"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -222,8 +227,13 @@ export function ChatScreen() {
             size="icon"
             onClick={handleSend}
             disabled={!newMessage.trim() || sending}
+            aria-label={sending ? "Sending message" : "Send message"}
           >
-            <Send className="h-4 w-4" />
+            {sending ? (
+              <div className="h-4 w-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </div>

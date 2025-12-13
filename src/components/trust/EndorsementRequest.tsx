@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,13 +23,7 @@ export function EndorsementRequest({ onEndorsementReceived }: EndorsementRequest
   const canEndorse = tier !== 'tier_0';
   const hasEndorsement = hasVerification('endorsement');
 
-  useEffect(() => {
-    if (user && canEndorse) {
-      fetchEndorsementCount();
-    }
-  }, [user, canEndorse]);
-
-  const fetchEndorsementCount = async () => {
+  const fetchEndorsementCount = useCallback(async () => {
     if (!user) return;
     
     const { count } = await supabase
@@ -39,7 +33,13 @@ export function EndorsementRequest({ onEndorsementReceived }: EndorsementRequest
       .eq('status', 'accepted');
 
     setGivenEndorsements(count || 0);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user && canEndorse) {
+      fetchEndorsementCount();
+    }
+  }, [user, canEndorse, fetchEndorsementCount]);
 
   const generateLink = async () => {
     if (!session) return;
@@ -54,11 +54,11 @@ export function EndorsementRequest({ onEndorsementReceived }: EndorsementRequest
       if (!data.success) throw new Error(data.error);
 
       setEndorsementLink(data.link);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Generate link error:', error);
       toast({
         title: "Failed to generate link",
-        description: error.message || "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {

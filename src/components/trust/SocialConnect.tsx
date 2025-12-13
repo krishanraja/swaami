@@ -26,11 +26,11 @@ export function SocialConnect({ connectedProviders, onConnected }: SocialConnect
       });
 
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Social connect error:', error);
       toast({
         title: "Connection failed",
-        description: error.message || "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
       setLoading(null);

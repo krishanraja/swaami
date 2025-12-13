@@ -78,11 +78,11 @@ export function ProfilePhotoUpload({ existingPhotoUrl, onPhotoChange }: ProfileP
         title: "Photo updated!",
         description: "Your profile photo has been saved",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Upload error:', error);
       toast({
         title: "Upload failed",
-        description: error.message || "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {

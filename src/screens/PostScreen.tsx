@@ -14,6 +14,7 @@ import { HelperPreview } from "@/components/HelperPreview";
 import { VoiceInput } from "@/components/VoiceInput";
 import { AccessibilitySettings } from "@/components/AccessibilitySettings";
 import { useAccessibility } from "@/contexts/AccessibilityContext";
+import { checkContentSafety } from "@/lib/safety";
 import {
   Sheet,
   SheetContent,
@@ -78,6 +79,13 @@ export function PostScreen() {
       return;
     }
 
+    // Content safety check before AI processing
+    const safetyCheck = checkContentSafety(input);
+    if (safetyCheck.blocked) {
+      setError(safetyCheck.reason || "This content cannot be posted.");
+      return;
+    }
+
     setIsProcessing(true);
     setError(null);
 
@@ -113,7 +121,7 @@ export function PostScreen() {
         setClarification(null);
         setPartialInference(null);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("AI rewrite error:", err);
       setAiRewrite({
         title: input.slice(0, 50),

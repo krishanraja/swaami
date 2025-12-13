@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Shield, ShieldCheck } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useTrustTier, type VerificationType } from "@/hooks/useTrustTier";
@@ -27,30 +27,30 @@ export function VerificationScreen() {
   const [photos, setPhotos] = useState<{ photo_type: string; photo_url: string }[]>([]);
   const [socialProviders, setSocialProviders] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (user) {
-      fetchPhotos();
-      fetchSocialConnections();
-    }
-  }, [user]);
-
-  const fetchPhotos = async () => {
+  const fetchPhotos = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from('user_photos')
       .select('photo_type, photo_url')
       .eq('user_id', user.id);
     setPhotos(data || []);
-  };
+  }, [user]);
 
-  const fetchSocialConnections = async () => {
+  const fetchSocialConnections = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from('social_connections')
       .select('provider')
       .eq('user_id', user.id);
     setSocialProviders(data?.map(d => d.provider) || []);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchPhotos();
+      fetchSocialConnections();
+    }
+  }, [user, fetchPhotos, fetchSocialConnections]);
 
   const handleVerify = (type: VerificationType) => {
     setActiveModal(type);
@@ -84,7 +84,7 @@ export function VerificationScreen() {
     await refreshTier();
   };
 
-  const city = ((profile as any)?.city as City) || 'sydney';
+  const city = (profile?.city as City) || 'sydney';
 
   if (loading) {
     return (
