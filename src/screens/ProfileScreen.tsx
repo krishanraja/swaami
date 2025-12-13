@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AppHeader } from "@/components/AppHeader";
 import { SKILLS } from "@/types/swaami";
-import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard, Flame, FileText, Globe } from "lucide-react";
+import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard, Flame, FileText, Globe, AlertTriangle } from "lucide-react";
 import { ProfilePhotoUpload } from "@/components/ProfilePhotoUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
@@ -50,6 +50,19 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [tempNeighbourhood, setTempNeighbourhood] = useState(profile?.neighbourhood || "");
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+
+  // Check for incomplete profile fields
+  const incompleteFields = useMemo(() => {
+    if (!profile) return [];
+    const missing: string[] = [];
+    if (!profile.city) missing.push("city");
+    if (!profile.neighbourhood) missing.push("neighbourhood");
+    if (!profile.phone) missing.push("phone");
+    if (!profile.skills || profile.skills.length === 0) missing.push("skills");
+    return missing;
+  }, [profile]);
+
+  const hasIncompleteProfile = incompleteFields.length > 0;
 
   // Fetch profile photo
   useEffect(() => {
@@ -155,6 +168,19 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
     }
   };
 
+  const formatIncompleteFields = (fields: string[]) => {
+    const labels: Record<string, string> = {
+      city: "city",
+      neighbourhood: "neighbourhood", 
+      phone: "phone number",
+      skills: "skills"
+    };
+    const formatted = fields.map(f => labels[f] || f);
+    if (formatted.length === 1) return formatted[0];
+    if (formatted.length === 2) return `${formatted[0]} and ${formatted[1]}`;
+    return `${formatted.slice(0, -1).join(", ")}, and ${formatted[formatted.length - 1]}`;
+  };
+
   if (loading || !profile) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -177,6 +203,32 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
       />
 
       <main className="flex-1 overflow-y-auto px-4 py-4 pb-24 max-w-lg mx-auto w-full">
+        {/* Incomplete Profile Alert */}
+        {hasIncompleteProfile && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-6 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-500 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium text-amber-800 dark:text-amber-200 text-sm">
+                  Complete your profile
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-300/80 mt-1">
+                  Add your {formatIncompleteFields(incompleteFields)} to help neighbours find you.
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 text-amber-700 dark:text-amber-300 hover:text-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 p-0 h-auto"
+                  onClick={scrollToSettings}
+                >
+                  Go to settings
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* User Info with Photo Upload */}
         <div className="flex items-center gap-4 mb-6">
           <ProfilePhotoUpload 
@@ -305,7 +357,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
 
           <div className="bg-card border border-border rounded-xl divide-y divide-border">
             {/* Location */}
-            <div className="p-4">
+            <div className={`p-4 ${incompleteFields.includes('city') || incompleteFields.includes('neighbourhood') ? 'bg-amber-50/50 dark:bg-amber-950/20' : ''}`}>
               {editingLocation ? (
                 <div className="space-y-4">
                   <div className="space-y-3">
@@ -351,15 +403,27 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
                   className="w-full flex items-center justify-between"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
-                      <Globe className="w-5 h-5 text-muted-foreground" />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      incompleteFields.includes('city') || incompleteFields.includes('neighbourhood') 
+                        ? 'bg-amber-100 dark:bg-amber-900/50' 
+                        : 'bg-muted'
+                    }`}>
+                      <Globe className={`w-5 h-5 ${
+                        incompleteFields.includes('city') || incompleteFields.includes('neighbourhood')
+                          ? 'text-amber-600 dark:text-amber-500'
+                          : 'text-muted-foreground'
+                      }`} />
                     </div>
                     <div className="text-left">
                       <p className="font-medium text-foreground">Location</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className={`text-sm ${
+                        incompleteFields.includes('city') || incompleteFields.includes('neighbourhood')
+                          ? 'text-amber-600 dark:text-amber-500'
+                          : 'text-muted-foreground'
+                      }`}>
                         {profile.neighbourhood && profile.city
                           ? `${profile.neighbourhood}, ${CITY_CONFIG[profile.city as City]?.label || profile.city}`
-                          : "Not set"}
+                          : "Required"}
                       </p>
                     </div>
                   </div>
@@ -495,7 +559,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
               </div>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-2">
+            <div className={`flex flex-wrap gap-2 ${incompleteFields.includes('skills') ? 'p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800' : ''}`}>
               {userSkills.length > 0 ? (
                 userSkills.map((skill) => (
                   <div
@@ -507,14 +571,20 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground">No skills added yet</p>
+                <p className={`text-sm ${incompleteFields.includes('skills') ? 'text-amber-600 dark:text-amber-500' : 'text-muted-foreground'}`}>
+                  {incompleteFields.includes('skills') ? 'Required: Add at least one skill' : 'No skills added yet'}
+                </p>
               )}
               <button
                 onClick={() => {
                   setTempSkills(profile.skills || []);
                   setEditingSkills(true);
                 }}
-                className="px-3 py-2 border border-dashed border-border rounded-xl text-sm text-muted-foreground hover:border-muted-foreground transition-colors"
+                className={`px-3 py-2 border border-dashed rounded-xl text-sm transition-colors ${
+                  incompleteFields.includes('skills')
+                    ? 'border-amber-400 dark:border-amber-600 text-amber-600 dark:text-amber-500 hover:border-amber-500'
+                    : 'border-border text-muted-foreground hover:border-muted-foreground'
+                }`}
               >
                 + Edit skills
               </button>
