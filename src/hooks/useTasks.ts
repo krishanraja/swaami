@@ -64,8 +64,8 @@ export function useTasks() {
   }, [profile?.neighbourhood, neighbourhoods]);
 
   const fetchTasks = useCallback(async () => {
-    let data: any[] | null = null;
-    let error: any = null;
+    let data: Record<string, unknown>[] | null = null;
+    let error: { message: string } | null = null;
 
     // Always try location-based query with 5km radius for client-side filtering
     if (userLocation) {
@@ -87,7 +87,7 @@ export function useTasks() {
       console.error("Error fetching tasks:", error);
     } else {
       // Map RPC response to Task interface
-      const allTasks = (data || []).map((task: any) => ({
+      const allTasks = (data || []).map((task: Record<string, unknown>) => ({
         ...task,
         is_demo: task.owner_is_demo,
         owner: {

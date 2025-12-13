@@ -2,6 +2,58 @@
 
 All notable changes to Swaami.
 
+## [0.2.0] - 2024-12-13
+
+### Added
+- `useNetworkStatus` hook for offline detection
+- `OfflineBanner` component for network status feedback
+- ARIA labels and roles for accessibility compliance
+- Content safety check before AI processing in PostScreen
+- Message sanitization in ChatScreen
+- Enhanced ErrorBoundary with dev info and "Go Home" option
+- Safe localStorage access wrapper in AccessibilityContext
+- HTML-level instant splash placeholder (no JS required)
+- Image preload detection in SplashScreen for guaranteed stable loading
+
+### Changed
+- **SplashScreen rewritten for Google-app-level stability**:
+  - Two-phase loading: CSS-only preload state → full splash once icon loads
+  - Proper image preloading with onLoad/onError handling
+  - Coordinated timing with data fetching
+  - Fallback if image fails to load
+
+### SEO & Content Marketing
+- **FAQ page** (`/faq`) with 20+ questions optimized for search
+- **Blog** (`/blog`) with 5 initial articles targeting high-traffic keywords
+- **SEO utility** (`src/lib/seo.ts`) for dynamic meta tags and structured data
+- **JSON-LD schemas**: FAQ, Article, Breadcrumb, LocalBusiness
+- **sitemap.xml** with all public pages
+- **robots.txt** optimized for search engines with sitemap reference
+- **Help links** in Profile settings for non-intrusive access
+- Improved NotFound page with better design and styling
+- Enhanced BottomNav with proper accessibility attributes
+- Better loading state indicator for chat message sending
+- Updated AppHeader with semantic role="banner"
+- Improved NeedCard expand/collapse with aria-expanded
+
+### Fixed
+- All ESLint errors resolved (30 → 0 errors)
+- Switch case lexical declaration issues in FeedScreen
+- Type safety issues with `any` types across codebase
+- Empty interface issues in UI components
+- require() usage replaced with ESM imports in tailwind.config
+- Missing useEffect dependencies in multiple components
+- localStorage access without try-catch in AccessibilityContext
+- Incorrect metadata type casting in useTrustTier
+
+### Security
+- Pre-AI content safety validation in PostScreen
+- Message content sanitization before sending
+- Proper error messages that don't leak internals
+- Safe localStorage access with fallback
+
+---
+
 ## [0.1.0] - 2024-12-11
 
 ### Added

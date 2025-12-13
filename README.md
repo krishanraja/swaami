@@ -1,73 +1,118 @@
-# Welcome to your Lovable project
+# Swaami
 
-## Project info
+**Hyper-local neighbourhood help network**
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Build stronger communities by connecting neighbours who need help with those who can give it.
 
-## How can I edit this code?
+## 🌟 Features
 
-There are several ways of editing your application.
+- **AI-Enhanced Task Posting** - Describe your need naturally, AI structures it perfectly
+- **Verified Neighbours** - Trust tiers from phone, social, and endorsement verification
+- **Real-time Matching** - Instant notifications when someone offers to help
+- **Walking Distance Focus** - 500m default radius keeps it truly local
+- **Credit System** - Help others, earn credits, get help back
 
-**Use Lovable**
+## 🛡️ Security & Quality
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- ✅ All ESLint errors resolved
+- ✅ TypeScript strict mode
+- ✅ Content safety filtering
+- ✅ Input validation with Zod
+- ✅ Row Level Security on all tables
+- ✅ Accessibility (ARIA) compliant
+- ✅ Offline-aware with graceful degradation
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🏗️ Tech Stack
 
-**Use your preferred IDE**
+- **Frontend**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Backend**: Supabase (PostgreSQL + Auth + Realtime)
+- **AI**: Lovable AI Gateway (Gemini 2.5 Flash)
+- **Deployment**: Lovable Cloud
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 📁 Project Structure
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```
+src/
+├── components/     # Reusable UI components
+│   ├── onboarding/ # Onboarding flow components
+│   ├── trust/      # Verification & trust components
+│   └── ui/         # shadcn/ui components
+├── contexts/       # React contexts (Accessibility)
+├── hooks/          # Custom React hooks
+├── integrations/   # Supabase client
+├── lib/            # Utilities (logger, validation, safety)
+├── pages/          # Route pages
+├── screens/        # Main screen components
+└── types/          # TypeScript definitions
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+docs/
+├── ARCHITECTURE.md    # System design & database schema
+├── AUDIT_STATUS.md    # Security & UX audit tracking
+├── DESIGN_SYSTEM.md   # Visual design guidelines
+├── FEATURES.md        # Feature documentation
+├── HISTORY.md         # Changelog
+├── ICP.md             # Ideal customer profile
+├── MASTER_INSTRUCTIONS.md  # Development guidelines
+└── PURPOSE.md         # Mission & values
 ```
 
-**Edit a file directly in GitHub**
+## 🚀 Getting Started
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+# Install dependencies
+npm install
 
-**Use GitHub Codespaces**
+# Start development server
+npm run dev
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Run linter
+npm run lint
 
-## What technologies are used for this project?
+# Build for production
+npm run build
+```
 
-This project is built with:
+## 📋 Scripts
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run lint` | Run ESLint |
+| `npm run preview` | Preview production build |
 
-## How can I deploy this project?
+## 🔒 Environment Variables
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Required in `.env`:
 
-## Can I connect a custom domain to my Lovable project?
+```
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-Yes, you can!
+Edge function secrets (set in Supabase):
+- `LOVABLE_API_KEY` - For AI task enhancement
+- `STRIPE_SECRET_KEY` - For subscription payments
+- `TWILIO_*` - For phone verification
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 📖 Documentation
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+See the `/docs` folder for detailed documentation:
+
+- [Architecture](docs/ARCHITECTURE.md) - System design
+- [Design System](docs/DESIGN_SYSTEM.md) - Visual guidelines
+- [Audit Status](docs/AUDIT_STATUS.md) - Security & quality status
+- [Purpose](docs/PURPOSE.md) - Mission & values
+- [SEO Strategy](docs/SEO_STRATEGY.md) - Content marketing & SEO plan
+
+## 🤝 Contributing
+
+1. Read [MASTER_INSTRUCTIONS.md](docs/MASTER_INSTRUCTIONS.md)
+2. Follow the coding standards
+3. Run `npm run lint` before committing
+4. Document changes in [HISTORY.md](docs/HISTORY.md)
+
+## 📄 License
+
+Private - All rights reserved

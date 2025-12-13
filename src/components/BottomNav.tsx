@@ -15,7 +15,7 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border pb-safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border pb-safe-bottom" role="navigation" aria-label="Main navigation">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -25,6 +25,8 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
+              aria-label={`${tab.label} tab${isActive ? ', currently selected' : ''}`}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center gap-1 px-4 py-2 transition-all duration-200",
                 isActive ? "text-foreground" : "text-muted-foreground"
@@ -33,10 +35,10 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
               <div
                 className={cn(
                   "p-1.5 rounded-xl transition-all duration-200",
-                  isActive && "bg-primary"
+                  isActive && "bg-primary text-primary-foreground"
                 )}
               >
-                <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+                <Icon className={cn("w-5 h-5", isActive && "text-primary-foreground")} strokeWidth={isActive ? 2.5 : 2} />
               </div>
               <span className="text-xs font-medium">{tab.label}</span>
             </button>

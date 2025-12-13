@@ -76,24 +76,102 @@
 
 **Files**: `src/screens/ChatsListScreen.tsx`, `src/hooks/useMatches.ts`
 
+### 8. Trust & Verification System
+**Status**: ✅ Complete
+
+- Trust tiers (Tier 0, 1, 2)
+- Phone verification (SMS/WhatsApp)
+- Social connections (Google/Apple)
+- Photo upload verification
+- Endorsement system
+- MFA setup
+
+**Files**: `src/screens/VerificationScreen.tsx`, `src/hooks/useTrustTier.ts`, `src/components/trust/`
+
+### 9. Subscription System
+**Status**: ✅ Complete
+
+- Free tier with post limits
+- Swaami+ unlimited posting
+- Stripe checkout integration
+- Customer portal
+
+**Files**: `src/hooks/useSubscription.ts`, `supabase/functions/create-checkout/`, `supabase/functions/customer-portal/`
+
+### 10. Accessibility Features
+**Status**: ✅ Complete
+
+- Large text mode
+- High contrast mode
+- Text-to-speech support
+- Simple mode
+- ARIA labels throughout
+- Keyboard navigation
+
+**Files**: `src/contexts/AccessibilityContext.tsx`
+
+### 11. Network Resilience
+**Status**: ✅ Complete
+
+- Offline detection
+- Offline banner notification
+- Graceful degradation
+- "Back online" notification
+
+**Files**: `src/hooks/useNetworkStatus.ts`, `src/components/OfflineBanner.tsx`
+
+### 12. Voice Input
+**Status**: ✅ Complete
+
+- Voice-to-text for task posting
+- Whisper transcription via edge function
+
+**Files**: `src/components/VoiceInput.tsx`, `supabase/functions/transcribe-audio/`
+
+### 13. Premium Splash Screen
+**Status**: ✅ Complete
+
+- Google-app-level stable loading experience
+- HTML-level instant placeholder (no JS required)
+- Image preload detection before animation
+- Two-phase loading: CSS-only → full splash
+- Coordinated timing with auth/profile data
+- Fallback handling if assets fail
+
+**Files**: `src/components/SplashScreen.tsx`, `index.html`
+
+### 14. SEO & Content Marketing
+**Status**: ✅ Complete
+
+- Dynamic meta tags for each page
+- JSON-LD structured data (FAQ, Article, Breadcrumb, LocalBusiness)
+- FAQ page with comprehensive questions and schema markup
+- Blog with article infrastructure and related posts
+- Optimized robots.txt with sitemap
+- XML sitemap for search engines
+- City-specific keyword targeting
+- Open Graph and Twitter card support
+
+**Files**: `src/lib/seo.ts`, `src/pages/FAQ.tsx`, `src/pages/Blog.tsx`, `src/pages/BlogPost.tsx`, `src/data/blog-posts.ts`, `public/sitemap.xml`, `public/robots.txt`
+
 ---
 
 ## Planned Features
 
 ### Content Moderation
-**Priority**: High
+**Priority**: High | **Status**: ⚠️ Partial
 
-- Block unsafe content patterns
-- AI-based content classification
-- Report functionality
+- ✅ Block unsafe content patterns
+- ✅ Pre-AI safety validation
+- ❌ Report functionality (TODO)
 
 ### Safety Features
-**Priority**: High
+**Priority**: High | **Status**: ⚠️ Partial
 
-- "Meet in public" reminders
-- Safety concern button in chat
-- Location sharing option
-- Emergency contact notification
+- ✅ "Meet in public" reminders (in safety.ts)
+- ✅ High-risk category warnings
+- ❌ Safety concern button in chat (TODO)
+- ❌ Location sharing option (TODO)
 
 ### Task Scope Protection
 **Priority**: Medium

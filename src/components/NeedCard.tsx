@@ -144,14 +144,16 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="flex items-center gap-1 text-xs text-accent hover:text-accent/80 mt-1 transition-colors"
+                aria-expanded={isExpanded}
+                aria-label={isExpanded ? "Show less details" : "Read more details"}
               >
                 {isExpanded ? (
                   <>
-                    Show less <ChevronUp className="w-3 h-3" />
+                    Show less <ChevronUp className="w-3 h-3" aria-hidden="true" />
                   </>
                 ) : (
                   <>
-                    Read more <ChevronDown className="w-3 h-3" />
+                    Read more <ChevronDown className="w-3 h-3" aria-hidden="true" />
                   </>
                 )}
               </button>

@@ -64,6 +64,13 @@
 
 ## UI Issues
 
+### Splash screen icon not appearing
+**Cause**: Image not yet cached on first load
+**Solution**: The splash screen now uses a two-phase approach:
+1. Shows a CSS-only pulse animation while the icon loads
+2. Only starts the full animation once the icon is ready
+3. If the icon fails to load, it proceeds after a timeout
+
 ### Logo appears distorted
 **Cause**: Aspect ratio not preserved
 **Solution**: Always use `w-auto` with fixed height: `className="h-16 w-auto"`
@@ -103,9 +110,34 @@
 6. **Verify RLS**: Do policies allow the operation?
 7. **Check Realtime**: Is subscription active?
 
+## Network Issues
+
+### App appears frozen or unresponsive
+**Cause**: Network disconnection
+**Solution**: The app now shows an OfflineBanner when offline. Wait for connection to restore.
+
+### Data not syncing
+**Cause**: Real-time subscription interrupted
+**Solution**: Refresh the page. Check the OfflineBanner for network status.
+
+---
+
+## Accessibility Issues
+
+### Text-to-speech not working
+**Cause**: Browser doesn't support Web Speech API
+**Solution**: Use Chrome, Safari, or Edge. Firefox has limited support.
+
+### Large text mode not applying
+**Cause**: localStorage blocked
+**Solution**: Check browser privacy settings, allow localStorage
+
+---
+
 ## Getting Help
 
 1. Check this document first
 2. Search existing issues in project
 3. Enable verbose logging with `logger.debug()`
 4. Capture full error context before reporting
+5. Check the browser console for detailed error messages

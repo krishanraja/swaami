@@ -209,8 +209,8 @@ serve(async (req) => {
       .select("name, city, latitude, longitude");
     
     const neighbourhoodCoords: Record<string, { lat: number; lng: number }> = {};
-    (neighbourhoodData || []).forEach((n: any) => {
-      if (n.latitude && n.longitude) {
+    (neighbourhoodData || []).forEach((n: { city?: string; name?: string; latitude?: number; longitude?: number }) => {
+      if (n.latitude && n.longitude && n.city && n.name) {
         neighbourhoodCoords[`${n.city}:${n.name}`] = { lat: n.latitude, lng: n.longitude };
       }
     });

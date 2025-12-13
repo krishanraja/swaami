@@ -51,11 +51,11 @@ export function PhoneVerification({ city, onVerified, onCancel }: PhoneVerificat
         title: "Code sent!",
         description: `Check your ${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'} for the verification code`,
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('Send OTP error:', error);
       toast({
         title: "Failed to send code",
-        description: error.message || "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {
@@ -80,11 +80,11 @@ export function PhoneVerification({ city, onVerified, onCancel }: PhoneVerificat
         description: "Your phone number has been verified",
       });
       onVerified(data.channel || channel);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Verify OTP error:', error);
       toast({
         title: "Verification failed",
-        description: error.message || "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive",
       });
     } finally {
