@@ -21,6 +21,15 @@ All notable changes to Swaami.
   - Proper image preloading with onLoad/onError handling
   - Coordinated timing with data fetching
   - Fallback if image fails to load
+
+### SEO & Content Marketing
+- **FAQ page** (`/faq`) with 20+ questions optimized for search
+- **Blog** (`/blog`) with 5 initial articles targeting high-traffic keywords
+- **SEO utility** (`src/lib/seo.ts`) for dynamic meta tags and structured data
+- **JSON-LD schemas**: FAQ, Article, Breadcrumb, LocalBusiness
+- **sitemap.xml** with all public pages
+- **robots.txt** optimized for search engines with sitemap reference
+- **Help links** in Profile settings for non-intrusive access
 - Improved NotFound page with better design and styling
 - Enhanced BottomNav with proper accessibility attributes
 - Better loading state indicator for chat message sending
