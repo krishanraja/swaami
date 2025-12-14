@@ -112,7 +112,7 @@ export function PersonDetailsDrawer({
     : null;
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={onOpenChange} handleOnly>
       <DrawerContent className="max-h-[90dvh]">
         <div className="mx-auto w-full max-w-lg overflow-y-auto">
           <DrawerHeader className="text-left pb-2">
