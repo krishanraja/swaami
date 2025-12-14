@@ -181,10 +181,49 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
     return `${formatted.slice(0, -1).join(", ")}, and ${formatted[formatted.length - 1]}`;
   };
 
-  if (loading || !profile) {
+  const [timeoutError, setTimeoutError] = useState(false);
+
+  // Add timeout for loading state
+  useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => {
+        if (loading) {
+          setTimeoutError(true);
+        }
+      }, 10000); // 10 second timeout
+
+      return () => {
+        clearTimeout(timeout);
+        setTimeoutError(false);
+      };
+    }
+  }, [loading]);
+
+  if (loading && !timeoutError) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Loading profile...</div>
+      </div>
+    );
+  }
+
+  if (timeoutError || (!loading && !profile)) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
+          </div>
+          <h3 className="font-semibold text-foreground mb-2">
+            Failed to load profile
+          </h3>
+          <p className="text-muted-foreground text-sm mb-4">
+            {timeoutError ? 'Request timed out. Please try again.' : 'Something went wrong.'}
+          </p>
+          <Button onClick={() => window.location.reload()} variant="swaami">
+            Try Again
+          </Button>
+        </div>
       </div>
     );
   }

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AppHeader } from "@/components/AppHeader";
 import { toast } from "sonner";
-import { Sparkles, Check, AlertCircle, Settings, MessageCircleQuestion } from "lucide-react";
+import { Sparkles, Check, AlertCircle, Settings, MessageCircleQuestion, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTasks } from "@/hooks/useTasks";
 import { useSubscription, FREE_LIMITS } from "@/hooks/useSubscription";
@@ -90,6 +90,10 @@ export function PostScreen() {
     setError(null);
 
     try {
+      // Add explicit timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const requestBody: { description: string; type: string; clarification_context?: string } = { 
         description: input, 
         type: "rewrite" 
@@ -105,8 +109,20 @@ export function PostScreen() {
         { body: requestBody }
       );
 
-      if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
+      clearTimeout(timeoutId);
+
+      if (fnError) {
+        if (fnError.message?.includes('aborted') || fnError.message?.includes('timeout')) {
+          throw new Error('AI processing timed out');
+        }
+        throw fnError;
+      }
+      if (data?.error) {
+        if (data.error.includes('429') || data.error.includes('rate limit')) {
+          throw new Error('Too many requests. Please wait a moment and try again.');
+        }
+        throw new Error(data.error);
+      }
 
       const result = data.result;
       
@@ -123,6 +139,18 @@ export function PostScreen() {
       }
     } catch (err) {
       console.error("AI rewrite error:", err);
+      
+      let errorMessage = "AI enhancement unavailable, using your original text.";
+      if (err instanceof Error) {
+        if (err.name === 'AbortError' || err.message.includes('timeout')) {
+          errorMessage = "AI processing timed out. Using your original text.";
+        } else if (err.message.includes('rate limit') || err.message.includes('429')) {
+          errorMessage = "Too many requests. Please wait a moment and try again.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
       setAiRewrite({
         title: input.slice(0, 50),
         description: input,
@@ -134,7 +162,12 @@ export function PostScreen() {
         people_needed: 1,
       });
       setClarification(null);
-      setError("AI enhancement unavailable, using your original text.");
+      setError(errorMessage);
+      
+      // Show clear message that fallback is being used
+      toast.warning('AI enhancement unavailable', {
+        description: 'Your task will be posted with your original text. You can edit it before confirming.',
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -144,48 +177,62 @@ export function PostScreen() {
     handleSubmit(answer);
   };
 
+  const [confirming, setConfirming] = useState(false);
+
   const handleConfirm = async () => {
-    if (!aiRewrite) return;
+    if (!aiRewrite || confirming) return;
 
-    const { error: createError } = await createTask({
-      title: aiRewrite.title,
-      description: aiRewrite.description,
-      original_description: input,
-      time_estimate: aiRewrite.time_estimate,
-      category: aiRewrite.category,
-      urgency: aiRewrite.urgency,
-      availability_time: aiRewrite.availability_time,
-      physical_level: aiRewrite.physical_level,
-      people_needed: aiRewrite.people_needed,
-      access_instructions: aiRewrite.access_instructions,
-    });
+    setConfirming(true);
 
-    if (createError) {
-      toast.error("Couldn't post your need", {
-        description: createError.message,
+    try {
+      const { data, error: createError } = await createTask({
+        title: aiRewrite.title,
+        description: aiRewrite.description,
+        original_description: input,
+        time_estimate: aiRewrite.time_estimate,
+        category: aiRewrite.category,
+        urgency: aiRewrite.urgency,
+        availability_time: aiRewrite.availability_time,
+        physical_level: aiRewrite.physical_level,
+        people_needed: aiRewrite.people_needed,
+        access_instructions: aiRewrite.access_instructions,
       });
-      return;
+
+      // Only show success if task was actually created
+      if (createError || !data) {
+        toast.error("Couldn't post your need", {
+          description: createError?.message || "Failed to create task",
+        });
+        setConfirming(false);
+        return;
+      }
+
+      // Increment post count for free users
+      if (plan === "free") {
+        await incrementPostCount();
+      }
+
+      setIsConfirmed(true);
+      setShowConfetti(true);
+      toast.success("Done! Your request is live.", {
+        description: "Neighbours nearby will see it soon",
+      });
+
+      setTimeout(() => {
+        setInput("");
+        setAiRewrite(null);
+        setClarification(null);
+        setPartialInference(null);
+        setIsConfirmed(false);
+        setError(null);
+        setConfirming(false);
+      }, 2000);
+    } catch (err) {
+      toast.error("Couldn't post your need", {
+        description: err instanceof Error ? err.message : "An error occurred",
+      });
+      setConfirming(false);
     }
-
-    // Increment post count for free users
-    if (plan === "free") {
-      await incrementPostCount();
-    }
-
-    setIsConfirmed(true);
-    setShowConfetti(true);
-    toast.success("Done! Your request is live.", {
-      description: "Neighbours nearby will see it soon",
-    });
-
-    setTimeout(() => {
-      setInput("");
-      setAiRewrite(null);
-      setClarification(null);
-      setPartialInference(null);
-      setIsConfirmed(false);
-      setError(null);
-    }, 2000);
   };
 
   const handleEdit = () => {
@@ -461,9 +508,14 @@ export function PostScreen() {
                 size="lg"
                 className="flex-1 text-lg py-6"
                 onClick={handleConfirm}
+                disabled={confirming}
               >
-                <Check className="w-6 h-6" />
-                Post it!
+                {confirming ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  <Check className="w-6 h-6" />
+                )}
+                {confirming ? "Posting..." : "Post it!"}
               </Button>
             </div>
           </div>

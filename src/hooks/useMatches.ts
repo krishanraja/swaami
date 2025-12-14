@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "./useProfile";
+import { validateStatusTransition, MATCH_STATUS_TRANSITIONS, getInvalidTransitionError } from "@/lib/stateMachine";
 
 export interface Match {
   id: string;
@@ -79,6 +80,16 @@ export function useMatches() {
   }, [fetchMatches]);
 
   const updateMatchStatus = async (matchId: string, status: string) => {
+    // Validate state transition
+    const match = matches.find(m => m.id === matchId);
+    if (!match) {
+      return { error: new Error("Match not found") };
+    }
+
+    if (!validateStatusTransition(match.status, status, MATCH_STATUS_TRANSITIONS)) {
+      return { error: new Error(getInvalidTransitionError(match.status, status, 'match')) };
+    }
+
     const { error } = await supabase
       .from("matches")
       .update({ status })

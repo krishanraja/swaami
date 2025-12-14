@@ -14,8 +14,8 @@ export function ChatScreen() {
   const { matchId } = useParams<{ matchId: string }>();
   const navigate = useNavigate();
   const { profile } = useProfile();
-  const { messages, loading, sendMessage } = useMessages(matchId || null);
-  const { matches, updateMatchStatus } = useMatches();
+  const { messages, loading: messagesLoading, sendMessage } = useMessages(matchId || null);
+  const { matches, loading: matchesLoading, updateMatchStatus } = useMatches();
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -23,6 +23,33 @@ export function ChatScreen() {
   const match = matches.find((m) => m.id === matchId);
   const isHelper = match?.helper_id === profile?.id;
   const otherPerson = isHelper ? match?.task?.owner : match?.helper;
+  const loading = messagesLoading || matchesLoading;
+
+  // Fix dead end: Redirect if matchId invalid or match not found
+  useEffect(() => {
+    if (!matchId) {
+      navigate("/app");
+      return;
+    }
+
+    // Timeout after 5 seconds if still loading and no match
+    const timeout = setTimeout(() => {
+      if (!loading && !match && matches.length > 0) {
+        toast.error("Chat not found");
+        navigate("/app");
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, [matchId, loading, match, matches.length, navigate]);
+
+  // Also check after matches load
+  useEffect(() => {
+    if (!matchesLoading && matches.length > 0 && !match && matchId) {
+      toast.error("Chat not found");
+      navigate("/app");
+    }
+  }, [matchesLoading, matches, match, matchId, navigate]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -49,19 +76,26 @@ export function ChatScreen() {
     const { error } = await updateMatchStatus(matchId, status);
     if (error) {
       toast.error("Failed to update status");
-    } else {
-      if (status === "arrived") {
-        toast.success("You've marked yourself as arrived!");
-      } else if (status === "completed") {
-        toast.success("Task completed! Great job helping out! 🎉");
-        // Update task status
-        if (match?.task_id) {
-          await supabase
-            .from("tasks")
-            .update({ status: "completed" })
-            .eq("id", match.task_id);
+      return;
+    }
+
+    // Only show success if update actually succeeded
+    if (status === "arrived") {
+      toast.success("You've marked yourself as arrived!");
+    } else if (status === "completed") {
+      // Update task status and verify it succeeded
+      if (match?.task_id) {
+        const { error: taskError } = await supabase
+          .from("tasks")
+          .update({ status: "completed" })
+          .eq("id", match.task_id);
+        
+        if (taskError) {
+          toast.error("Failed to complete task");
+          return;
         }
       }
+      toast.success("Task completed! Great job helping out! 🎉");
     }
   };
 

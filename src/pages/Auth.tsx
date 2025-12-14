@@ -56,6 +56,13 @@ export default function Auth() {
         const isOAuthUser = session.user.app_metadata?.provider !== 'email';
         if (isOAuthUser || session.user.email_confirmed_at) {
           navigate("/join");
+        } else {
+          // Don't redirect if already on /auth, show message instead
+          if (window.location.pathname === '/auth') {
+            setEmailSent(true);
+          } else {
+            navigate("/auth");
+          }
         }
       }
     });
@@ -65,6 +72,8 @@ export default function Auth() {
         const isOAuthUser = session.user.app_metadata?.provider !== 'email';
         if (isOAuthUser || session.user.email_confirmed_at) {
           navigate("/join");
+        } else if (window.location.pathname !== '/auth') {
+          navigate("/auth");
         }
       }
     });
