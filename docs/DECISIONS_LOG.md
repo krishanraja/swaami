@@ -146,6 +146,32 @@ Block known-bad patterns before sending to AI, flag suspicious content.
 
 ---
 
+## ADR-009: Person Details Drawer for Trust Building
+**Date**: 2024-12-14
+**Status**: Accepted
+
+### Context
+Users hesitate to help strangers without knowing more about them. Trust is the foundation of Swaami's value proposition, but the feed cards only showed limited person info. Users needed a way to "vet" the person before committing to help.
+
+### Decision
+Implement an expandable person details drawer that opens when tapping on the owner section of a task card. The drawer shows:
+- Large profile photo with trust tier badge
+- Detailed trust tier explanation with verification points
+- Stats (tasks completed, reliability score)
+- Skills and neighbourhood
+- Contextual community message
+- Direct "Help" CTA
+
+### Consequences
+- ✅ Builds trust through transparency before action
+- ✅ Progressive disclosure keeps feed cards clean
+- ✅ Mobile-first bottom drawer feels natural
+- ✅ Reduces "leap of faith" anxiety
+- ⚠️ Additional data fetching (skills, member_since) required
+- ⚠️ Drawer animation adds slight interaction delay
+
+---
+
 ## Template for New ADRs
 
 ```markdown
