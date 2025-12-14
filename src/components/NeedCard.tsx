@@ -4,6 +4,7 @@ import { Clock, Star, Flame, Sparkles, Users, Shield, CheckCircle, FlaskConical,
 import { formatDistanceToNow } from "date-fns";
 import { calculateWalkTime } from "@/lib/walkTime";
 import { ReadAloudButton } from "@/components/ReadAloudButton";
+import { PersonDetailsDrawer } from "@/components/PersonDetailsDrawer";
 import { toast } from "sonner";
 
 interface NeedCardProps {
@@ -31,6 +32,9 @@ interface NeedCardProps {
       trust_tier?: string;
       is_demo?: boolean;
       photo_url?: string | null;
+      skills?: string[];
+      member_since?: string;
+      neighbourhood?: string | null;
     };
     owner_trust_tier?: string | null;
   };
@@ -43,6 +47,7 @@ interface NeedCardProps {
 
 export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOwner = false }: NeedCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isPersonDrawerOpen, setIsPersonDrawerOpen] = useState(false);
   
   const timeAgo = task.created_at
     ? formatDistanceToNow(new Date(task.created_at), { addSuffix: true })
@@ -208,21 +213,29 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
             </div>
           )}
 
-          {/* Owner info with reputation and trust badges */}
+          {/* Owner info with reputation and trust badges - clickable for details */}
           {task.owner && (
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsPersonDrawerOpen(true);
+              }}
+              className="flex items-center gap-2 mt-3 pt-3 border-t border-border w-full text-left hover:bg-muted/50 -mx-1 px-1 rounded-lg transition-colors cursor-pointer group"
+              aria-label={`View ${task.owner.display_name || "neighbour"}'s profile`}
+            >
               {task.owner.photo_url ? (
                 <img 
                   src={task.owner.photo_url} 
                   alt={task.owner.display_name || "User"} 
-                  className="w-6 h-6 rounded-full object-cover"
+                  className="w-6 h-6 rounded-full object-cover ring-2 ring-transparent group-hover:ring-primary/20 transition-all"
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium">
+                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
                   {task.owner.display_name?.[0]?.toUpperCase() || "?"}
                 </div>
               )}
-              <span className="text-sm text-foreground">
+              <span className="text-sm text-foreground group-hover:text-primary transition-colors">
                 {task.owner.display_name || "Neighbor"}
               </span>
               {/* Trust badge */}
@@ -245,7 +258,11 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
                   </span>
                 </span>
               )}
-            </div>
+              {/* Tap indicator */}
+              <span className="ml-auto text-xs text-muted-foreground/50 group-hover:text-primary/50 transition-colors">
+                Tap for more →
+              </span>
+            </button>
           )}
         </div>
 
@@ -286,6 +303,17 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
           <ReadAloudButton text={readAloudText} />
         </div>
       </div>
+
+      {/* Person Details Drawer */}
+      <PersonDetailsDrawer
+        open={isPersonDrawerOpen}
+        onOpenChange={setIsPersonDrawerOpen}
+        owner={task.owner || null}
+        taskTitle={task.title}
+        taskCategory={task.category || undefined}
+        onHelp={() => onHelp?.(task.id)}
+        isDemo={isDemo}
+      />
     </div>
   );
 }

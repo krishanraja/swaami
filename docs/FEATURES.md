@@ -154,6 +154,28 @@
 
 **Files**: `src/lib/seo.ts`, `src/pages/FAQ.tsx`, `src/pages/Blog.tsx`, `src/pages/BlogPost.tsx`, `src/data/blog-posts.ts`, `public/sitemap.xml`, `public/robots.txt`
 
+### 15. Person Details Drawer
+**Status**: ✅ Complete
+
+- Tap on task card owner section to see detailed person profile
+- Mobile-first bottom drawer with smooth animation
+- Large profile photo with trust tier badge overlay
+- Trust tier explanation with verification points
+- Stats grid showing tasks completed and reliability score
+- Skills display with category highlighting
+- Neighbourhood and member tenure display
+- Contextual community message based on experience level
+- Direct "Help" CTA from drawer
+- Builds trust through transparency before committing to help
+
+**Files**: `src/components/PersonDetailsDrawer.tsx`, `src/components/NeedCard.tsx`
+
+**UX Design Principles Applied**:
+- Progressive disclosure: surface info on tap, not clutter
+- Trust through transparency: explain what verification means
+- Reduce anxiety: show why someone is trustworthy before action
+- Clear affordance: "Tap for more →" hint on owner section
+
 ---
 
 ## Planned Features
