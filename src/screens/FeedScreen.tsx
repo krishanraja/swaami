@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { useTasks } from "@/hooks/useTasks";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import { RefreshCw, PlusCircle, FlaskConical, MapPin, ArrowUpDown } from "lucide-react";
+import { RefreshCw, PlusCircle, FlaskConical, MapPin, ArrowUpDown, AlertCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -19,13 +19,30 @@ interface FeedScreenProps {
 
 export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
   const navigate = useNavigate();
-  const { tasks, loading, fetchTasks, helpWithTask } = useTasks();
+  const { tasks, loading, error, fetchTasks, helpWithTask, helping } = useTasks();
   const { profile } = useProfile();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showDemoTasks, setShowDemoTasks] = useState(true);
   const [maxDistance, setMaxDistance] = useState(2000);
   const [sortBy, setSortBy] = useState<SortOption>("nearest");
+  const [timeoutError, setTimeoutError] = useState(false);
+
+  // Add timeout for loading state
+  useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => {
+        if (loading) {
+          setTimeoutError(true);
+        }
+      }, 10000); // 10 second timeout
+
+      return () => {
+        clearTimeout(timeout);
+        setTimeoutError(false);
+      };
+    }
+  }, [loading]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -36,6 +53,9 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
   const handleHelp = async (taskId: string) => {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
+
+    // Disable button if already helping
+    if (helping.has(taskId)) return;
 
     const { data, error } = await helpWithTask(taskId);
     if (error) {
@@ -191,7 +211,22 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
       {/* Content */}
       <main className="flex-1 overflow-y-auto px-4 pt-3 pb-24 max-w-lg mx-auto w-full">
 
-        {loading ? (
+        {(error || timeoutError) ? (
+          <div className="text-center py-12">
+            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-2">
+              Failed to load tasks
+            </h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              {error?.message || timeoutError ? 'Request timed out. Please try again.' : 'Something went wrong.'}
+            </p>
+            <Button onClick={fetchTasks} variant="swaami">
+              Try Again
+            </Button>
+          </div>
+        ) : loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div

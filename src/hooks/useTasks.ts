@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "./useProfile";
 import { useNeighbourhoods, type City } from "./useNeighbourhoods";
+import { validateStatusTransition, TASK_STATUS_TRANSITIONS, getInvalidTransitionError } from "@/lib/stateMachine";
 
 export interface Task {
   id: string;
@@ -46,6 +47,8 @@ export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [helping, setHelping] = useState<Set<string>>(new Set());
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   // Fetch user's neighbourhood coordinates
@@ -67,28 +70,33 @@ export function useTasks() {
   }, [profile?.neighbourhood, neighbourhoods]);
 
   const fetchTasks = useCallback(async () => {
-    let data: Record<string, unknown>[] | null = null;
-    let error: { message: string } | null = null;
+    setError(null);
+    setLoading(true);
+    
+    try {
+      let data: Record<string, unknown>[] | null = null;
+      let fetchError: { message: string } | null = null;
 
-    // Always try location-based query with 5km radius for client-side filtering
-    if (userLocation) {
-      const result = await supabase.rpc("get_nearby_tasks", {
-        user_lat: userLocation.lat,
-        user_lng: userLocation.lng,
-        radius_km: 5, // Fetch 5km radius, let client filter
-      });
-      data = result.data;
-      error = result.error;
-    } else {
-      // Fallback to non-location-based query when no location available
-      const result = await supabase.rpc("get_public_tasks");
-      data = result.data;
-      error = result.error;
-    }
+      // Always try location-based query with 5km radius for client-side filtering
+      if (userLocation) {
+        const result = await supabase.rpc("get_nearby_tasks", {
+          user_lat: userLocation.lat,
+          user_lng: userLocation.lng,
+          radius_km: 5, // Fetch 5km radius, let client filter
+        });
+        data = result.data;
+        fetchError = result.error;
+      } else {
+        // Fallback to non-location-based query when no location available
+        const result = await supabase.rpc("get_public_tasks");
+        data = result.data;
+        fetchError = result.error;
+      }
 
-    if (error) {
-      console.error("Error fetching tasks:", error);
-    } else {
+      if (fetchError) {
+        throw new Error(fetchError.message || 'Failed to fetch tasks');
+      }
+
       // Map RPC response to Task interface
       const allTasks = (data || []).map((task: Record<string, unknown>) => ({
         ...task,
@@ -117,8 +125,12 @@ export function useTasks() {
         setTasks(allTasks);
         setMyTasks([]);
       }
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch tasks'));
+      console.error("Error fetching tasks:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [profile?.id, userLocation]);
 
   useEffect(() => {
@@ -169,47 +181,79 @@ export function useTasks() {
 
   const helpWithTask = async (taskId: string) => {
     if (!profile) return { error: new Error("No profile") };
+    
+    // Double-submission protection
+    if (helping.has(taskId)) {
+      return { error: new Error("Already processing help request") };
+    }
 
-    // Get the task details for the auto-intro message
-    const task = tasks.find(t => t.id === taskId);
+    setHelping(prev => new Set(prev).add(taskId));
 
-    // Create a match
-    const { data: match, error: matchError } = await supabase
-      .from("matches")
-      .insert({
-        task_id: taskId,
-        helper_id: profile.id,
-        status: "accepted",
-      })
-      .select()
-      .single();
+    try {
+      // Get the task details for the auto-intro message
+      const task = tasks.find(t => t.id === taskId);
 
-    if (matchError) return { error: matchError };
+      // Use atomic database function to create match and update task
+      const { data: rpcData, error: rpcError } = await supabase.rpc('help_with_task', {
+        p_task_id: taskId,
+        p_helper_id: profile.id
+      });
 
-    // Update task status
-    const { error: taskError } = await supabase
-      .from("tasks")
-      .update({ status: "matched", helper_id: profile.id })
-      .eq("id", taskId);
+      if (rpcError) {
+        // Check if it's a constraint violation (task already matched)
+        if (rpcError.message?.includes('already matched') || rpcError.message?.includes('no longer available')) {
+          return { error: new Error(rpcError.message) };
+        }
+        return { error: rpcError };
+      }
 
-    if (taskError) return { data: match, error: taskError };
+      if (!rpcData || rpcData.length === 0) {
+        return { error: new Error("Failed to create match") };
+      }
 
-    // Send auto-intro message
-    const introMessage = task 
-      ? `Hi! I can help with "${task.title}". I'm on my way! 👋`
-      : "Hi! I'm here to help. On my way! 👋";
+      const matchId = rpcData[0].match_id;
 
-    await supabase.from("messages").insert({
-      match_id: match.id,
-      sender_id: profile.id,
-      content: introMessage,
-    });
+      // Fetch match with task details
+      const { data: match, error: matchError } = await supabase
+        .from("matches")
+        .select(`
+          *,
+          task:tasks(*)
+        `)
+        .eq("id", matchId)
+        .single();
 
-    return { data: match, error: null };
+      if (matchError) return { error: matchError };
+
+      // Send auto-intro message
+      const introMessage = task 
+        ? `Hi! I can help with "${task.title}". I'm on my way! 👋`
+        : "Hi! I'm here to help. On my way! 👋";
+
+      await supabase.from("messages").insert({
+        match_id: match.id,
+        sender_id: profile.id,
+        content: introMessage,
+      });
+
+      return { data: match, error: null };
+    } finally {
+      setHelping(prev => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
+    }
   };
 
   const cancelTask = async (taskId: string) => {
     if (!profile) return { error: new Error("No profile") };
+
+    // Validate state transition
+    const task = tasks.find(t => t.id === taskId) || myTasks.find(t => t.id === taskId);
+    if (task && !validateStatusTransition(task.status, "cancelled", TASK_STATUS_TRANSITIONS)) {
+      return { error: new Error(getInvalidTransitionError(task.status, "cancelled", 'task')) };
+    }
 
     const { error } = await supabase
       .from("tasks")
@@ -224,5 +268,5 @@ export function useTasks() {
     return { error };
   };
 
-  return { tasks, myTasks, loading, fetchTasks, createTask, helpWithTask, cancelTask };
+  return { tasks, myTasks, loading, error, fetchTasks, createTask, helpWithTask, cancelTask, helping };
 }

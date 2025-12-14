@@ -79,8 +79,18 @@ See `docs/ARCHITECTURE.md` for full schema details.
 
 ## 📝 Documentation
 
+### Core Documentation
 - [Architecture](./ARCHITECTURE.md)
 - [Design System](./DESIGN_SYSTEM.md)
 - [Features](./FEATURES.md)
 - [Common Issues](./COMMON_ISSUES.md)
 - [Decisions Log](./DECISIONS_LOG.md)
+
+### Adversarial Audit (2024-12-14)
+- **[Audit Summary](./AUDIT_SUMMARY.md)** - Executive summary and key findings
+- **[System & State Map](./AUDIT_SYSTEM_STATE_MAP.md)** - Complete system mapping and state analysis
+- **[UI & UX Audit](./AUDIT_UI_UX.md)** - Screen-level contracts and UX failures
+- **[Data Pipeline Audit](./AUDIT_DATA_PIPELINE.md)** - Data integrity and event safety analysis
+- **[AI Systems Audit](./AUDIT_AI_SYSTEMS.md)** - AI dependencies and safety analysis
+- **[Failure Register](./AUDIT_FAILURE_REGISTER.md)** - Complete register of 27 identified failures
+- **[Fix Prioritization](./AUDIT_FIX_PRIORITIZATION.md)** - Top 10 prioritized fixes with implementation details
