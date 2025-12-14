@@ -220,7 +220,7 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
               Failed to load tasks
             </h3>
             <p className="text-muted-foreground text-sm mb-4">
-              {error?.message || timeoutError ? 'Request timed out. Please try again.' : 'Something went wrong.'}
+              {timeoutError ? 'Request timed out. Please try again.' : (error?.message || 'Something went wrong.')}
             </p>
             <Button onClick={fetchTasks} variant="swaami">
               Try Again
