@@ -37,13 +37,35 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
+    // Check if user has completed their profile
+    if (!profile?.id) {
+      toast.error("Please complete your profile first", {
+        description: "You need a profile to help neighbours.",
+      });
+      navigate("/profile");
+      return;
+    }
+
+    // Check if this is a demo task
+    if (task.is_demo || task.owner?.is_demo) {
+      toast.info("This is a sample request", {
+        description: "Post your own request to get real help from your neighbours.",
+      });
+      return;
+    }
+
     const { data, error } = await helpWithTask(taskId);
     if (error) {
+      // Provide more helpful error messages
+      let errorMessage = error.message;
+      if (error.message?.includes("row-level security")) {
+        errorMessage = "Unable to connect. Please try logging out and back in.";
+      }
       toast.error("Couldn't help with this task", {
-        description: error.message,
+        description: errorMessage,
       });
     } else if (data) {
-      toast.success(`You're helping with: ${task.title}`, {
+      toast.success(`You're helping ${task.owner?.display_name || "your neighbour"}!`, {
         description: "Opening chat to coordinate...",
       });
       navigate(`/chat/${data.id}`);

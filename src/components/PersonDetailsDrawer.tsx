@@ -263,31 +263,51 @@ export function PersonDetailsDrawer({
             </div>
           </div>
 
-          <DrawerFooter className="pt-2">
-            {taskTitle && (
+          <DrawerFooter className="pt-2 pb-6">
+            {taskTitle && !isDemo && (
               <p className="text-center text-sm text-muted-foreground mb-2">
                 Help {firstName} with "<span className="font-medium">{taskTitle}</span>"
               </p>
             )}
-            <Button 
-              variant={isDemo ? "outline" : "swaami"} 
-              size="xl"
-              onClick={() => {
-                onHelp?.();
-                onOpenChange(false);
-              }}
-              className="w-full"
-            >
-              <HandHeart className="w-5 h-5 mr-2" />
-              {isDemo ? "This is a Sample" : `Help ${firstName}`}
-            </Button>
-            <Button 
-              variant="ghost" 
-              onClick={() => onOpenChange(false)}
-              className="w-full"
-            >
-              Maybe later
-            </Button>
+            {isDemo ? (
+              <>
+                <div className="bg-muted rounded-xl p-4 text-center mb-2">
+                  <p className="text-sm text-muted-foreground">
+                    This is a <span className="font-medium">sample request</span> to show how Swaami works.
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={() => onOpenChange(false)}
+                  className="w-full"
+                >
+                  Got it
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="swaami" 
+                  size="xl"
+                  onClick={() => {
+                    onHelp?.();
+                    onOpenChange(false);
+                  }}
+                  className="w-full shadow-lg"
+                >
+                  <HandHeart className="w-5 h-5 mr-2" />
+                  Help {firstName}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => onOpenChange(false)}
+                  className="w-full"
+                >
+                  Maybe later
+                </Button>
+              </>
+            )}
           </DrawerFooter>
         </div>
       </DrawerContent>

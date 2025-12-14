@@ -168,44 +168,72 @@ export function useTasks() {
   };
 
   const helpWithTask = async (taskId: string) => {
-    if (!profile) return { error: new Error("No profile") };
+    if (!profile) {
+      return { error: new Error("Please complete your profile to help neighbours") };
+    }
+
+    if (!profile.id) {
+      return { error: new Error("Profile not fully set up. Please log out and back in.") };
+    }
 
     // Get the task details for the auto-intro message
     const task = tasks.find(t => t.id === taskId);
 
-    // Create a match
-    const { data: match, error: matchError } = await supabase
-      .from("matches")
-      .insert({
-        task_id: taskId,
-        helper_id: profile.id,
-        status: "accepted",
-      })
-      .select()
-      .single();
+    // Don't allow helping with demo tasks
+    if (task?.is_demo || task?.owner?.is_demo) {
+      return { error: new Error("This is a sample task for demonstration purposes") };
+    }
 
-    if (matchError) return { error: matchError };
+    // Verify we're not trying to help our own task
+    if (task?.owner_id === profile.id) {
+      return { error: new Error("You can't help with your own task") };
+    }
 
-    // Update task status
-    const { error: taskError } = await supabase
-      .from("tasks")
-      .update({ status: "matched", helper_id: profile.id })
-      .eq("id", taskId);
+    try {
+      // Create a match
+      const { data: match, error: matchError } = await supabase
+        .from("matches")
+        .insert({
+          task_id: taskId,
+          helper_id: profile.id,
+          status: "accepted",
+        })
+        .select()
+        .single();
 
-    if (taskError) return { data: match, error: taskError };
+      if (matchError) {
+        console.error("Match creation error:", matchError);
+        return { error: matchError };
+      }
 
-    // Send auto-intro message
-    const introMessage = task 
-      ? `Hi! I can help with "${task.title}". I'm on my way! 👋`
-      : "Hi! I'm here to help. On my way! 👋";
+      // Update task status
+      const { error: taskError } = await supabase
+        .from("tasks")
+        .update({ status: "matched", helper_id: profile.id })
+        .eq("id", taskId);
 
-    await supabase.from("messages").insert({
-      match_id: match.id,
-      sender_id: profile.id,
-      content: introMessage,
-    });
+      if (taskError) {
+        console.error("Task update error:", taskError);
+        // Match was created, so return it even if task update failed
+        return { data: match, error: taskError };
+      }
 
-    return { data: match, error: null };
+      // Send auto-intro message
+      const introMessage = task 
+        ? `Hi! I can help with "${task.title}". I'm on my way! 👋`
+        : "Hi! I'm here to help. On my way! 👋";
+
+      await supabase.from("messages").insert({
+        match_id: match.id,
+        sender_id: profile.id,
+        content: introMessage,
+      });
+
+      return { data: match, error: null };
+    } catch (err) {
+      console.error("Unexpected error in helpWithTask:", err);
+      return { error: err instanceof Error ? err : new Error("Something went wrong") };
+    }
   };
 
   const cancelTask = async (taskId: string) => {

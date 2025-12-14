@@ -174,7 +174,14 @@
 - Progressive disclosure: surface info on tap, not clutter
 - Trust through transparency: explain what verification means
 - Reduce anxiety: show why someone is trustworthy before action
-- Clear affordance: "Tap for more →" hint on owner section
+- Clear affordance: chevron icon indicates expandability
+- Solid card-like styling for the person section (not flimsy borders)
+- Active press state for tactile feedback
+
+**Robustness**:
+- Demo task handling at multiple levels (UI, hook, database trigger)
+- Better error messages for RLS failures
+- Profile validation before allowing help action
 
 ---
 

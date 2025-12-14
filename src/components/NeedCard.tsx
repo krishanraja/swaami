@@ -213,7 +213,7 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
             </div>
           )}
 
-          {/* Owner info with reputation and trust badges - clickable for details */}
+          {/* Owner info - solid card-like section, clickable for details */}
           {task.owner && (
             <button
               type="button"
@@ -221,47 +221,56 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
                 e.stopPropagation();
                 setIsPersonDrawerOpen(true);
               }}
-              className="flex items-center gap-2 mt-3 pt-3 border-t border-border w-full text-left hover:bg-muted/50 -mx-1 px-1 rounded-lg transition-colors cursor-pointer group"
+              className="flex items-center gap-3 mt-3 p-3 bg-muted/60 hover:bg-muted border border-border rounded-xl w-full text-left transition-all cursor-pointer group active:scale-[0.98]"
               aria-label={`View ${task.owner.display_name || "neighbour"}'s profile`}
             >
+              {/* Avatar */}
               {task.owner.photo_url ? (
                 <img 
                   src={task.owner.photo_url} 
                   alt={task.owner.display_name || "User"} 
-                  className="w-6 h-6 rounded-full object-cover ring-2 ring-transparent group-hover:ring-primary/20 transition-all"
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-background shadow-sm flex-shrink-0"
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-medium ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-semibold text-primary ring-2 ring-background shadow-sm flex-shrink-0">
                   {task.owner.display_name?.[0]?.toUpperCase() || "?"}
                 </div>
               )}
-              <span className="text-sm text-foreground group-hover:text-primary transition-colors">
-                {task.owner.display_name || "Neighbor"}
-              </span>
-              {/* Trust badge */}
-              {isVerified && (
-                <span className={`flex items-center gap-1 text-xs ${trustInfo.color}`}>
-                  {ownerTrustTier === "tier_2" ? (
-                    <Shield className="w-3 h-3" />
-                  ) : (
-                    <CheckCircle className="w-3 h-3" />
-                  )}
-                  {trustInfo.label}
-                </span>
-              )}
-              {(task.owner.tasks_completed ?? 0) > 0 && (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Star className="w-3 h-3 fill-primary text-primary" />
-                  {task.owner.reliability_score?.toFixed(1) || "5.0"}
-                  <span className="text-muted-foreground/60">
-                    ({task.owner.tasks_completed} helped)
+              
+              {/* Name and trust info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm text-foreground truncate">
+                    {task.owner.display_name || "Neighbor"}
                   </span>
-                </span>
-              )}
+                  {/* Trust badge */}
+                  {isVerified && (
+                    <span className={`flex items-center gap-1 text-xs font-medium ${trustInfo.color} bg-background px-1.5 py-0.5 rounded-full`}>
+                      {ownerTrustTier === "tier_2" ? (
+                        <Shield className="w-3 h-3" />
+                      ) : (
+                        <CheckCircle className="w-3 h-3" />
+                      )}
+                      {trustInfo.label}
+                    </span>
+                  )}
+                </div>
+                {/* Stats row */}
+                {(task.owner.tasks_completed ?? 0) > 0 && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                    <Star className="w-3 h-3 fill-primary text-primary" />
+                    <span>{task.owner.reliability_score?.toFixed(1) || "5.0"}</span>
+                    <span className="text-muted-foreground/60">
+                      · {task.owner.tasks_completed} helped
+                    </span>
+                  </div>
+                )}
+              </div>
+              
               {/* Tap indicator */}
-              <span className="ml-auto text-xs text-muted-foreground/50 group-hover:text-primary/50 transition-colors">
-                Tap for more →
-              </span>
+              <div className="flex-shrink-0 text-muted-foreground/40 group-hover:text-primary transition-colors">
+                <ChevronDown className="w-5 h-5 rotate-[-90deg]" />
+              </div>
             </button>
           )}
         </div>
@@ -311,7 +320,7 @@ export function NeedCard({ task, onHelp, onCancel, onView, userSkills = [], isOw
         owner={task.owner || null}
         taskTitle={task.title}
         taskCategory={task.category || undefined}
-        onHelp={() => onHelp?.(task.id)}
+        onHelp={handleHelp}
         isDemo={isDemo}
       />
     </div>
