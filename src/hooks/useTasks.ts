@@ -31,6 +31,9 @@ export interface Task {
     trust_tier?: string;
     is_demo?: boolean;
     photo_url?: string | null;
+    skills?: string[];
+    member_since?: string;
+    neighbourhood?: string | null;
   };
   owner_display_name?: string | null;
   owner_trust_tier?: string | null;
@@ -96,6 +99,10 @@ export function useTasks() {
           trust_tier: task.owner_trust_tier,
           is_demo: task.owner_is_demo,
           photo_url: task.owner_photo_url,
+          skills: task.owner_skills,
+          member_since: task.owner_member_since,
+          tasks_completed: task.owner_tasks_completed,
+          neighbourhood: task.owner_neighbourhood,
         },
         distance: task.distance_km != null ? Math.round(task.distance_km * 1000) : null, // Convert to meters
       }));
