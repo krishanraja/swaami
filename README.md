@@ -100,6 +100,17 @@ Edge function secrets (set in Supabase Dashboard → Edge Functions → Secrets)
 
 ⚠️ **Security**: Never commit API keys to git. Only set them in Supabase secrets.
 
+## ✉️ Email Verification
+
+Swaami uses Supabase Auth for email verification with a beautifully branded email template. 
+
+**Setup Required**: 
+1. Copy the email template from `supabase/email-templates/confirm-signup.html`
+2. Paste it into Supabase Dashboard → Authentication → Email Templates → "Confirm signup"
+3. Configure redirect URLs in Authentication → URL Configuration
+
+See [Email Verification Setup Guide](docs/EMAIL_VERIFICATION_SETUP.md) for detailed instructions.
+
 ## 📖 Documentation
 
 See the `/docs` folder for detailed documentation:
@@ -109,6 +120,7 @@ See the `/docs` folder for detailed documentation:
 - [Audit Status](docs/AUDIT_STATUS.md) - Security & quality status
 - [Purpose](docs/PURPOSE.md) - Mission & values
 - [SEO Strategy](docs/SEO_STRATEGY.md) - Content marketing & SEO plan
+- [Email Verification Setup](docs/EMAIL_VERIFICATION_SETUP.md) - Configure branded verification emails
 
 ## 🤝 Contributing
 
