@@ -133,8 +133,37 @@ export function useProfile() {
         setProfile(profileData);
         setError(null);
       } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        console.error("Error fetching profile:", error);
+        // Extract Supabase error structure properly
+        let errorMessage = "Failed to load profile";
+        let errorCode: string | undefined;
+        
+        // Log full error structure for diagnosis
+        console.error("Raw profile fetch error:", err);
+        console.error("Error type:", err?.constructor?.name);
+        
+        if (err && typeof err === 'object') {
+          // Supabase PostgrestError structure
+          const supabaseError = err as any;
+          errorCode = supabaseError?.code;
+          errorMessage = supabaseError?.message || supabaseError?.details || errorMessage;
+          
+          // Log Supabase-specific fields
+          if (supabaseError?.code) console.error("Supabase error code:", supabaseError.code);
+          if (supabaseError?.hint) console.error("Supabase hint:", supabaseError.hint);
+          if (supabaseError?.details) console.error("Supabase details:", supabaseError.details);
+        } else if (err instanceof Error) {
+          errorMessage = err.message;
+        } else {
+          errorMessage = String(err) || errorMessage;
+        }
+        
+        // Create error with proper message
+        const error = new Error(errorMessage);
+        if (errorCode) {
+          (error as any).code = errorCode;
+        }
+        
+        console.error("Processed error:", error);
         setError(error);
         setProfile(null);
       } finally {
@@ -201,8 +230,30 @@ export function useProfile() {
       setProfile(data);
       setError(null);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      console.error("Error refetching profile:", error);
+      // Use same error extraction logic as main fetch
+      let errorMessage = "Failed to refetch profile";
+      let errorCode: string | undefined;
+      
+      console.error("Raw refetch error:", err);
+      
+      if (err && typeof err === 'object') {
+        const supabaseError = err as any;
+        errorCode = supabaseError?.code;
+        errorMessage = supabaseError?.message || supabaseError?.details || errorMessage;
+        
+        if (supabaseError?.code) console.error("Supabase error code:", supabaseError.code);
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      } else {
+        errorMessage = String(err) || errorMessage;
+      }
+      
+      const error = new Error(errorMessage);
+      if (errorCode) {
+        (error as any).code = errorCode;
+      }
+      
+      console.error("Processed refetch error:", error);
       setError(error);
     } finally {
       setLoading(false);

@@ -8,7 +8,7 @@ import { JoinScreen } from "@/screens/JoinScreen";
 export default function Join() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading, error: profileError } = useProfile();
+  const { profile, loading: profileLoading, error: profileError, refetch } = useProfile();
   const { isOnboarded } = useOnboardingStatus(profile);
   const [readyToShow, setReadyToShow] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -60,11 +60,35 @@ export default function Join() {
               Failed to load profile
             </h3>
             <p className="text-muted-foreground text-sm mb-4">
-              {profileError?.message || "Something went wrong while loading your profile. Please try again."}
+              {(() => {
+                if (!profileError) return "Something went wrong while loading your profile. Please try again.";
+                
+                // Extract message, handling both Error and Supabase error structures
+                const message = profileError.message || 
+                               (profileError as any)?.details || 
+                               String(profileError);
+                
+                // Don't show "[object Object]"
+                if (message === "[object Object]") {
+                  return "Something went wrong while loading your profile. Please try again.";
+                }
+                
+                return message;
+              })()}
             </p>
           </div>
           <button
-            onClick={() => window.location.reload()}
+            onClick={async () => {
+              // Try to refetch profile instead of full reload
+              try {
+                await refetch();
+                // If refetch succeeds, hasError will be cleared by useEffect
+              } catch (err) {
+                // If refetch fails, reload page as fallback
+                console.error("Refetch failed, reloading:", err);
+                window.location.reload();
+              }
+            }}
             className="px-4 py-2 bg-accent text-accent-foreground rounded-lg hover:bg-accent/90 transition-colors"
           >
             Try Again
