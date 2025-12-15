@@ -93,7 +93,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 Edge function secrets (set in Supabase Dashboard → Edge Functions → Secrets):
 - `LOVABLE_API_KEY` - For AI task enhancement
-- `STRIPE_SECRET_KEY` - For subscription payments (starts with `sk_live_` or `sk_test_`)
+- `STRIPE_SECRET_KEY` - For subscription payments (get from Stripe Dashboard → Developers → API keys)
 - `TWILIO_ACCOUNT_SID` - For phone verification
 - `TWILIO_AUTH_TOKEN` - For phone verification
 - `TWILIO_PHONE_NUMBER` - For phone verification
