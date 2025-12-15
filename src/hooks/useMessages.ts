@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "./useProfile";
+import { retrySupabaseOperation } from "@/lib/retry";
 
 export interface Message {
   id: string;
@@ -17,6 +18,8 @@ export function useMessages(matchId: string | null) {
   const { profile } = useProfile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  // Double-submission protection for sendMessage
+  const sendingRef = useRef(false);
 
   const fetchMessages = useCallback(async () => {
     if (!matchId) {
@@ -72,17 +75,34 @@ export function useMessages(matchId: string | null) {
   const sendMessage = async (content: string) => {
     if (!profile || !matchId) return { error: new Error("Missing data") };
 
-    const { data, error } = await supabase
-      .from("messages")
-      .insert({
-        match_id: matchId,
-        sender_id: profile.id,
-        content,
-      })
-      .select()
-      .single();
+    // Double-submission protection
+    if (sendingRef.current) {
+      return { error: new Error("Message sending already in progress") };
+    }
 
-    return { data, error };
+    sendingRef.current = true;
+
+    try {
+      // Use retry logic for reliability
+      const result = await retrySupabaseOperation(async () => {
+        return await supabase
+          .from("messages")
+          .insert({
+            match_id: matchId,
+            sender_id: profile.id,
+            content,
+          })
+          .select()
+          .single();
+      }, {
+        maxAttempts: 3,
+        initialDelayMs: 200,
+      });
+
+      return result;
+    } finally {
+      sendingRef.current = false;
+    }
   };
 
   return { messages, loading, sendMessage, fetchMessages };

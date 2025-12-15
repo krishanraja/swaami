@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "./useProfile";
 import { useNeighbourhoods, type City } from "./useNeighbourhoods";
 import { validateStatusTransition, TASK_STATUS_TRANSITIONS, getInvalidTransitionError } from "@/lib/stateMachine";
+import { retrySupabaseOperation } from "@/lib/retry";
 
 export interface Task {
   id: string;
@@ -50,6 +51,8 @@ export function useTasks() {
   const [error, setError] = useState<Error | null>(null);
   const [helping, setHelping] = useState<Set<string>>(new Set());
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  // Double-submission protection for createTask
+  const creatingTaskRef = useRef(false);
 
   // Fetch user's neighbourhood coordinates
   const { data: neighbourhoods = [] } = useNeighbourhoods((profile?.city as City) || null);
@@ -98,27 +101,46 @@ export function useTasks() {
       }
 
       // Map RPC response to Task interface
-      const allTasks = (data || []).map((task: Record<string, unknown>) => ({
+      const allTasks: Task[] = (data || []).map((task: Record<string, unknown>) => ({
         ...task,
-        is_demo: task.owner_is_demo,
+        id: task.id as string,
+        owner_id: task.owner_id as string,
+        title: task.title as string,
+        description: task.description as string | null,
+        original_description: task.original_description as string | null | undefined,
+        time_estimate: task.time_estimate as string | null,
+        urgency: task.urgency as string,
+        category: task.category as string | null,
+        approx_address: task.approx_address as string | null,
+        status: task.status as string,
+        created_at: task.created_at as string,
+        updated_at: task.updated_at as string | undefined,
+        availability_time: task.availability_time as string | null | undefined,
+        physical_level: task.physical_level as string | null | undefined,
+        people_needed: task.people_needed as number | null | undefined,
+        access_instructions: task.access_instructions as string | null | undefined,
+        is_demo: task.owner_is_demo as boolean | undefined,
         owner: {
-          display_name: task.owner_display_name,
-          reliability_score: task.owner_reliability_score,
-          trust_tier: task.owner_trust_tier,
-          is_demo: task.owner_is_demo,
-          photo_url: task.owner_photo_url,
-          skills: task.owner_skills,
-          member_since: task.owner_member_since,
-          tasks_completed: task.owner_tasks_completed,
-          neighbourhood: task.owner_neighbourhood,
+          display_name: task.owner_display_name as string | null,
+          reliability_score: task.owner_reliability_score as number | undefined,
+          trust_tier: task.owner_trust_tier as string | undefined,
+          is_demo: task.owner_is_demo as boolean | undefined,
+          photo_url: task.owner_photo_url as string | null | undefined,
+          skills: task.owner_skills as string[] | undefined,
+          member_since: task.owner_member_since as string | undefined,
+          tasks_completed: task.owner_tasks_completed as number | undefined,
+          neighbourhood: task.owner_neighbourhood as string | null | undefined,
         },
-        distance: task.distance_km != null ? Math.round(task.distance_km * 1000) : null, // Convert to meters
+        owner_display_name: task.owner_display_name as string | null | undefined,
+        owner_trust_tier: task.owner_trust_tier as string | null | undefined,
+        owner_reliability_score: task.owner_reliability_score as number | null | undefined,
+        distance: task.distance_km != null ? Math.round((task.distance_km as number) * 1000) : null, // Convert to meters
       }));
       
       // Separate own tasks from others' tasks
       if (profile?.id) {
-        const othersTasks = allTasks.filter((t: Task) => t.owner_id !== profile.id);
-        const ownTasks = allTasks.filter((t: Task) => t.owner_id === profile.id);
+        const othersTasks = allTasks.filter((t) => t.owner_id !== profile.id);
+        const ownTasks = allTasks.filter((t) => t.owner_id === profile.id);
         setTasks(othersTasks);
         setMyTasks(ownTasks);
       } else {
@@ -167,16 +189,33 @@ export function useTasks() {
   }) => {
     if (!profile) return { error: new Error("No profile") };
 
-    const { data, error } = await supabase
-      .from("tasks")
-      .insert({
-        owner_id: profile.id,
-        ...task,
-      })
-      .select()
-      .single();
+    // Double-submission protection
+    if (creatingTaskRef.current) {
+      return { error: new Error("Task creation already in progress") };
+    }
 
-    return { data, error };
+    creatingTaskRef.current = true;
+
+    try {
+      // Use retry logic for reliability
+      const result = await retrySupabaseOperation(async () => {
+        return await supabase
+          .from("tasks")
+          .insert({
+            owner_id: profile.id,
+            ...task,
+          })
+          .select()
+          .single();
+      }, {
+        maxAttempts: 3,
+        initialDelayMs: 200,
+      });
+
+      return result;
+    } finally {
+      creatingTaskRef.current = false;
+    }
   };
 
   const helpWithTask = async (taskId: string) => {
@@ -194,9 +233,23 @@ export function useTasks() {
       const task = tasks.find(t => t.id === taskId);
 
       // Use atomic database function to create match and update task
-      const { data: rpcData, error: rpcError } = await supabase.rpc('help_with_task', {
-        p_task_id: taskId,
-        p_helper_id: profile.id
+      // Retry on transient errors
+      const { data: rpcData, error: rpcError } = await retrySupabaseOperation(async () => {
+        const result = await supabase.rpc('help_with_task', {
+          p_task_id: taskId,
+          p_helper_id: profile.id
+        });
+        
+        // Convert RPC result to standard format
+        if (result.error) {
+          return { data: null, error: result.error };
+        }
+        return { data: result.data, error: null };
+      }, {
+        maxAttempts: 3,
+        initialDelayMs: 200,
+        // Don't retry on business logic errors (already matched, etc.)
+        retryableErrors: ['network', 'timeout', 'connection', 'ECONNRESET'],
       });
 
       if (rpcError) {
@@ -213,27 +266,35 @@ export function useTasks() {
 
       const matchId = rpcData[0].match_id;
 
-      // Fetch match with task details
-      const { data: match, error: matchError } = await supabase
-        .from("matches")
-        .select(`
-          *,
-          task:tasks(*)
-        `)
-        .eq("id", matchId)
-        .single();
+      // Fetch match with task details (with retry)
+      const matchResult = await retrySupabaseOperation(async () => {
+        return await supabase
+          .from("matches")
+          .select(`
+            *,
+            task:tasks(*)
+          `)
+          .eq("id", matchId)
+          .single();
+      });
 
-      if (matchError) return { error: matchError };
+      if (matchResult.error) return { error: matchResult.error };
+      const match = matchResult.data;
+      if (!match) return { error: new Error("Match not found") };
 
-      // Send auto-intro message
+      // Send auto-intro message (with retry)
       const introMessage = task 
         ? `Hi! I can help with "${task.title}". I'm on my way! 👋`
         : "Hi! I'm here to help. On my way! 👋";
 
-      await supabase.from("messages").insert({
-        match_id: match.id,
-        sender_id: profile.id,
-        content: introMessage,
+      await retrySupabaseOperation(async () => {
+        return await supabase.from("messages").insert({
+          match_id: (match as { id: string }).id,
+          sender_id: profile.id,
+          content: introMessage,
+        });
+      }, {
+        maxAttempts: 2, // Lower retries for non-critical message
       });
 
       return { data: match, error: null };
@@ -255,17 +316,24 @@ export function useTasks() {
       return { error: new Error(getInvalidTransitionError(task.status, "cancelled", 'task')) };
     }
 
-    const { error } = await supabase
-      .from("tasks")
-      .update({ status: "cancelled" })
-      .eq("id", taskId);
+    // Use optimistic locking with updated_at check
+    const result = await retrySupabaseOperation(async () => {
+      return await supabase
+        .from("tasks")
+        .update({ 
+          status: "cancelled",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", taskId)
+        .eq("owner_id", profile.id); // Ensure user owns the task
+    });
 
-    if (!error) {
+    if (!result.error) {
       // Refresh tasks to update the lists
       fetchTasks();
     }
 
-    return { error };
+    return result;
   };
 
   return { tasks, myTasks, loading, error, fetchTasks, createTask, helpWithTask, cancelTask, helping };

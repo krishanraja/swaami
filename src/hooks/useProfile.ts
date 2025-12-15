@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { retrySupabaseOperation } from "@/lib/retry";
 
 export interface Profile {
   id: string;
@@ -54,18 +55,30 @@ export function useProfile() {
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!profile) return { error: new Error("No profile") };
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .update(updates)
-      .eq("id", profile.id)
-      .select()
-      .single();
+    // Use optimistic locking with updated_at check
+    const result = await retrySupabaseOperation(async () => {
+      return await supabase
+        .from("profiles")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profile.id)
+        .eq("updated_at", profile.updated_at) // Optimistic locking
+        .select()
+        .single();
+    }, {
+      maxAttempts: 3,
+      initialDelayMs: 200,
+      // Don't retry on optimistic lock failures (concurrent update)
+      retryableErrors: ['network', 'timeout', 'connection'],
+    });
 
-    if (!error && data) {
-      setProfile(data);
+    if (!result.error && result.data) {
+      setProfile(result.data);
     }
 
-    return { data, error };
+    return result;
   };
 
   return { profile, loading, updateProfile };
