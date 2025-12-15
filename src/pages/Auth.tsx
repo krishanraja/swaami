@@ -72,24 +72,15 @@ export default function Auth() {
       return;
     }
     
-    // If we have a verification token, check if email is already verified
-    // This prevents processing old verification links
+    // If we have a verification token, Supabase will process it automatically
+    // The onAuthStateChange in useAuth will fire, and we'll handle navigation below
     if (accessToken && type === "signup") {
-      // Check current user state before processing
-      supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
-        if (currentUser?.email_confirmed_at) {
-          // Email already verified - this is an old link
-          toast.info("Your email is already verified. Redirecting...");
-          window.history.replaceState(null, "", window.location.pathname + window.location.search);
-          // Navigation will be handled by the auth state effect
-          return;
-        }
-        
-        // Email not verified yet - Supabase will process the token automatically
-        // The onAuthStateChange in useAuth will fire, and we'll handle navigation below
-        // Clear hash from URL immediately to prevent double processing
-        window.history.replaceState(null, "", window.location.pathname + window.location.search);
-      });
+      // Clear hash from URL immediately to prevent double processing
+      // This also ensures the hash is cleared even if getUser() fails
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      
+      // Supabase client will automatically process the token via onAuthStateChange
+      // No need to check user state here - let the auth state effect handle navigation
     }
   }, []);
 
