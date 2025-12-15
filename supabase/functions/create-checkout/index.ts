@@ -32,7 +32,17 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", { 
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      throw new Error("STRIPE_SECRET_KEY is not set");
+    }
+    
+    // Validate key format (should start with sk_test_ or sk_live_)
+    if (!stripeKey.startsWith("sk_")) {
+      logStep("WARNING", { message: "Stripe key format may be incorrect. Expected sk_test_ or sk_live_" });
+    }
+    
+    const stripe = new Stripe(stripeKey, { 
       apiVersion: "2025-08-27.basil" 
     });
     

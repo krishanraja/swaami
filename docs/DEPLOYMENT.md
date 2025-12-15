@@ -33,9 +33,12 @@ Swaami runs on Lovable Cloud (powered by Supabase) with automatic deployment.
 
 ### Edge Function Secrets (Configured in Cloud UI)
 - `LOVABLE_API_KEY` - AI gateway access (auto-provisioned)
+- `STRIPE_SECRET_KEY` - Stripe secret key for subscriptions (starts with `sk_test_` or `sk_live_`)
 - `TWILIO_ACCOUNT_SID` - Phone verification
 - `TWILIO_AUTH_TOKEN` - Twilio authentication
 - `TWILIO_PHONE_NUMBER` - SMS sender number
+
+**Note**: See [STRIPE_SETUP.md](STRIPE_SETUP.md) for detailed Stripe configuration instructions.
 
 ## Edge Functions
 
