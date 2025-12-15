@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Heart, LogOut, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useLiveActivity } from "@/hooks/useLiveActivity";
 import SplashScreen from "@/components/SplashScreen";
 
@@ -38,11 +39,8 @@ export default function Landing() {
     setSplashComplete(true);
   }, []);
 
-  // Derived state - computed once, no flicker
-  const isProfileComplete = useMemo(() => {
-    if (!profile) return false;
-    return !!(profile.city && profile.neighbourhood && profile.phone && profile.skills?.length > 0);
-  }, [profile]);
+  // Use unified onboarding status check
+  const { isOnboarded: isProfileComplete } = useOnboardingStatus(profile);
 
   const primaryCTA = useMemo(() => {
     if (!user) return { text: "Join Your Neighbourhood", path: "/auth?mode=signup" };

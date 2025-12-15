@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,7 @@ function GoogleIcon({ className }: { className?: string }) {
 
 export default function Auth() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,6 +43,9 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [resending, setResending] = useState(false);
+  const hasNavigatedRef = useRef(false);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -49,37 +54,112 @@ export default function Auth() {
     if (mode === "login") setIsLogin(true);
   }, []);
 
+  // Handle email verification callback from Supabase (hash fragments)
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        // OAuth users are always verified, email users need confirmation
-        const isOAuthUser = session.user.app_metadata?.provider !== 'email';
-        if (isOAuthUser || session.user.email_confirmed_at) {
-          navigate("/join");
-        } else {
-          // Don't redirect if already on /auth, show message instead
-          if (window.location.pathname === '/auth') {
-            setEmailSent(true);
-          } else {
-            navigate("/auth");
-          }
+    // Check for hash fragments (Supabase sends verification tokens in hash)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get("access_token");
+    const type = hashParams.get("type");
+    const error = hashParams.get("error");
+    const errorDescription = hashParams.get("error_description");
+    
+    // Handle verification errors
+    if (error) {
+      console.error("Verification error:", error, errorDescription);
+      toast.error(errorDescription || "Verification link is invalid or expired. Please request a new one.");
+      // Clear hash from URL
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      return;
+    }
+    
+    // If we have a verification token, check if email is already verified
+    // This prevents processing old verification links
+    if (accessToken && type === "signup") {
+      // Check current user state before processing
+      supabase.auth.getUser().then(({ data: { user: currentUser } }) => {
+        if (currentUser?.email_confirmed_at) {
+          // Email already verified - this is an old link
+          toast.info("Your email is already verified. Redirecting...");
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+          // Navigation will be handled by the auth state effect
+          return;
         }
-      }
-    });
+        
+        // Email not verified yet - Supabase will process the token automatically
+        // The onAuthStateChange in useAuth will fire, and we'll handle navigation below
+        // Clear hash from URL immediately to prevent double processing
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      });
+    }
+  }, []);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        const isOAuthUser = session.user.app_metadata?.provider !== 'email';
-        if (isOAuthUser || session.user.email_confirmed_at) {
+  // Handle navigation based on auth state (using useAuth hook, not duplicate listener)
+  useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+    
+    // Prevent double navigation
+    if (hasNavigatedRef.current) return;
+
+    if (user) {
+      // Check if email is already verified (prevent using old verification links)
+      const isOAuthUser = user.app_metadata?.provider !== 'email';
+      const isVerified = isOAuthUser || user.email_confirmed_at;
+      
+      if (isVerified) {
+        // User is authenticated and verified - redirect to onboarding
+        // Only navigate if we're on /auth (don't interrupt other pages)
+        if (window.location.pathname === '/auth') {
+          hasNavigatedRef.current = true;
           navigate("/join");
-        } else if (window.location.pathname !== '/auth') {
+        }
+      } else {
+        // User is authenticated but not verified - show email sent screen
+        if (window.location.pathname === '/auth') {
+          setEmailSent(true);
+        } else {
+          hasNavigatedRef.current = true;
           navigate("/auth");
         }
       }
-    });
+    } else {
+      // No user - reset navigation flag
+      hasNavigatedRef.current = false;
+    }
+  }, [user, authLoading, navigate]);
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  const handleResendVerification = async () => {
+    if (!email) {
+      toast.error("Please enter your email address first");
+      return;
+    }
+    
+    // Prevent double submit
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    setResending(true);
+    
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/join`,
+        },
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Verification email sent! Please check your inbox.");
+    } catch (error) {
+      console.error("Resend verification error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to resend verification email";
+      toast.error(errorMessage);
+    } finally {
+      setResending(false);
+      isSubmittingRef.current = false;
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -100,7 +180,12 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submit
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
+    hasNavigatedRef.current = false; // Reset navigation flag on new submit
 
     try {
       if (isLogin) {
@@ -119,10 +204,10 @@ export default function Auth() {
         }
         
         toast.success("Welcome back!");
-        navigate("/join");
+        // Navigation will be handled by the useEffect watching auth state
       } else {
         // Signup flow
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -134,8 +219,17 @@ export default function Auth() {
         });
         if (error) throw error;
         
-        // Show email confirmation message
-        setEmailSent(true);
+        // Check if email confirmation is required
+        // In some Supabase configurations, email confirmation might be disabled
+        if (data.user && !data.user.email_confirmed_at) {
+          // Show email confirmation message
+          setEmailSent(true);
+          toast.success("Verification email sent! Please check your inbox.");
+        } else {
+          // Email confirmation not required or already confirmed
+          toast.success("Account created! Welcome to Swaami.");
+          // Navigation will be handled by the useEffect watching auth state
+        }
       }
     } catch (error) {
       console.error("Auth error:", error);
@@ -149,6 +243,7 @@ export default function Auth() {
       }
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -172,20 +267,42 @@ export default function Auth() {
           </div>
           
           <div className="bg-muted/50 rounded-xl p-4 text-sm text-muted-foreground">
-            <p>Click the link in the email to verify your account and continue setting up your profile.</p>
+            <p className="mb-3">Click the link in the email to verify your account and continue setting up your profile.</p>
+            <p className="text-xs">Didn't receive the email? Check your spam folder or try resending.</p>
           </div>
           
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setEmailSent(false);
-              setIsLogin(true);
-            }}
-            className="mx-auto"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to login
-          </Button>
+          <div className="flex flex-col gap-3">
+            <Button
+              variant="outline"
+              onClick={handleResendVerification}
+              disabled={resending}
+              className="w-full"
+            >
+              {resending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Resend Verification Email
+                </>
+              )}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setEmailSent(false);
+                setIsLogin(true);
+              }}
+              className="mx-auto"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to login
+            </Button>
+          </div>
         </div>
       </div>
     );

@@ -7,6 +7,7 @@ import { ProfileScreen } from "@/screens/ProfileScreen";
 import { ChatsListScreen } from "@/screens/ChatsListScreen";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 
 type AppState = "loading" | "unauthenticated" | "needs_onboarding" | "ready";
 
@@ -17,28 +18,20 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<"feed" | "post" | "chats" | "profile">("feed");
   const [hasAnimated, setHasAnimated] = useState(false);
 
-  // Check if this is a fresh user who has never completed onboarding
-  // vs a user with a partially complete profile (edge case)
-  const hasNeverOnboarded = useMemo(() => {
-    if (!profile) return false;
-    // If they have no phone, they never completed phone verification step
-    // This is the key gate in the Join flow
-    return !profile.phone;
-  }, [profile]);
+  // Use unified onboarding status check
+  const { isOnboarded } = useOnboardingStatus(profile);
 
   // Derive app state from auth/profile
   const appState = useMemo((): AppState => {
     if (authLoading || profileLoading) return "loading";
     if (!user) return "unauthenticated";
     
-    // Only redirect to /join if they've never completed onboarding at all
-    // (no phone = never finished the mandatory phone verification step)
-    if (hasNeverOnboarded) return "needs_onboarding";
+    // Only redirect to /join if they haven't completed onboarding
+    if (!isOnboarded) return "needs_onboarding";
     
-    // Let them through even if profile is incomplete
-    // ProfileScreen will show alert for missing fields
+    // User has completed onboarding - show app
     return "ready";
-  }, [authLoading, profileLoading, user, hasNeverOnboarded]);
+  }, [authLoading, profileLoading, user, isOnboarded]);
 
   // Handle redirects based on app state
   useEffect(() => {

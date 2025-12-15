@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SkillChip } from "@/components/SkillChip";
@@ -9,6 +9,7 @@ import { NeighbourhoodSelector } from "@/components/onboarding/NeighbourhoodSele
 import { PhoneInput, isValidPhone } from "@/components/onboarding/PhoneInput";
 import { SKILLS } from "@/types/swaami";
 import { City } from "@/hooks/useNeighbourhoods";
+import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, CheckCircle, ArrowLeft, Shield, MapPin, Heart, Gift } from "lucide-react";
@@ -23,7 +24,21 @@ type Step = 'welcome' | 'location' | 'phone' | 'otp' | 'preferences';
 
 const STEPS: Step[] = ['welcome', 'location', 'phone', 'otp', 'preferences'];
 
+const ONBOARDING_STORAGE_KEY = 'swaami_onboarding_progress';
+
+interface OnboardingProgress {
+  step: Step;
+  city: City | null;
+  neighbourhood: string;
+  phone: string;
+  radius: number;
+  selectedSkills: string[];
+  availability: 'now' | 'later' | 'this-week';
+  phoneVerified: boolean;
+}
+
 export function JoinScreen({ onComplete }: JoinScreenProps) {
+  const { refetch: refetchProfile } = useProfile();
   const [step, setStep] = useState<Step>('welcome');
   const [city, setCity] = useState<City | null>(null);
   const [neighbourhood, setNeighbourhood] = useState('');
@@ -34,6 +49,63 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
   const [availability, setAvailability] = useState<'now' | 'later' | 'this-week'>('now');
   const [loading, setLoading] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
+  const isSubmittingRef = useRef(false);
+  const hasRestoredRef = useRef(false);
+
+  // Restore onboarding progress from localStorage on mount
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+
+    try {
+      const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (saved) {
+        const progress: OnboardingProgress = JSON.parse(saved);
+        setStep(progress.step);
+        setCity(progress.city);
+        setNeighbourhood(progress.neighbourhood || '');
+        setPhone(progress.phone || '');
+        setRadius(progress.radius || 500);
+        setSelectedSkills(progress.selectedSkills || []);
+        setAvailability(progress.availability || 'now');
+        setPhoneVerified(progress.phoneVerified || false);
+      }
+    } catch (error) {
+      console.error("Failed to restore onboarding progress:", error);
+      // Clear corrupted data
+      localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    }
+  }, []);
+
+  // Save onboarding progress to localStorage whenever it changes
+  useEffect(() => {
+    if (!hasRestoredRef.current) return; // Don't save until we've restored
+
+    try {
+      const progress: OnboardingProgress = {
+        step,
+        city,
+        neighbourhood,
+        phone,
+        radius,
+        selectedSkills,
+        availability,
+        phoneVerified,
+      };
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(progress));
+    } catch (error) {
+      console.error("Failed to save onboarding progress:", error);
+    }
+  }, [step, city, neighbourhood, phone, radius, selectedSkills, availability, phoneVerified]);
+
+  // Clear onboarding progress on completion
+  const clearProgress = () => {
+    try {
+      localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    } catch (error) {
+      console.error("Failed to clear onboarding progress:", error);
+    }
+  };
 
   const currentStepIndex = STEPS.indexOf(step);
   const canGoBack = currentStepIndex > 0;
@@ -50,6 +122,9 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       return;
     }
 
+    // Prevent double submit
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-phone-otp', {
@@ -66,6 +141,7 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       toast.error(error instanceof Error ? error.message : "Failed to send verification code");
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -75,6 +151,9 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       return;
     }
 
+    // Prevent double submit
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-phone-otp', {
@@ -94,6 +173,7 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       toast.error(error instanceof Error ? error.message : "Invalid verification code");
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -106,7 +186,11 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
   };
 
   const handleComplete = async () => {
+    // Prevent double submit
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
+    
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
@@ -127,15 +211,25 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
 
       if (error) throw error;
 
+      // Refetch profile to ensure it's updated in local state
+      await refetchProfile();
+
       toast.success("Welcome to Swaami! 🎉", {
         description: "You've earned 5 credits to get started!"
       });
+      
+      // Clear onboarding progress on successful completion
+      clearProgress();
+      
+      // Only call onComplete after update succeeds and profile is refetched
       onComplete();
     } catch (error) {
       console.error("Profile update error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to save profile");
+      // Don't call onComplete if update fails
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
