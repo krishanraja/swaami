@@ -87,8 +87,9 @@ npm run build
 Required in `.env`:
 
 ```
-VITE_SUPABASE_URL=https://qivqdltstmlxbcaldjzs.supabase.co
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+VITE_SUPABASE_PROJECT_ID=your-project-id
 ```
 
 **Note**: `VITE_SUPABASE_PUBLISHABLE_KEY` is the anon/public key from Supabase Dashboard → Settings → API. This is safe to expose in client-side code.
