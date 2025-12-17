@@ -54,7 +54,7 @@ Print this out and check off each item as you complete it.
 ## Step 7: Edge Function Secrets
 - [ ] Opened Settings → Edge Functions → Secrets
 - [ ] Note: Supabase keys (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY) are automatically provided - don't add these!
-- [ ] Added optional secrets (Stripe, Twilio, Lovable AI) if needed
+- [ ] Added optional secrets (Stripe, Twilio, OpenAI, Google AI) if needed
 
 ## Step 8: Deploy Functions
 - [ ] Installed Supabase CLI (if needed)
@@ -94,3 +94,4 @@ Print this out and check off each item as you complete it.
 ---
 
 **If you get stuck on any step, see `docs/IDIOT_PROOF_SETUP.md` for detailed instructions.**
+

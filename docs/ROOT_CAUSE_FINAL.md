@@ -37,7 +37,7 @@ VITE_SUPABASE_URL=https://qivqdltstmlxbcaldjzs.supabase.co
 ## Deployment Configuration
 
 For production/deployed instances:
-- Update environment variables in deployment platform (Lovable Cloud, Vercel, etc.)
+- Update environment variables in deployment platform (Vercel, etc.)
 - Set `VITE_SUPABASE_PUBLISHABLE_KEY` to the correct anon key
 - Restart/redeploy after updating
 

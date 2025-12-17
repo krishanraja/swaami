@@ -861,3 +861,4 @@ ON CONFLICT (city, name) DO NOTHING;
 -- The database is now ready for use with the Swaami application.
 -- All tables, policies, functions, triggers, and storage buckets are configured.
 -- ============================================================================
+

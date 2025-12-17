@@ -58,15 +58,24 @@ VITE_SUPABASE_PROJECT_ID=your-project-id
 **IMPORTANT**: Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to all edge functions. You don't need to set these as secrets - they're already available!
 
 **Only set these secrets** if you're using these features (in Dashboard → Project Settings → Edge Functions → Secrets):
+
+**Required for core features:**
 ```env
-STRIPE_SECRET_KEY=sk_test_... (or sk_live_...)
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_PHONE_NUMBER=+1234567890
-LOVABLE_API_KEY=your_lovable_api_key (for seed-demo-users)
+STRIPE_SECRET_KEY=sk_test_... (or sk_live_...)  # Required for subscriptions
+TWILIO_ACCOUNT_SID=your_twilio_account_sid       # Required for phone verification
+TWILIO_AUTH_TOKEN=your_twilio_auth_token         # Required for phone verification
+TWILIO_PHONE_NUMBER=+1234567890                  # Required for phone verification
 ```
 
-**Note**: The Supabase keys are automatically available to edge functions - you don't need to set them manually. Only add the optional secrets below if you're using those features.
+**Optional secrets (only if using these features):**
+```env
+OPENAI_API_KEY=your_openai_api_key              # Optional, for AI features
+GOOGLE_AI_API_KEY=your_google_ai_api_key        # Optional, for AI features
+RESEND_API_KEY=your_resend_api_key              # Optional, for email sending
+SUPABASE_DB_URL=your_db_connection_string       # Optional, for direct DB access
+```
+
+**Note**: The Supabase keys (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) are automatically available to edge functions - you don't need to set them manually.
 
 ## Step 3: Edge Functions Deployment
 
@@ -202,3 +211,4 @@ If issues persist:
 2. Review browser console errors
 3. Check edge function logs
 4. Verify all environment variables are set correctly
+

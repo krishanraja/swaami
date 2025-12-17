@@ -13,9 +13,10 @@ Swaami is a hyper-local, credit-based micro-help network that connects neighbour
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS + shadcn/ui components
-- **Backend**: Lovable Cloud (Supabase)
+- **Backend**: Supabase (PostgreSQL, Auth, Storage, Edge Functions)
 - **Database**: PostgreSQL with Row Level Security
-- **AI**: Lovable AI Gateway (Google Gemini 2.5 Flash)
+- **AI**: Google AI / OpenAI (optional)
+- **Deployment**: Vercel (frontend) + Supabase (backend)
 - **State**: React Query + Zustand patterns
 - **Routing**: React Router v6
 
@@ -55,10 +56,12 @@ npm run build
 
 ## 🔐 Environment Variables
 
-Required environment variables (auto-provided by Lovable Cloud):
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
-- `VITE_SUPABASE_PROJECT_ID`
+Required environment variables (set in `.env` for local, Vercel for production):
+- `VITE_SUPABASE_URL` - Supabase project URL
+- `VITE_SUPABASE_PUBLISHABLE_KEY` - Supabase anon/public key
+- `VITE_SUPABASE_PROJECT_ID` - Supabase project ID
+
+See [Environment Variables Setup](../README.md#-environment-variables) for details.
 
 ## 📊 Database Tables
 

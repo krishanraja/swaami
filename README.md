@@ -27,8 +27,8 @@ Build stronger communities by connecting neighbours who need help with those who
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS + shadcn/ui
 - **Backend**: Supabase (PostgreSQL + Auth + Realtime)
-- **AI**: Lovable AI Gateway (Gemini 2.5 Flash)
-- **Deployment**: Lovable Cloud
+- **AI**: Google AI (Gemini) / OpenAI
+- **Deployment**: Vercel
 
 ## 📁 Project Structure
 
@@ -97,11 +97,15 @@ VITE_SUPABASE_PROJECT_ID=your-project-id
 See `.env.example` for the correct format.
 
 Edge function secrets (set in Supabase Dashboard → Edge Functions → Secrets):
-- `LOVABLE_API_KEY` - For AI task enhancement
 - `STRIPE_SECRET_KEY` - For subscription payments (get from Stripe Dashboard → Developers → API keys)
 - `TWILIO_ACCOUNT_SID` - For phone verification
 - `TWILIO_AUTH_TOKEN` - For phone verification
 - `TWILIO_PHONE_NUMBER` - For phone verification
+- `OPENAI_API_KEY` - Optional, for AI features
+- `GOOGLE_AI_API_KEY` - Optional, for AI features
+- `RESEND_API_KEY` - Optional, for email sending
+
+**Note**: Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to all edge functions - you don't need to set these manually.
 
 ⚠️ **Security**: Never commit API keys to git. Only set them in Supabase secrets.
 

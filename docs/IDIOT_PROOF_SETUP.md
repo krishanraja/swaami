@@ -164,9 +164,23 @@ This is for the backend functions that run on Supabase.
    - Value: Your Twilio phone number (e.g., `+1234567890`)
    - Click **"Add"**
 
-   **If using Lovable AI:**
-   - Name: `LOVABLE_API_KEY`
-   - Value: Your Lovable API key
+   **If using AI features (optional):**
+   - Name: `OPENAI_API_KEY`
+   - Value: Your OpenAI API key
+   - Click **"Add"**
+   
+   - Name: `GOOGLE_AI_API_KEY`
+   - Value: Your Google AI API key
+   - Click **"Add"**
+
+   **If using Resend for emails (optional):**
+   - Name: `RESEND_API_KEY`
+   - Value: Your Resend API key
+   - Click **"Add"**
+
+   **If using direct database access (optional):**
+   - Name: `SUPABASE_DB_URL`
+   - Value: Your Supabase database connection string
    - Click **"Add"**
 
 **✅ CHECKPOINT**: You've added any optional secrets you need. The Supabase keys are automatically available - you don't need to set them!
@@ -353,3 +367,4 @@ Your Supabase backend is now set up and ready to use. The app should work exactl
 ---
 
 **Remember**: If something doesn't work, go back to the step where it should have been set up and double-check everything. Most issues are from missing environment variables or not running the SQL schema.
+
