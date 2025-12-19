@@ -212,3 +212,4 @@ If issues persist:
 3. Check edge function logs
 4. Verify all environment variables are set correctly
 
+

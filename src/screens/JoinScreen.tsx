@@ -40,7 +40,13 @@ interface OnboardingProgress {
 export function JoinScreen({ onComplete }: JoinScreenProps) {
   const { refetch: refetchProfile } = useProfile();
   const [step, setStep] = useState<Step>('welcome');
-  const [city, setCity] = useState<City | null>(null);
+  const [city, setCityInternal] = useState<City | null>(null);
+  // #region agent log
+  const setCity = (newCity: City | null) => {
+    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:setCity',message:'City state changing',data:{from:city,to:newCity},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B,E'})}).catch(()=>{});
+    setCityInternal(newCity);
+  };
+  // #endregion
   const [neighbourhood, setNeighbourhood] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -80,7 +86,9 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
   // Save onboarding progress to localStorage whenever it changes
   useEffect(() => {
     if (!hasRestoredRef.current) return; // Don't save until we've restored
-
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:saveEffect',message:'localStorage save effect RUNNING',data:{step,city,neighbourhood},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     try {
       const progress: OnboardingProgress = {
         step,
@@ -324,6 +332,9 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
                   
                   {city && (
                     <div className="animate-fade-in">
+                      {/* #region agent log */}
+                      {(() => { fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:conditionalRender',message:'Neighbourhood section MOUNTING',data:{city},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{}); return null; })()}
+                      {/* #endregion */}
                       <p className="text-sm font-medium text-foreground mb-2">Neighbourhood</p>
                       <NeighbourhoodSelector
                         city={city}

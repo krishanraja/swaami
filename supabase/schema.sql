@@ -862,3 +862,4 @@ ON CONFLICT (city, name) DO NOTHING;
 -- All tables, policies, functions, triggers, and storage buckets are configured.
 -- ============================================================================
 
+

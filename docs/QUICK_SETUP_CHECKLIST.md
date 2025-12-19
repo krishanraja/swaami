@@ -95,3 +95,4 @@ Print this out and check off each item as you complete it.
 
 **If you get stuck on any step, see `docs/IDIOT_PROOF_SETUP.md` for detailed instructions.**
 
+
