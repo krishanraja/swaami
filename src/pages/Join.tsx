@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -6,12 +6,20 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { JoinScreen } from "@/screens/JoinScreen";
 
 export default function Join() {
+  // #region agent log
+  const renderCountRef = useRef(0);
+  renderCountRef.current++;
+  fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Join.tsx:render',message:'Join page RENDERING',data:{renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'J'})}).catch(()=>{});
+  // #endregion
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading, error: profileError, refetch } = useProfile();
   const { isOnboarded } = useOnboardingStatus(profile);
   const [readyToShow, setReadyToShow] = useState(false);
   const [hasError, setHasError] = useState(false);
+  // #region agent log
+  fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Join.tsx:state',message:'Join page state',data:{authLoading,profileLoading,isOnboarded,readyToShow,hasError,hasUser:!!user,hasProfile:!!profile},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'J'})}).catch(()=>{});
+  // #endregion
 
   useEffect(() => {
     // Wait for both auth and profile to finish loading

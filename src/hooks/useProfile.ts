@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { retrySupabaseOperation } from "@/lib/retry";
@@ -66,12 +66,26 @@ export function useProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastFetchedUserIdRef = useRef<string | null>(null);
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
     if (!user) {
+      lastFetchedUserIdRef.current = null;
       setProfile(null);
       setLoading(false);
       setError(null);
+      return;
+    }
+
+    // Skip if we already fetched for this user (prevents mobile flickering)
+    if (lastFetchedUserIdRef.current === user.id && profile !== null) {
+      setLoading(false);
+      return;
+    }
+
+    // Skip if already fetching
+    if (isFetchingRef.current) {
       return;
     }
 
@@ -82,6 +96,7 @@ export function useProfile() {
     abortControllerRef.current = new AbortController();
 
     const fetchProfile = async () => {
+      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -130,6 +145,7 @@ export function useProfile() {
           return data;
         }, 3, 1000); // 3 attempts, 1s initial delay
 
+        lastFetchedUserIdRef.current = user.id;
         setProfile(profileData);
         setError(null);
       } catch (err) {
@@ -168,6 +184,7 @@ export function useProfile() {
         setProfile(null);
       } finally {
         setLoading(false);
+        isFetchingRef.current = false;
       }
     };
 

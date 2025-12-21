@@ -38,8 +38,19 @@ interface OnboardingProgress {
 }
 
 export function JoinScreen({ onComplete }: JoinScreenProps) {
+  // #region agent log
+  const renderCountRef = useRef(0);
+  renderCountRef.current++;
+  fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:render',message:'Component RENDERING',data:{renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F,G,H,I'})}).catch(()=>{});
+  // #endregion
   const { refetch: refetchProfile } = useProfile();
-  const [step, setStep] = useState<Step>('welcome');
+  const [step, setStepInternal] = useState<Step>('welcome');
+  // #region agent log
+  const setStep = (newStep: Step) => {
+    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:setStep',message:'Step changing',data:{from:step,to:newStep},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'I'})}).catch(()=>{});
+    setStepInternal(newStep);
+  };
+  // #endregion
   const [city, setCityInternal] = useState<City | null>(null);
   // #region agent log
   const setCity = (newCity: City | null) => {
@@ -60,11 +71,17 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
 
   // Restore onboarding progress from localStorage on mount
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:restoreEffect',message:'Restore effect RUNNING',data:{hasRestoredAlready:hasRestoredRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G,H'})}).catch(()=>{});
+    // #endregion
     if (hasRestoredRef.current) return;
     hasRestoredRef.current = true;
 
     try {
       const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:restoreEffect:read',message:'localStorage read',data:{hasSaved:!!saved,savedStep:saved?JSON.parse(saved).step:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
+      // #endregion
       if (saved) {
         const progress: OnboardingProgress = JSON.parse(saved);
         setStep(progress.step);
