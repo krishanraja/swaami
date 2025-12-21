@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SkillChip } from "@/components/SkillChip";
@@ -37,7 +37,7 @@ interface OnboardingProgress {
   phoneVerified: boolean;
 }
 
-export function JoinScreen({ onComplete }: JoinScreenProps) {
+export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenProps) {
   // #region agent log
   const renderCountRef = useRef(0);
   renderCountRef.current++;
@@ -549,4 +549,4 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       </div>
     </div>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -106,6 +106,11 @@ export default function Join() {
     );
   }
 
+  // Memoize callback to prevent JoinScreen re-renders
+  const handleComplete = useCallback(() => {
+    navigate("/app");
+  }, [navigate]);
+
   // Show loading state until we determine where to route
   if (!readyToShow) {
     return (
@@ -118,5 +123,5 @@ export default function Join() {
     );
   }
 
-  return <JoinScreen onComplete={() => navigate("/app")} />;
+  return <JoinScreen onComplete={handleComplete} />;
 }
