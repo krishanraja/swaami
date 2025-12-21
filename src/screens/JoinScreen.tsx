@@ -259,7 +259,7 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       {/* Header with back button */}
       <div className="shrink-0 p-4">
         {canGoBack && (
@@ -276,8 +276,8 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       </div>
 
       <div className="flex-1 flex flex-col items-center px-6 pt-4 pb-2 overflow-y-auto">
-        {/* Logo */}
-        <div className="mb-4 animate-fade-in shrink-0">
+        {/* Logo - removed animate-fade-in to prevent re-triggering */}
+        <div className="mb-4 shrink-0">
           <img src={swaamiIcon} alt="Swaami" className="h-20 w-auto" />
         </div>
 

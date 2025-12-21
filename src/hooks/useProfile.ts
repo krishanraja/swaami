@@ -71,16 +71,19 @@ export function useProfile() {
 
   useEffect(() => {
     if (!user) {
-      lastFetchedUserIdRef.current = null;
-      setProfile(null);
-      setLoading(false);
-      setError(null);
+      // Only update state if it actually changed
+      if (lastFetchedUserIdRef.current !== null || profile !== null || loading !== false) {
+        lastFetchedUserIdRef.current = null;
+        setProfile(null);
+        setLoading(false);
+        setError(null);
+      }
       return;
     }
 
     // Skip if we already fetched for this user (prevents mobile flickering)
+    // Don't call setLoading here - it's already false from the previous fetch
     if (lastFetchedUserIdRef.current === user.id && profile !== null) {
-      setLoading(false);
       return;
     }
 
