@@ -111,3 +111,45 @@ export async function retrySupabaseOperation<T>(
   });
 }
 
+/**
+ * Session-aware operation wrapper
+ * Automatically handles session expiry errors and triggers refresh
+ */
+export async function withSessionRefresh<T>(
+  operation: () => Promise<T>,
+  refreshSession: () => Promise<boolean>,
+  onSessionExpired?: () => void
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+    
+    // Check if this is a session/auth error
+    const isSessionError = 
+      errorMessage.includes('jwt') ||
+      errorMessage.includes('token') ||
+      errorMessage.includes('session') ||
+      errorMessage.includes('unauthorized') ||
+      errorMessage.includes('401') ||
+      errorMessage.includes('expired');
+    
+    if (isSessionError) {
+      // Try to refresh the session
+      const refreshed = await refreshSession();
+      
+      if (refreshed) {
+        // Retry the operation with fresh session
+        return await operation();
+      } else {
+        // Session refresh failed
+        onSessionExpired?.();
+        throw new Error('Session expired. Please sign in again.');
+      }
+    }
+    
+    // Not a session error, re-throw
+    throw error;
+  }
+}
+

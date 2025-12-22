@@ -44,11 +44,40 @@ export function createSupabaseClient(
 }
 
 /**
+ * Allowed origins for CORS
+ * In production, this should be set via ALLOWED_ORIGINS environment variable
+ * Format: comma-separated list of origins (e.g., "https://swaami.app,https://www.swaami.app")
+ */
+const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") || "https://swaami.app,http://localhost:5173,http://localhost:3000").split(",");
+
+/**
+ * Get CORS headers for a specific request
+ * Validates origin against allowlist and returns appropriate headers
+ */
+export function getCorsHeaders(requestOrigin: string | null): Record<string, string> {
+  // Default to first allowed origin if no origin header (for non-browser requests)
+  const origin = requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin) 
+    ? requestOrigin 
+    : ALLOWED_ORIGINS[0];
+  
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Max-Age": "86400", // Cache preflight for 24 hours
+  };
+}
+
+/**
  * Standard CORS headers for edge functions
+ * @deprecated Use getCorsHeaders(req.headers.get("origin")) for proper origin validation
  */
 export const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGINS")?.split(",")[0] || "https://swaami.app",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Credentials": "true",
 };
 
 /**
@@ -107,6 +136,9 @@ export function createSuccessResponse(
     status: 200,
   });
 }
+
+
+
 
 
 

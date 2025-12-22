@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Heart, LogOut, Users } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile";
-import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { ArrowRight, Shield, Heart, LogOut, Users, ChevronDown } from "lucide-react";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useLiveActivity } from "@/hooks/useLiveActivity";
+import { AnonymousFeedPreview } from "@/components/AnonymousFeedPreview";
 import SplashScreen from "@/components/SplashScreen";
 
 const swaamiWordmark = "/images/swaami-wordmark.png";
@@ -15,38 +14,42 @@ type LoadingPhase = "splash" | "ready";
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { user, signOut, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { authState, signOut, isLoading } = useAuthContext();
   const { tasksCompletedToday, activeHelpers, isLoading: activityLoading } = useLiveActivity();
   
   const [phase, setPhase] = useState<LoadingPhase>("splash");
   const [splashComplete, setSplashComplete] = useState(false);
-  
-  // Data is ready when both auth and profile have loaded
-  const dataReady = !authLoading && !profileLoading;
+  const [showPreview, setShowPreview] = useState(false);
 
-  // Transition to ready when BOTH splash is done AND data is ready
+  // Transition to ready when BOTH splash is done AND auth is ready
   useEffect(() => {
-    if (splashComplete && dataReady) {
+    if (splashComplete && !isLoading) {
       // Small delay for smoother visual transition
       const timer = setTimeout(() => setPhase("ready"), 50);
       return () => clearTimeout(timer);
     }
-  }, [splashComplete, dataReady]);
+  }, [splashComplete, isLoading]);
 
   // Callback when splash finishes its animation
   const handleSplashComplete = useCallback(() => {
     setSplashComplete(true);
   }, []);
 
-  // Use unified onboarding status check
-  const { isOnboarded: isProfileComplete } = useOnboardingStatus(profile);
-
   const primaryCTA = useMemo(() => {
-    if (!user) return { text: "Join Your Neighbourhood", path: "/auth?mode=signup" };
-    if (isProfileComplete) return { text: "Go to Your Neighbourhood", path: "/app" };
-    return { text: "Continue Your Setup", path: "/join" };
-  }, [user, isProfileComplete]);
+    if (authState.status === "anonymous") {
+      return { text: "Join Your Neighbourhood", path: "/auth?mode=signup" };
+    }
+    if (authState.status === "ready") {
+      return { text: "Go to Your Neighbourhood", path: "/app" };
+    }
+    if (authState.status === "needs_onboarding" || authState.status === "signed_in") {
+      return { text: "Continue Your Setup", path: "/join" };
+    }
+    if (authState.status === "awaiting_verification") {
+      return { text: "Verify Your Email", path: "/auth?mode=login" };
+    }
+    return { text: "Join Your Neighbourhood", path: "/auth?mode=signup" };
+  }, [authState.status]);
 
   const hasActivityData = tasksCompletedToday > 0 || activeHelpers > 0;
   const showActivity = !activityLoading && hasActivityData;
@@ -54,6 +57,11 @@ export default function Landing() {
   const handleSignOut = async () => {
     await signOut();
   };
+
+  const isAnonymous = authState.status === "anonymous";
+  const isAuthenticated = authState.status === "ready" || 
+                          authState.status === "needs_onboarding" || 
+                          authState.status === "signed_in";
 
   // Render splash during splash phase
   if (phase === "splash") {
@@ -152,8 +160,26 @@ export default function Landing() {
                 </div>
               </div>
             )}
+
+            {/* Browse Requests Preview Button (for anonymous users) */}
+            {isAnonymous && !showPreview && (
+              <button
+                onClick={() => setShowPreview(true)}
+                className="mt-6 flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors group"
+              >
+                <span>See what neighbours need help with</span>
+                <ChevronDown className="h-4 w-4 group-hover:translate-y-0.5 transition-transform" />
+              </button>
+            )}
           </div>
         </main>
+
+        {/* Anonymous Feed Preview Section */}
+        {isAnonymous && showPreview && (
+          <div className="relative z-10 px-6 py-8 bg-background animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <AnonymousFeedPreview onSignupClick={() => navigate("/auth?mode=signup")} />
+          </div>
+        )}
 
         {/* Bottom CTAs */}
         <footer className="px-6 pb-safe pt-4 bg-gradient-to-t from-background via-background/95 to-transparent animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 fill-mode-both">
@@ -168,7 +194,7 @@ export default function Landing() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
 
-            {user ? (
+            {isAuthenticated ? (
               <Button
                 onClick={handleSignOut}
                 variant="ghost"

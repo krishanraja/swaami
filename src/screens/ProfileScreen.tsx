@@ -5,9 +5,10 @@ import { AppHeader } from "@/components/AppHeader";
 import { SKILLS } from "@/types/swaami";
 import { Settings, Star, MapPin, Clock, History, ChevronRight, Sparkles, CreditCard, Flame, FileText, Globe, AlertTriangle, HelpCircle, BookOpen } from "lucide-react";
 import { ProfilePhotoUpload } from "@/components/ProfilePhotoUpload";
+import { AccountManagement } from "@/components/AccountManagement";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useGamification } from "@/hooks/useGamification";
 import { useTasks } from "@/hooks/useTasks";
@@ -29,7 +30,8 @@ interface ProfileScreenProps {
 
 export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { authState } = useAuthContext();
+  const user = authState.user;
   const { profile, loading, updateProfile } = useProfile();
   const { myTasks, cancelTask } = useTasks();
   const { plan, subscribed, subscriptionEnd, startCheckout, openCustomerPortal, loading: subLoading } = useSubscription();
@@ -726,6 +728,14 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
               <ChevronRight className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
+        </div>
+
+        {/* Account Management */}
+        <div className="space-y-2 pt-4">
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Account
+          </h2>
+          <AccountManagement userEmail={user?.email} />
         </div>
 
         {/* Logout */}

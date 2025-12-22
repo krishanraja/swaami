@@ -22,6 +22,26 @@ export interface Profile {
   updated_at: string;
 }
 
+// Type guard for Supabase-like error objects
+interface SupabaseErrorLike {
+  code?: string;
+  message?: string;
+  details?: string;
+}
+
+function isSupabaseError(err: unknown): err is SupabaseErrorLike {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    ('code' in err || 'message' in err || 'details' in err)
+  );
+}
+
+// Extended Error type with code property
+interface ErrorWithCode extends Error {
+  code?: string;
+}
+
 // Timeout wrapper for async operations
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
@@ -67,9 +87,10 @@ export function useProfile() {
   const [error, setError] = useState<Error | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // KEY FIX: Depend on userId string, not user object reference
+  // KEY FIX: Depend on stable values, not user object reference
   // This prevents refetching when onAuthStateChange fires with same user but new object
   const userId = user?.id;
+  const userDisplayName = user?.user_metadata?.display_name as string | null | undefined;
 
   useEffect(() => {
     if (!userId) {
@@ -110,7 +131,7 @@ export function useProfile() {
                 .from("profiles")
                 .insert({
                   user_id: userId,
-                  display_name: user?.user_metadata?.display_name || null,
+                  display_name: userDisplayName || null,
                 })
                 .select()
                 .single(),
@@ -143,19 +164,18 @@ export function useProfile() {
         
         console.error("Profile fetch error:", err);
         
-        if (err && typeof err === 'object') {
-          const supabaseError = err as any;
-          errorCode = supabaseError?.code;
-          errorMessage = supabaseError?.message || supabaseError?.details || errorMessage;
+        if (isSupabaseError(err)) {
+          errorCode = err.code;
+          errorMessage = err.message || err.details || errorMessage;
         } else if (err instanceof Error) {
           errorMessage = err.message;
         } else {
           errorMessage = String(err) || errorMessage;
         }
         
-        const error = new Error(errorMessage);
+        const error: ErrorWithCode = new Error(errorMessage);
         if (errorCode) {
-          (error as any).code = errorCode;
+          error.code = errorCode;
         }
         
         setError(error);
@@ -172,7 +192,7 @@ export function useProfile() {
         abortControllerRef.current.abort();
       }
     };
-  }, [userId]); // Depend on userId string, not user object
+  }, [userId, userDisplayName]); // Depend on stable values, not user object
 
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!profile) return { error: new Error("No profile") };
@@ -228,19 +248,18 @@ export function useProfile() {
       
       console.error("Refetch error:", err);
       
-      if (err && typeof err === 'object') {
-        const supabaseError = err as any;
-        errorCode = supabaseError?.code;
-        errorMessage = supabaseError?.message || supabaseError?.details || errorMessage;
+      if (isSupabaseError(err)) {
+        errorCode = err.code;
+        errorMessage = err.message || err.details || errorMessage;
       } else if (err instanceof Error) {
         errorMessage = err.message;
       } else {
         errorMessage = String(err) || errorMessage;
       }
       
-      const error = new Error(errorMessage);
+      const error: ErrorWithCode = new Error(errorMessage);
       if (errorCode) {
-        (error as any).code = errorCode;
+        error.code = errorCode;
       }
       
       setError(error);

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { NeedCard } from "@/components/NeedCard";
 import { AppHeader } from "@/components/AppHeader";

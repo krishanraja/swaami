@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useVerificationPolling } from "@/hooks/useAuthSync";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Mail, ArrowLeft, Loader2 } from "lucide-react";
+import { Mail, ArrowLeft, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import swaamiIcon from "@/assets/swaami-icon.png";
 
 // Google icon component
@@ -33,29 +34,45 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
+/**
+ * Auth page for login/signup
+ * Note: Redirects for authenticated users are handled by PublicOnlyRoute in App.tsx
+ * This page shows:
+ * - Login/Signup forms for anonymous users
+ * - Email verification prompt for awaiting_verification state
+ * - Session expired message when coming from expired session
+ */
 export default function Auth() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { authState } = useAuthContext();
+  
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [resending, setResending] = useState(false);
-  const hasNavigatedRef = useRef(false);
   const isSubmittingRef = useRef(false);
+  const hashProcessedRef = useRef(false);
+  
+  // Check for session expired flag in URL
+  const sessionExpired = searchParams.get("expired") === "true";
 
+  // Set mode from URL params
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const mode = params.get("mode");
+    const mode = searchParams.get("mode");
     if (mode === "signup") setIsLogin(false);
     if (mode === "login") setIsLogin(true);
-  }, []);
+  }, [searchParams]);
 
   // Handle email verification callback from Supabase (hash fragments)
+  // This processes the token when user clicks verification link
   useEffect(() => {
+    // Only process once
+    if (hashProcessedRef.current) return;
+    
     // Check for hash fragments (Supabase sends verification tokens in hash)
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = hashParams.get("access_token");
@@ -65,6 +82,7 @@ export default function Auth() {
     
     // Handle verification errors
     if (error) {
+      hashProcessedRef.current = true;
       console.error("Verification error:", error, errorDescription);
       toast.error(errorDescription || "Verification link is invalid or expired. Please request a new one.");
       // Clear hash from URL
@@ -73,51 +91,25 @@ export default function Auth() {
     }
     
     // If we have a verification token, Supabase will process it automatically
-    // The onAuthStateChange in useAuth will fire, and we'll handle navigation below
-    if (accessToken && type === "signup") {
+    if (accessToken && (type === "signup" || type === "recovery" || type === "magiclink")) {
+      hashProcessedRef.current = true;
       // Clear hash from URL immediately to prevent double processing
-      // This also ensures the hash is cleared even if getUser() fails
       window.history.replaceState(null, "", window.location.pathname + window.location.search);
-      
       // Supabase client will automatically process the token via onAuthStateChange
-      // No need to check user state here - let the auth state effect handle navigation
+      // AuthContext will update and PublicOnlyRoute will redirect
     }
   }, []);
 
-  // Handle navigation based on auth state (using useAuth hook, not duplicate listener)
+  // Show email sent screen for awaiting_verification state
   useEffect(() => {
-    // Wait for auth to finish loading
-    if (authLoading) return;
-    
-    // Prevent double navigation
-    if (hasNavigatedRef.current) return;
-
-    if (user) {
-      // Check if email is already verified (prevent using old verification links)
-      const isOAuthUser = user.app_metadata?.provider !== 'email';
-      const isVerified = isOAuthUser || user.email_confirmed_at;
-      
-      if (isVerified) {
-        // User is authenticated and verified - redirect to onboarding
-        // Only navigate if we're on /auth (don't interrupt other pages)
-        if (window.location.pathname === '/auth') {
-          hasNavigatedRef.current = true;
-          navigate("/join");
-        }
-      } else {
-        // User is authenticated but not verified - show email sent screen
-        if (window.location.pathname === '/auth') {
-          setEmailSent(true);
-        } else {
-          hasNavigatedRef.current = true;
-          navigate("/auth");
-        }
-      }
-    } else {
-      // No user - reset navigation flag
-      hasNavigatedRef.current = false;
+    if (authState.status === "awaiting_verification" && authState.user?.email) {
+      setEmail(authState.user.email);
+      setEmailSent(true);
     }
-  }, [user, authLoading, navigate]);
+  }, [authState.status, authState.user?.email]);
+
+  // Poll for verification status (when user might verify on different device)
+  useVerificationPolling(emailSent && authState.status === "awaiting_verification", 5000);
 
   const handleResendVerification = async () => {
     if (!email) {
@@ -262,6 +254,12 @@ export default function Auth() {
             <p className="text-xs">Didn't receive the email? Check your spam folder or try resending.</p>
           </div>
           
+          {/* Polling indicator */}
+          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <RefreshCw className="h-3 w-3 animate-spin" />
+            <span>Waiting for verification...</span>
+          </div>
+          
           <div className="flex flex-col gap-3">
             <Button
               variant="outline"
@@ -302,6 +300,19 @@ export default function Auth() {
   return (
     <div className="h-[100dvh] overflow-hidden bg-background flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm flex flex-col gap-6">
+        {/* Session expired banner */}
+        {sessionExpired && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-amber-800 dark:text-amber-200">Session expired</p>
+              <p className="text-amber-700 dark:text-amber-300 mt-1">
+                Your session has expired. Please sign in again to continue.
+              </p>
+            </div>
+          </div>
+        )}
+        
         <div className="text-center">
           <img src={swaamiIcon} alt="Swaami" className="h-12 w-auto mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-foreground">
