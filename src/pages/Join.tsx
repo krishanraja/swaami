@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -9,21 +9,27 @@ export default function Join() {
   const { user, loading: authLoading } = useAuth();
   const { profile, loading: profileLoading } = useProfile();
   const [readyToShow, setReadyToShow] = useState(false);
+  const hasNavigated = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple navigations
+    if (hasNavigated.current) return;
+    
     // Wait for both auth and profile to finish loading
     if (authLoading || profileLoading) return;
     
     // No user = send to signup
     if (!user) {
-      navigate("/auth?mode=signup");
+      hasNavigated.current = true;
+      navigate("/auth?mode=signup", { replace: true });
       return;
     }
     
     // Check email verification (OAuth users are pre-verified)
     const isOAuth = user.app_metadata?.provider !== 'email';
     if (!isOAuth && !user.email_confirmed_at) {
-      navigate("/auth?mode=login");
+      hasNavigated.current = true;
+      navigate("/auth?mode=login", { replace: true });
       return;
     }
     
@@ -31,9 +37,10 @@ export default function Join() {
     const isComplete = profile?.city && 
                        profile?.neighbourhood && 
                        profile?.phone && 
-                       profile?.skills?.length > 0;
+                       (profile?.skills?.length ?? 0) > 0;
     
     if (isComplete) {
+      hasNavigated.current = true;
       navigate("/app", { replace: true });
       return;
     }
