@@ -76,8 +76,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Get initial session
     const initAuth = async () => {
+      console.log('[AuthContext] initAuth started');
       try {
+        console.log('[AuthContext] calling getSession');
         const { data: { session: initialSession } } = await supabase.auth.getSession();
+        console.log('[AuthContext] getSession completed', { hasSession: !!initialSession, hasUser: !!initialSession?.user });
         
         if (!mounted) return;
         
@@ -85,12 +88,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(initialSession?.user ?? null);
         
         if (initialSession?.user) {
+          console.log('[AuthContext] fetching profile for user', initialSession.user.id);
           await fetchProfile(initialSession.user.id);
+          console.log('[AuthContext] profile fetch completed');
         }
       } catch (err) {
-        console.error("Auth init error:", err);
+        console.error("[AuthContext] Auth init error:", err);
       } finally {
         if (mounted) {
+          console.log('[AuthContext] setAuthLoading false');
           setAuthLoading(false);
         }
       }
