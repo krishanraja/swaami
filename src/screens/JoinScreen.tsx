@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SkillChip } from "@/components/SkillChip";
@@ -9,7 +9,6 @@ import { NeighbourhoodSelector } from "@/components/onboarding/NeighbourhoodSele
 import { PhoneInput, isValidPhone } from "@/components/onboarding/PhoneInput";
 import { SKILLS } from "@/types/swaami";
 import { City } from "@/hooks/useNeighbourhoods";
-import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, CheckCircle, ArrowLeft, Shield, MapPin, Heart, Gift } from "lucide-react";
@@ -17,6 +16,7 @@ import swaamiIcon from "@/assets/swaami-icon.png";
 
 interface JoinScreenProps {
   onComplete: () => void;
+  refetchProfile: () => Promise<void>;
 }
 
 // Streamlined 4-step flow: Welcome → Location → Phone → Skills+Preferences
@@ -37,27 +37,9 @@ interface OnboardingProgress {
   phoneVerified: boolean;
 }
 
-export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenProps) {
-  // #region agent log
-  const renderCountRef = useRef(0);
-  renderCountRef.current++;
-  fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:render',message:'Component RENDERING',data:{renderCount:renderCountRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'F,G,H,I'})}).catch(()=>{});
-  // #endregion
-  const { refetch: refetchProfile } = useProfile();
-  const [step, setStepInternal] = useState<Step>('welcome');
-  // #region agent log
-  const setStep = (newStep: Step) => {
-    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:setStep',message:'Step changing',data:{from:step,to:newStep},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'I'})}).catch(()=>{});
-    setStepInternal(newStep);
-  };
-  // #endregion
-  const [city, setCityInternal] = useState<City | null>(null);
-  // #region agent log
-  const setCity = (newCity: City | null) => {
-    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:setCity',message:'City state changing',data:{from:city,to:newCity},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B,E'})}).catch(()=>{});
-    setCityInternal(newCity);
-  };
-  // #endregion
+export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
+  const [step, setStep] = useState<Step>('welcome');
+  const [city, setCity] = useState<City | null>(null);
   const [neighbourhood, setNeighbourhood] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -71,17 +53,11 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
 
   // Restore onboarding progress from localStorage on mount
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:restoreEffect',message:'Restore effect RUNNING',data:{hasRestoredAlready:hasRestoredRef.current},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G,H'})}).catch(()=>{});
-    // #endregion
     if (hasRestoredRef.current) return;
     hasRestoredRef.current = true;
 
     try {
       const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
-      // #region agent log
-      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:restoreEffect:read',message:'localStorage read',data:{hasSaved:!!saved,savedStep:saved?JSON.parse(saved).step:null},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'G'})}).catch(()=>{});
-      // #endregion
       if (saved) {
         const progress: OnboardingProgress = JSON.parse(saved);
         setStep(progress.step);
@@ -95,17 +71,13 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
       }
     } catch (error) {
       console.error("Failed to restore onboarding progress:", error);
-      // Clear corrupted data
       localStorage.removeItem(ONBOARDING_STORAGE_KEY);
     }
   }, []);
 
   // Save onboarding progress to localStorage whenever it changes
   useEffect(() => {
-    if (!hasRestoredRef.current) return; // Don't save until we've restored
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:saveEffect',message:'localStorage save effect RUNNING',data:{step,city,neighbourhood},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
+    if (!hasRestoredRef.current) return;
     try {
       const progress: OnboardingProgress = {
         step,
@@ -123,7 +95,6 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
     }
   }, [step, city, neighbourhood, phone, radius, selectedSkills, availability, phoneVerified]);
 
-  // Clear onboarding progress on completion
   const clearProgress = () => {
     try {
       localStorage.removeItem(ONBOARDING_STORAGE_KEY);
@@ -147,7 +118,6 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
       return;
     }
 
-    // Prevent double submit
     if (isSubmittingRef.current || loading) return;
     isSubmittingRef.current = true;
     setLoading(true);
@@ -176,7 +146,6 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
       return;
     }
 
-    // Prevent double submit
     if (isSubmittingRef.current || loading) return;
     isSubmittingRef.current = true;
     setLoading(true);
@@ -211,17 +180,14 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
   };
 
   const handleComplete = async () => {
-    // Prevent double submit
     if (isSubmittingRef.current || loading) return;
     isSubmittingRef.current = true;
     setLoading(true);
     
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Update profile with all onboarding data
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -236,22 +202,17 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
 
       if (error) throw error;
 
-      // Refetch profile to ensure it's updated in local state
       await refetchProfile();
 
       toast.success("Welcome to Swaami! 🎉", {
         description: "You've earned 5 credits to get started!"
       });
       
-      // Clear onboarding progress on successful completion
       clearProgress();
-      
-      // Only call onComplete after update succeeds and profile is refetched
       onComplete();
     } catch (error) {
       console.error("Profile update error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to save profile");
-      // Don't call onComplete if update fails
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
@@ -276,7 +237,7 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
       </div>
 
       <div className="flex-1 flex flex-col items-center px-6 pt-4 pb-2 overflow-y-auto">
-        {/* Logo - removed animate-fade-in to prevent re-triggering */}
+        {/* Logo */}
         <div className="mb-4 shrink-0">
           <img src={swaamiIcon} alt="Swaami" className="h-20 w-auto" />
         </div>
@@ -309,7 +270,6 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
                   </div>
                 </div>
                 
-                {/* Welcome gift teaser */}
                 <div className="flex items-center gap-3 p-3 bg-accent/10 rounded-xl">
                   <Gift className="h-5 w-5 text-accent shrink-0" />
                   <span className="text-sm text-accent font-medium">
@@ -329,7 +289,6 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
             </div>
           )}
 
-          {/* Combined Location Step (City + Neighbourhood) */}
           {step === 'location' && (
             <div className="animate-slide-up space-y-6">
               <div className="text-center">
@@ -349,9 +308,6 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
                   
                   {city && (
                     <div className="animate-fade-in">
-                      {/* #region agent log */}
-                      {(() => { fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JoinScreen.tsx:conditionalRender',message:'Neighbourhood section MOUNTING',data:{city},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{}); return null; })()}
-                      {/* #endregion */}
                       <p className="text-sm font-medium text-foreground mb-2">Neighbourhood</p>
                       <NeighbourhoodSelector
                         city={city}
@@ -460,7 +416,6 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
             </div>
           )}
 
-          {/* Combined Preferences Step (Radius + Skills + Availability) */}
           {step === 'preferences' && (
             <div className="animate-slide-up space-y-6">
               <div className="text-center">
@@ -476,13 +431,11 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
                 </p>
               </div>
               <div className="bg-card rounded-2xl p-6 border border-border space-y-6">
-                {/* Radius */}
                 <div>
                   <p className="text-sm font-medium text-foreground mb-3">How far will you go to help?</p>
                   <RadiusSlider value={radius} onChange={setRadius} />
                 </div>
                 
-                {/* Skills */}
                 <div>
                   <p className="text-sm font-medium text-foreground mb-3">What can you help with?</p>
                   <div className="flex flex-wrap gap-2">
@@ -497,7 +450,6 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
                   </div>
                 </div>
                 
-                {/* Availability */}
                 <div>
                   <p className="text-sm font-medium text-foreground mb-3">When are you usually available?</p>
                   <AvailabilitySelector value={availability} onChange={setAvailability} />
@@ -528,10 +480,10 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
         </div>
       </div>
 
-      {/* Progress indicator - simplified for 4 steps */}
+      {/* Progress indicator */}
       <div className="shrink-0 pb-4 px-6">
         <div className="flex gap-2 justify-center">
-          {STEPS.filter(s => s !== 'otp').map((s, i) => {
+          {STEPS.filter(s => s !== 'otp').map((s) => {
             const stepIndex = STEPS.indexOf(s);
             const isActive = currentStepIndex >= stepIndex || (s === 'preferences' && step === 'otp');
             return (
@@ -549,4 +501,4 @@ export const JoinScreen = memo(function JoinScreen({ onComplete }: JoinScreenPro
       </div>
     </div>
   );
-});
+}

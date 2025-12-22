@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { retrySupabaseOperation } from "@/lib/retry";
@@ -66,29 +66,16 @@ export function useProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const lastFetchedUserIdRef = useRef<string | null>(null);
-  const isFetchingRef = useRef(false);
+
+  // KEY FIX: Depend on userId string, not user object reference
+  // This prevents refetching when onAuthStateChange fires with same user but new object
+  const userId = user?.id;
 
   useEffect(() => {
-    if (!user) {
-      // Only update state if it actually changed
-      if (lastFetchedUserIdRef.current !== null || profile !== null || loading !== false) {
-        lastFetchedUserIdRef.current = null;
-        setProfile(null);
-        setLoading(false);
-        setError(null);
-      }
-      return;
-    }
-
-    // Skip if we already fetched for this user (prevents mobile flickering)
-    // Don't call setLoading here - it's already false from the previous fetch
-    if (lastFetchedUserIdRef.current === user.id && profile !== null) {
-      return;
-    }
-
-    // Skip if already fetching
-    if (isFetchingRef.current) {
+    if (!userId) {
+      setProfile(null);
+      setLoading(false);
+      setError(null);
       return;
     }
 
@@ -99,7 +86,6 @@ export function useProfile() {
     abortControllerRef.current = new AbortController();
 
     const fetchProfile = async () => {
-      isFetchingRef.current = true;
       setLoading(true);
       setError(null);
 
@@ -110,7 +96,7 @@ export function useProfile() {
             supabase
               .from("profiles")
               .select("*")
-              .eq("user_id", user.id)
+              .eq("user_id", userId)
               .single(),
             10000 // 10 second timeout
           );
@@ -123,8 +109,8 @@ export function useProfile() {
               supabase
                 .from("profiles")
                 .insert({
-                  user_id: user.id,
-                  display_name: user.user_metadata?.display_name || null,
+                  user_id: userId,
+                  display_name: user?.user_metadata?.display_name || null,
                 })
                 .select()
                 .single(),
@@ -148,7 +134,6 @@ export function useProfile() {
           return data;
         }, 3, 1000); // 3 attempts, 1s initial delay
 
-        lastFetchedUserIdRef.current = user.id;
         setProfile(profileData);
         setError(null);
       } catch (err) {
@@ -156,38 +141,27 @@ export function useProfile() {
         let errorMessage = "Failed to load profile";
         let errorCode: string | undefined;
         
-        // Log full error structure for diagnosis
-        console.error("Raw profile fetch error:", err);
-        console.error("Error type:", err?.constructor?.name);
+        console.error("Profile fetch error:", err);
         
         if (err && typeof err === 'object') {
-          // Supabase PostgrestError structure
           const supabaseError = err as any;
           errorCode = supabaseError?.code;
           errorMessage = supabaseError?.message || supabaseError?.details || errorMessage;
-          
-          // Log Supabase-specific fields
-          if (supabaseError?.code) console.error("Supabase error code:", supabaseError.code);
-          if (supabaseError?.hint) console.error("Supabase hint:", supabaseError.hint);
-          if (supabaseError?.details) console.error("Supabase details:", supabaseError.details);
         } else if (err instanceof Error) {
           errorMessage = err.message;
         } else {
           errorMessage = String(err) || errorMessage;
         }
         
-        // Create error with proper message
         const error = new Error(errorMessage);
         if (errorCode) {
           (error as any).code = errorCode;
         }
         
-        console.error("Processed error:", error);
         setError(error);
         setProfile(null);
       } finally {
         setLoading(false);
-        isFetchingRef.current = false;
       }
     };
 
@@ -198,7 +172,7 @@ export function useProfile() {
         abortControllerRef.current.abort();
       }
     };
-  }, [user]);
+  }, [userId]); // Depend on userId string, not user object
 
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!profile) return { error: new Error("No profile") };
@@ -218,7 +192,6 @@ export function useProfile() {
     }, {
       maxAttempts: 3,
       initialDelayMs: 200,
-      // Don't retry on optimistic lock failures (concurrent update)
       retryableErrors: ['network', 'timeout', 'connection'],
     });
 
@@ -231,7 +204,7 @@ export function useProfile() {
 
   // Function to manually refetch profile (useful after updates)
   const refetch = async () => {
-    if (!user) return;
+    if (!userId) return;
     
     setLoading(true);
     setError(null);
@@ -241,7 +214,7 @@ export function useProfile() {
         supabase
           .from("profiles")
           .select("*")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .single(),
         10000
       );
@@ -250,18 +223,15 @@ export function useProfile() {
       setProfile(data);
       setError(null);
     } catch (err) {
-      // Use same error extraction logic as main fetch
       let errorMessage = "Failed to refetch profile";
       let errorCode: string | undefined;
       
-      console.error("Raw refetch error:", err);
+      console.error("Refetch error:", err);
       
       if (err && typeof err === 'object') {
         const supabaseError = err as any;
         errorCode = supabaseError?.code;
         errorMessage = supabaseError?.message || supabaseError?.details || errorMessage;
-        
-        if (supabaseError?.code) console.error("Supabase error code:", supabaseError.code);
       } else if (err instanceof Error) {
         errorMessage = err.message;
       } else {
@@ -273,7 +243,6 @@ export function useProfile() {
         (error as any).code = errorCode;
       }
       
-      console.error("Processed refetch error:", error);
       setError(error);
     } finally {
       setLoading(false);
