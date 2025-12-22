@@ -18,7 +18,7 @@ export default function Join() {
     // Wait for both auth and profile to finish loading
     if (authLoading || profileLoading) return;
     
-    // No user = send to signup
+    // No user = send to auth
     if (!user) {
       hasNavigated.current = true;
       navigate("/auth?mode=signup", { replace: true });
@@ -33,7 +33,7 @@ export default function Join() {
       return;
     }
     
-    // Check if profile is already complete - skip onboarding entirely
+    // Check if profile is already complete - skip onboarding
     const isComplete = profile?.city && 
                        profile?.neighbourhood && 
                        profile?.phone && 
@@ -49,6 +49,11 @@ export default function Join() {
     setReadyToShow(true);
   }, [user, authLoading, profile, profileLoading, navigate]);
 
+  const handleComplete = () => {
+    hasNavigated.current = true;
+    navigate("/app", { replace: true });
+  };
+
   // Show loading state until we determine where to route
   if (!readyToShow) {
     return (
@@ -61,5 +66,5 @@ export default function Join() {
     );
   }
 
-  return <JoinScreen onComplete={() => navigate("/app")} />;
+  return <JoinScreen onComplete={handleComplete} />;
 }
