@@ -5,30 +5,38 @@ import { FeedScreen } from "@/screens/FeedScreen";
 import { PostScreen } from "@/screens/PostScreen";
 import { ProfileScreen } from "@/screens/ProfileScreen";
 import { ChatsListScreen } from "@/screens/ChatsListScreen";
-import { useAuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
-/**
- * Main app index page
- * Note: Auth/onboarding redirects are handled by AppRoute wrapper in App.tsx
- * This component only renders when user is fully authenticated and onboarded
- */
 const Index = () => {
-  const { signOut } = useAuthContext();
+  const { authState, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"feed" | "post" | "chats" | "profile">("feed");
-  const [hasAnimated, setHasAnimated] = useState(false);
 
-  // Trigger animation on mount
+  // Single redirect effect based on centralized auth state
   useEffect(() => {
-    if (!hasAnimated) {
-      setHasAnimated(true);
+    if (authState === "unauthenticated") {
+      navigate("/auth", { replace: true });
+    } else if (authState === "needs_onboarding") {
+      navigate("/join", { replace: true });
     }
-  }, [hasAnimated]);
+  }, [authState, navigate]);
 
   const handleLogout = async () => {
     await signOut();
-    navigate("/");
+    navigate("/", { replace: true });
   };
+
+  // Show loading or redirect states
+  if (authState !== "ready") {
+    return (
+      <div className="h-[100dvh] bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-muted-foreground animate-pulse">Loading your neighbourhood...</span>
+        </div>
+      </div>
+    );
+  }
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -47,11 +55,7 @@ const Index = () => {
 
   return (
     <div className="h-[100dvh] flex flex-col overflow-hidden bg-background">
-      <div 
-        className={`flex-1 overflow-hidden transition-opacity duration-300 ${
-          hasAnimated ? 'animate-in fade-in duration-300' : ''
-        }`}
-      >
+      <div className="flex-1 overflow-hidden animate-in fade-in duration-300">
         {renderScreen()}
       </div>
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />

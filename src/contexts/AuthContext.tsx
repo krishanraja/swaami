@@ -1,24 +1,7 @@
-/**
- * Centralized Auth Context with Explicit State Machine
- * 
- * This is the single source of truth for authentication state.
- * All auth-related decisions should be based on the `authState.status` field.
- * 
- * States:
- * - loading: Initial state, checking stored session
- * - anonymous: No user session
- * - awaiting_verification: User signed up but email not verified
- * - signed_in: Authenticated but profile may be incomplete
- * - needs_onboarding: Authenticated but profile is incomplete
- * - ready: Fully authenticated and onboarded
- * - session_expired: Session was valid but has expired
- */
-
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
-import { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from "react";
+import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-// Profile type matching useProfile.ts
 export interface Profile {
   id: string;
   user_id: string;
@@ -38,104 +21,29 @@ export interface Profile {
   updated_at: string;
 }
 
-// Explicit auth state types
-export type AuthStatus = 
-  | "loading"
-  | "anonymous"
-  | "awaiting_verification"
-  | "signed_in"
-  | "needs_onboarding"
-  | "ready"
-  | "session_expired";
+type AuthState = "loading" | "unauthenticated" | "needs_onboarding" | "ready";
 
-export interface AuthState {
-  status: AuthStatus;
+interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
-  isEmailVerified: boolean;
-  isOnboarded: boolean;
-}
-
-interface AuthContextType {
   authState: AuthState;
   signOut: () => Promise<void>;
-  refreshSession: () => Promise<boolean>;
   refreshProfile: () => Promise<void>;
-  // Utility flags for common checks
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  canAccessApp: boolean;
 }
-
-const initialAuthState: AuthState = {
-  status: "loading",
-  user: null,
-  session: null,
-  profile: null,
-  isEmailVerified: false,
-  isOnboarded: false,
-};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/**
- * Check if a profile is considered "onboarded" (all required fields present)
- */
-function checkOnboarded(profile: Profile | null): boolean {
-  if (!profile) return false;
-  if (!profile.phone) return false;
-  if (!profile.city) return false;
-  if (!profile.neighbourhood) return false;
-  if (!profile.skills || profile.skills.length === 0) return false;
-  return true;
-}
-
-/**
- * Derive auth status from user, session, and profile
- */
-function deriveAuthStatus(
-  user: User | null,
-  session: Session | null,
-  profile: Profile | null,
-  sessionExpired: boolean
-): AuthStatus {
-  // Session expired
-  if (sessionExpired) {
-    return "session_expired";
-  }
-
-  // No user = anonymous
-  if (!user || !session) {
-    return "anonymous";
-  }
-
-  // Check email verification for email/password users
-  const isOAuthUser = user.app_metadata?.provider !== 'email';
-  const isEmailVerified = isOAuthUser || !!user.email_confirmed_at;
-  
-  if (!isEmailVerified) {
-    return "awaiting_verification";
-  }
-
-  // User is verified, check onboarding
-  const isOnboarded = checkOnboarded(profile);
-  
-  if (!isOnboarded) {
-    return "needs_onboarding";
-  }
-
-  return "ready";
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>(initialAuthState);
-  const [sessionExpired, setSessionExpired] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
-  /**
-   * Fetch user profile from database
-   */
-  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
+  // Fetch profile for a given user
+  const fetchProfile = async (userId: string) => {
+    setProfileLoading(true);
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -144,167 +52,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (error) {
-        // Profile might not exist yet (race condition with trigger)
-        if (error.code === "PGRST116") {
-          // Try to create it
-          const { data: newProfile, error: createError } = await supabase
-            .from("profiles")
-            .insert({ user_id: userId })
-            .select()
-            .single();
-
-          if (!createError && newProfile) {
-            return newProfile as Profile;
-          }
-          // Wait a bit and retry
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const retryResult = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("user_id", userId)
-            .single();
-          
-          if (!retryResult.error && retryResult.data) {
-            return retryResult.data as Profile;
-          }
-        }
         console.error("Error fetching profile:", error);
-        return null;
+        setProfile(null);
+      } else {
+        setProfile(data);
       }
-
-      return data as Profile;
     } catch (err) {
       console.error("Profile fetch error:", err);
-      return null;
+      setProfile(null);
+    } finally {
+      setProfileLoading(false);
     }
-  }, []);
+  };
 
-  /**
-   * Update auth state based on session and profile
-   */
-  const updateAuthState = useCallback(async (
-    session: Session | null,
-    event?: AuthChangeEvent
-  ) => {
-    const user = session?.user ?? null;
-    
-    // Check for session expiry events
-    if (event === "TOKEN_REFRESHED" && !session) {
-      setSessionExpired(true);
-      setAuthState({
-        status: "session_expired",
-        user: null,
-        session: null,
-        profile: null,
-        isEmailVerified: false,
-        isOnboarded: false,
-      });
-      return;
-    }
-
-    // Clear session expired flag if we have a valid session
-    if (session) {
-      setSessionExpired(false);
-    }
-
-    // No user = anonymous
-    if (!user) {
-      setAuthState({
-        status: "anonymous",
-        user: null,
-        session: null,
-        profile: null,
-        isEmailVerified: false,
-        isOnboarded: false,
-      });
-      return;
-    }
-
-    // Check email verification
-    const isOAuthUser = user.app_metadata?.provider !== 'email';
-    const isEmailVerified = isOAuthUser || !!user.email_confirmed_at;
-
-    // If not verified, don't fetch profile
-    if (!isEmailVerified) {
-      setAuthState({
-        status: "awaiting_verification",
-        user,
-        session,
-        profile: null,
-        isEmailVerified: false,
-        isOnboarded: false,
-      });
-      return;
-    }
-
-    // Fetch profile
-    const profile = await fetchProfile(user.id);
-    const isOnboarded = checkOnboarded(profile);
-    const status = deriveAuthStatus(user, session, profile, sessionExpired);
-
-    setAuthState({
-      status,
-      user,
-      session,
-      profile,
-      isEmailVerified,
-      isOnboarded,
-    });
-  }, [fetchProfile, sessionExpired]);
-
-  /**
-   * Initialize auth state on mount
-   */
+  // Initialize auth state once on mount
   useEffect(() => {
     let mounted = true;
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (mounted) {
-        updateAuthState(session, "INITIAL_SESSION" as AuthChangeEvent);
+    const initAuth = async () => {
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+        
+        if (initialSession?.user) {
+          await fetchProfile(initialSession.user.id);
+        }
+      } catch (err) {
+        console.error("Auth init error:", err);
+      } finally {
+        if (mounted) {
+          setAuthLoading(false);
+        }
       }
-    });
+    };
 
-    // Subscribe to auth changes
+    initAuth();
+
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event, newSession) => {
         if (!mounted) return;
 
-        // Handle specific events
-        switch (event) {
-          case "SIGNED_OUT":
-            setAuthState({
-              status: "anonymous",
-              user: null,
-              session: null,
-              profile: null,
-              isEmailVerified: false,
-              isOnboarded: false,
-            });
-            setSessionExpired(false);
-            break;
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
 
-          case "TOKEN_REFRESHED":
-            if (!session) {
-              setSessionExpired(true);
-              setAuthState(prev => ({
-                ...prev,
-                status: "session_expired",
-              }));
-            } else {
-              await updateAuthState(session, event);
-            }
-            break;
-
-          case "USER_UPDATED":
-          case "SIGNED_IN":
-          case "PASSWORD_RECOVERY":
-            await updateAuthState(session, event);
-            break;
-
-          default:
-            await updateAuthState(session, event);
+        if (newSession?.user) {
+          // Fetch profile on sign in or token refresh
+          if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+            await fetchProfile(newSession.user.id);
+          }
+        } else {
+          // Clear profile on sign out
+          setProfile(null);
         }
+        
+        setAuthLoading(false);
       }
     );
 
@@ -312,121 +119,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [updateAuthState]);
-
-  /**
-   * Sign out user
-   */
-  const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setAuthState({
-      status: "anonymous",
-      user: null,
-      session: null,
-      profile: null,
-      isEmailVerified: false,
-      isOnboarded: false,
-    });
-    setSessionExpired(false);
   }, []);
 
-  /**
-   * Attempt to refresh the session
-   * Returns true if successful, false otherwise
-   */
-  const refreshSession = useCallback(async (): Promise<boolean> => {
-    try {
-      const { data: { session }, error } = await supabase.auth.refreshSession();
-      
-      if (error || !session) {
-        setSessionExpired(true);
-        setAuthState(prev => ({
-          ...prev,
-          status: "session_expired",
-        }));
-        return false;
-      }
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+  };
 
-      await updateAuthState(session, "TOKEN_REFRESHED");
-      setSessionExpired(false);
-      return true;
-    } catch {
-      setSessionExpired(true);
-      return false;
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
     }
-  }, [updateAuthState]);
+  };
 
-  /**
-   * Refresh profile data
-   */
-  const refreshProfile = useCallback(async () => {
-    if (!authState.user) return;
+  // Compute auth state from current data
+  const authState = useMemo((): AuthState => {
+    if (authLoading || profileLoading) return "loading";
+    if (!user) return "unauthenticated";
     
-    const profile = await fetchProfile(authState.user.id);
-    const isOnboarded = checkOnboarded(profile);
-    const status = deriveAuthStatus(
-      authState.user,
-      authState.session,
-      profile,
-      sessionExpired
-    );
+    // Check if profile is complete
+    const isComplete = profile?.city && 
+                       profile?.neighbourhood && 
+                       profile?.phone && 
+                       (profile?.skills?.length ?? 0) > 0;
+    
+    if (!isComplete) return "needs_onboarding";
+    
+    return "ready";
+  }, [authLoading, profileLoading, user, profile]);
 
-    setAuthState(prev => ({
-      ...prev,
-      profile,
-      isOnboarded,
-      status,
-    }));
-  }, [authState.user, authState.session, fetchProfile, sessionExpired]);
-
-  // Utility flags
-  const isAuthenticated = authState.status === "signed_in" || 
-                          authState.status === "needs_onboarding" || 
-                          authState.status === "ready";
-  const isLoading = authState.status === "loading";
-  const canAccessApp = authState.status === "ready";
+  const value = useMemo(() => ({
+    user,
+    session,
+    profile,
+    authState,
+    signOut,
+    refreshProfile,
+  }), [user, session, profile, authState]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        authState,
-        signOut,
-        refreshSession,
-        refreshProfile,
-        isAuthenticated,
-        isLoading,
-        canAccessApp,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-/**
- * Hook to access auth context
- * Must be used within AuthProvider
- */
-export function useAuthContext() {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuthContext must be used within an AuthProvider");
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
-
-/**
- * Hook for legacy compatibility with useAuth
- * @deprecated Prefer useAuthContext for explicit state machine access
- */
-export function useAuthLegacy() {
-  const { authState, signOut } = useAuthContext();
-  return {
-    user: authState.user,
-    session: authState.session,
-    loading: authState.status === "loading",
-    signOut,
-  };
-}
-
-
