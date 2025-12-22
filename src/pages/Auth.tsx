@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import swaamiIcon from "@/assets/swaami-icon.png";
 
-// Google icon component
 function GoogleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24">
@@ -39,9 +38,10 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const hasNavigated = useRef(false);
 
+  // Handle URL mode param
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get("mode");
@@ -49,31 +49,29 @@ export default function Auth() {
     if (mode === "login") setIsLogin(true);
   }, []);
 
+  // Listen for auth state changes
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (hasNavigated.current) return;
+      
       if (session?.user) {
-        // OAuth users are always verified, email users need confirmation
         const isOAuthUser = session.user.app_metadata?.provider !== 'email';
         if (isOAuthUser || session.user.email_confirmed_at) {
-          navigate("/join");
-        } else {
-          // Don't redirect if already on /auth, show message instead
-          if (window.location.pathname === '/auth') {
-            setEmailSent(true);
-          } else {
-            navigate("/auth");
-          }
+          hasNavigated.current = true;
+          navigate("/join", { replace: true });
         }
       }
     });
 
+    // Check existing session on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (hasNavigated.current) return;
+      
       if (session?.user) {
         const isOAuthUser = session.user.app_metadata?.provider !== 'email';
         if (isOAuthUser || session.user.email_confirmed_at) {
-          navigate("/join");
-        } else if (window.location.pathname !== '/auth') {
-          navigate("/auth");
+          hasNavigated.current = true;
+          navigate("/join", { replace: true });
         }
       }
     });
@@ -82,7 +80,7 @@ export default function Auth() {
   }, [navigate]);
 
   const handleGoogleSignIn = async () => {
-    setGoogleLoading(true);
+    setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -94,7 +92,7 @@ export default function Auth() {
     } catch (error) {
       console.error("Google sign-in error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to sign in with Google");
-      setGoogleLoading(false);
+      setLoading(false);
     }
   };
 
@@ -110,7 +108,6 @@ export default function Auth() {
         });
         if (error) throw error;
         
-        // Check if email is confirmed (only for email/password users)
         const isOAuthUser = data.user?.app_metadata?.provider !== 'email';
         if (!isOAuthUser && !data.user?.email_confirmed_at) {
           toast.error("Please confirm your email before signing in.");
@@ -119,9 +116,9 @@ export default function Auth() {
         }
         
         toast.success("Welcome back!");
-        navigate("/join");
+        hasNavigated.current = true;
+        navigate("/join", { replace: true });
       } else {
-        // Signup flow
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -133,8 +130,6 @@ export default function Auth() {
           },
         });
         if (error) throw error;
-        
-        // Show email confirmation message
         setEmailSent(true);
       }
     } catch (error) {
@@ -152,7 +147,6 @@ export default function Auth() {
     }
   };
 
-  // Email confirmation sent screen
   if (emailSent) {
     return (
       <div className="h-[100dvh] overflow-hidden bg-background flex flex-col items-center justify-center px-4">
@@ -204,7 +198,6 @@ export default function Auth() {
           </p>
         </div>
 
-        {/* Google Sign-In Button - disabled until backend OAuth is configured */}
         <Button
           type="button"
           variant="outline"
