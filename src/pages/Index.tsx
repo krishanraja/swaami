@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { FeedScreen } from "@/screens/FeedScreen";
@@ -16,36 +16,29 @@ const Index = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"feed" | "post" | "chats" | "profile">("feed");
   const [hasAnimated, setHasAnimated] = useState(false);
-
-  // Check if this is a fresh user who has never completed onboarding
-  // vs a user with a partially complete profile (edge case)
-  const hasNeverOnboarded = useMemo(() => {
-    if (!profile) return false;
-    // If they have no phone, they never completed phone verification step
-    // This is the key gate in the Join flow
-    return !profile.phone;
-  }, [profile]);
+  const hasNavigated = useRef(false);
 
   // Derive app state from auth/profile
   const appState = useMemo((): AppState => {
     if (authLoading || profileLoading) return "loading";
     if (!user) return "unauthenticated";
     
-    // Only redirect to /join if they've never completed onboarding at all
-    // (no phone = never finished the mandatory phone verification step)
-    if (hasNeverOnboarded) return "needs_onboarding";
+    // No profile at all, or no phone = never finished onboarding
+    if (!profile || !profile.phone) return "needs_onboarding";
     
-    // Let them through even if profile is incomplete
-    // ProfileScreen will show alert for missing fields
     return "ready";
-  }, [authLoading, profileLoading, user, hasNeverOnboarded]);
+  }, [authLoading, profileLoading, user, profile]);
 
   // Handle redirects based on app state
   useEffect(() => {
+    if (hasNavigated.current) return;
+    
     if (appState === "unauthenticated") {
-      navigate("/auth");
+      hasNavigated.current = true;
+      navigate("/auth", { replace: true });
     } else if (appState === "needs_onboarding") {
-      navigate("/join");
+      hasNavigated.current = true;
+      navigate("/join", { replace: true });
     } else if (appState === "ready" && !hasAnimated) {
       setHasAnimated(true);
     }
