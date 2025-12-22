@@ -21,15 +21,20 @@ export interface Profile {
   updated_at: string;
 }
 
-type AuthState = "loading" | "unauthenticated" | "needs_onboarding" | "ready";
+export type AuthState = "loading" | "unauthenticated" | "needs_onboarding" | "ready";
+
+// Alias for backwards compatibility
+export type AuthStatus = AuthState;
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
   authState: AuthState;
+  isLoading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -134,6 +139,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshSession = async () => {
+    try {
+      const { data: { session: newSession } } = await supabase.auth.refreshSession();
+      if (newSession) {
+        setSession(newSession);
+        setUser(newSession.user);
+        if (newSession.user) {
+          await fetchProfile(newSession.user.id);
+        }
+      }
+    } catch (err) {
+      console.error("Session refresh error:", err);
+    }
+  };
+
+  const isLoading = authLoading || profileLoading;
+
   // Compute auth state from current data
   const authState = useMemo((): AuthState => {
     if (authLoading || profileLoading) return "loading";
@@ -155,9 +177,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     profile,
     authState,
+    isLoading,
     signOut,
     refreshProfile,
-  }), [user, session, profile, authState]);
+    refreshSession,
+  }), [user, session, profile, authState, isLoading]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -173,3 +197,6 @@ export function useAuth() {
   }
   return context;
 }
+
+// Alias for backwards compatibility with components using useAuthContext
+export const useAuthContext = useAuth;
