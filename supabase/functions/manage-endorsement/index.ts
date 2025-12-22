@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import {
+  createSupabaseClient,
+  corsHeaders,
+  getUserFromHeader,
+  createErrorResponse,
+  createSuccessResponse,
+} from "../_shared/supabase.ts";
 
 // ============================================================================
 // LOGGING UTILITIES (10/10 Standard)
@@ -43,35 +44,19 @@ serve(async (req) => {
 
   try {
     // Initialize Supabase
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    log(requestId, "DEBUG", "SUPABASE_INIT", { hasUrl: !!supabaseUrl, hasKey: !!supabaseServiceKey });
+    const supabase = createSupabaseClient({ useServiceRole: true });
+    log(requestId, "DEBUG", "SUPABASE_INIT", { initialized: true });
 
     // Auth check
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      log(requestId, "WARN", "AUTH_MISSING", { error: "No authorization header" });
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get user from token
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    
-    if (userError || !user) {
+    let user;
+    try {
+      user = await getUserFromHeader(supabase, authHeader);
+    } catch (authError) {
       log(requestId, "WARN", "AUTH_INVALID", { 
-        error: userError?.message ?? "No user found",
-        hasToken: !!token,
+        error: authError instanceof Error ? authError.message : "Authentication failed",
       });
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return createErrorResponse(new Error('Invalid token'), 401, corsHeaders);
     }
 
     log(requestId, "INFO", "AUTH_SUCCESS", { userId: user.id, email: user.email?.slice(0, 3) + "***" });
@@ -112,9 +97,10 @@ serve(async (req) => {
           tier: profile?.trust_tier ?? "none",
           required: "tier_1+",
         });
-        return new Response(
-          JSON.stringify({ error: 'You must be Tier 1 or higher to endorse others' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        return createErrorResponse(
+          new Error('You must be Tier 1 or higher to endorse others'),
+          403,
+          corsHeaders
         );
       }
 
@@ -133,9 +119,10 @@ serve(async (req) => {
 
       if (count && count >= 5) {
         log(requestId, "WARN", "ENDORSEMENT_LIMIT", { count, max: 5 });
-        return new Response(
-          JSON.stringify({ error: 'You have reached the maximum of 5 endorsements' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        return createErrorResponse(
+          new Error('You have reached the maximum of 5 endorsements'),
+          403,
+          corsHeaders
         );
       }
 
@@ -158,9 +145,10 @@ serve(async (req) => {
 
       if (insertError) {
         log(requestId, "ERROR", "DB_INSERT_ERROR", { error: insertError.message });
-        return new Response(
-          JSON.stringify({ error: 'Failed to create endorsement' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        return createErrorResponse(
+          new Error('Failed to create endorsement'),
+          500,
+          corsHeaders
         );
       }
 
@@ -173,9 +161,9 @@ serve(async (req) => {
         durationMs: duration,
       });
 
-      return new Response(
-        JSON.stringify({ success: true, token: newToken, link: endorsementLink }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      return createSuccessResponse(
+        { success: true, token: newToken, link: endorsementLink },
+        corsHeaders
       );
     }
 
@@ -187,10 +175,7 @@ serve(async (req) => {
 
       if (!endorsementToken) {
         log(requestId, "WARN", "MISSING_TOKEN", { error: "Token required" });
-        return new Response(
-          JSON.stringify({ error: 'Token required' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        return createErrorResponse(new Error('Token required'), 400, corsHeaders);
       }
 
       // Find the endorsement
@@ -222,25 +207,28 @@ serve(async (req) => {
       // Validation checks
       if (endorsement.status !== 'pending') {
         log(requestId, "WARN", "ENDORSEMENT_USED", { status: endorsement.status });
-        return new Response(
-          JSON.stringify({ error: 'This endorsement has already been used' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        return createErrorResponse(
+          new Error('This endorsement has already been used'),
+          400,
+          corsHeaders
         );
       }
 
       if (new Date(endorsement.expires_at) < new Date()) {
         log(requestId, "WARN", "ENDORSEMENT_EXPIRED", { expiresAt: endorsement.expires_at });
-        return new Response(
-          JSON.stringify({ error: 'This endorsement has expired' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        return createErrorResponse(
+          new Error('This endorsement has expired'),
+          400,
+          corsHeaders
         );
       }
 
       if (endorsement.endorser_id === user.id) {
         log(requestId, "WARN", "SELF_ENDORSEMENT", { userId: user.id });
-        return new Response(
-          JSON.stringify({ error: 'You cannot endorse yourself' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        return createErrorResponse(
+          new Error('You cannot endorse yourself'),
+          400,
+          corsHeaders
         );
       }
 
@@ -258,9 +246,10 @@ serve(async (req) => {
 
       if (existingVerification) {
         log(requestId, "WARN", "ALREADY_ENDORSED", { existingId: existingVerification.id });
-        return new Response(
-          JSON.stringify({ error: 'You already have an endorsement' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        return createErrorResponse(
+          new Error('You already have an endorsement'),
+          400,
+          corsHeaders
         );
       }
 
@@ -278,9 +267,10 @@ serve(async (req) => {
 
       if (updateError) {
         log(requestId, "ERROR", "DB_UPDATE_ERROR", { error: updateError.message });
-        return new Response(
-          JSON.stringify({ error: 'Failed to accept endorsement' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        return createErrorResponse(
+          new Error('Failed to accept endorsement'),
+          500,
+          corsHeaders
         );
       }
 
@@ -310,18 +300,12 @@ serve(async (req) => {
         durationMs: duration,
       });
 
-      return new Response(
-        JSON.stringify({ success: true }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return createSuccessResponse({ success: true }, corsHeaders);
     }
 
     // Invalid action
     log(requestId, "WARN", "INVALID_ACTION", { action });
-    return new Response(
-      JSON.stringify({ error: 'Invalid action' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return createErrorResponse(new Error('Invalid action'), 400, corsHeaders);
 
   } catch (error) {
     const duration = Date.now() - startTime;
@@ -334,9 +318,6 @@ serve(async (req) => {
       durationMs: duration,
     });
 
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return createErrorResponse(new Error('Internal server error'), 500, corsHeaders);
   }
 });

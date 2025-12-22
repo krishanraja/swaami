@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SkillChip } from "@/components/SkillChip";
@@ -16,6 +16,7 @@ import swaamiIcon from "@/assets/swaami-icon.png";
 
 interface JoinScreenProps {
   onComplete: () => void;
+  refetchProfile: () => Promise<void>;
 }
 
 // Streamlined 4-step flow: Welcome → Location → Phone → Skills+Preferences
@@ -23,7 +24,20 @@ type Step = 'welcome' | 'location' | 'phone' | 'otp' | 'preferences';
 
 const STEPS: Step[] = ['welcome', 'location', 'phone', 'otp', 'preferences'];
 
-export function JoinScreen({ onComplete }: JoinScreenProps) {
+const ONBOARDING_STORAGE_KEY = 'swaami_onboarding_progress';
+
+interface OnboardingProgress {
+  step: Step;
+  city: City | null;
+  neighbourhood: string;
+  phone: string;
+  radius: number;
+  selectedSkills: string[];
+  availability: 'now' | 'later' | 'this-week';
+  phoneVerified: boolean;
+}
+
+export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
   const [step, setStep] = useState<Step>('welcome');
   const [city, setCity] = useState<City | null>(null);
   const [neighbourhood, setNeighbourhood] = useState('');
@@ -34,6 +48,60 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
   const [availability, setAvailability] = useState<'now' | 'later' | 'this-week'>('now');
   const [loading, setLoading] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
+  const isSubmittingRef = useRef(false);
+  const hasRestoredRef = useRef(false);
+
+  // Restore onboarding progress from localStorage on mount
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+
+    try {
+      const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (saved) {
+        const progress: OnboardingProgress = JSON.parse(saved);
+        setStep(progress.step);
+        setCity(progress.city);
+        setNeighbourhood(progress.neighbourhood || '');
+        setPhone(progress.phone || '');
+        setRadius(progress.radius || 500);
+        setSelectedSkills(progress.selectedSkills || []);
+        setAvailability(progress.availability || 'now');
+        setPhoneVerified(progress.phoneVerified || false);
+      }
+    } catch (error) {
+      console.error("Failed to restore onboarding progress:", error);
+      localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    }
+  }, []);
+
+  // Save onboarding progress to localStorage whenever it changes
+  useEffect(() => {
+    if (!hasRestoredRef.current) return;
+    try {
+      const progress: OnboardingProgress = {
+        step,
+        city,
+        neighbourhood,
+        phone,
+        radius,
+        selectedSkills,
+        availability,
+        phoneVerified,
+      };
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify(progress));
+    } catch (error) {
+      console.error("Failed to save onboarding progress:", error);
+    }
+  }, [step, city, neighbourhood, phone, radius, selectedSkills, availability, phoneVerified]);
+
+  const clearProgress = () => {
+    try {
+      localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    } catch (error) {
+      console.error("Failed to clear onboarding progress:", error);
+    }
+  };
 
   const currentStepIndex = STEPS.indexOf(step);
   const canGoBack = currentStepIndex > 0;
@@ -50,6 +118,8 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       return;
     }
 
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-phone-otp', {
@@ -66,6 +136,7 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       toast.error(error instanceof Error ? error.message : "Failed to send verification code");
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -75,6 +146,8 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       return;
     }
 
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-phone-otp', {
@@ -94,6 +167,7 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
       toast.error(error instanceof Error ? error.message : "Invalid verification code");
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -106,13 +180,14 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
   };
 
   const handleComplete = async () => {
+    if (isSubmittingRef.current || loading) return;
+    isSubmittingRef.current = true;
     setLoading(true);
+    
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Update profile with all onboarding data
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -127,20 +202,25 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
 
       if (error) throw error;
 
+      await refetchProfile();
+
       toast.success("Welcome to Swaami! 🎉", {
         description: "You've earned 5 credits to get started!"
       });
+      
+      clearProgress();
       onComplete();
     } catch (error) {
       console.error("Profile update error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to save profile");
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-[100dvh] bg-background flex flex-col">
       {/* Header with back button */}
       <div className="shrink-0 p-4">
         {canGoBack && (
@@ -158,7 +238,7 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
 
       <div className="flex-1 flex flex-col items-center px-6 pt-4 pb-2 overflow-y-auto">
         {/* Logo */}
-        <div className="mb-4 animate-fade-in shrink-0">
+        <div className="mb-4 shrink-0">
           <img src={swaamiIcon} alt="Swaami" className="h-20 w-auto" />
         </div>
 
@@ -190,7 +270,6 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
                   </div>
                 </div>
                 
-                {/* Welcome gift teaser */}
                 <div className="flex items-center gap-3 p-3 bg-accent/10 rounded-xl">
                   <Gift className="h-5 w-5 text-accent shrink-0" />
                   <span className="text-sm text-accent font-medium">
@@ -210,7 +289,6 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
             </div>
           )}
 
-          {/* Combined Location Step (City + Neighbourhood) */}
           {step === 'location' && (
             <div className="animate-slide-up space-y-6">
               <div className="text-center">
@@ -338,7 +416,6 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
             </div>
           )}
 
-          {/* Combined Preferences Step (Radius + Skills + Availability) */}
           {step === 'preferences' && (
             <div className="animate-slide-up space-y-6">
               <div className="text-center">
@@ -354,13 +431,11 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
                 </p>
               </div>
               <div className="bg-card rounded-2xl p-6 border border-border space-y-6">
-                {/* Radius */}
                 <div>
                   <p className="text-sm font-medium text-foreground mb-3">How far will you go to help?</p>
                   <RadiusSlider value={radius} onChange={setRadius} />
                 </div>
                 
-                {/* Skills */}
                 <div>
                   <p className="text-sm font-medium text-foreground mb-3">What can you help with?</p>
                   <div className="flex flex-wrap gap-2">
@@ -375,7 +450,6 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
                   </div>
                 </div>
                 
-                {/* Availability */}
                 <div>
                   <p className="text-sm font-medium text-foreground mb-3">When are you usually available?</p>
                   <AvailabilitySelector value={availability} onChange={setAvailability} />
@@ -406,10 +480,10 @@ export function JoinScreen({ onComplete }: JoinScreenProps) {
         </div>
       </div>
 
-      {/* Progress indicator - simplified for 4 steps */}
+      {/* Progress indicator */}
       <div className="shrink-0 pb-4 px-6">
         <div className="flex gap-2 justify-center">
-          {STEPS.filter(s => s !== 'otp').map((s, i) => {
+          {STEPS.filter(s => s !== 'otp').map((s) => {
             const stepIndex = STEPS.indexOf(s);
             const isActive = currentStepIndex >= stepIndex || (s === 'preferences' && step === 'otp');
             return (

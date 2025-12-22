@@ -27,8 +27,8 @@ Build stronger communities by connecting neighbours who need help with those who
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS + shadcn/ui
 - **Backend**: Supabase (PostgreSQL + Auth + Realtime)
-- **AI**: Lovable AI Gateway (Gemini 2.5 Flash)
-- **Deployment**: Lovable Cloud
+- **AI**: Google AI (Gemini) / OpenAI
+- **Deployment**: Vercel
 
 ## 📁 Project Structure
 
@@ -87,14 +87,38 @@ npm run build
 Required in `.env`:
 
 ```
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+VITE_SUPABASE_PROJECT_ID=your-project-id
 ```
 
-Edge function secrets (set in Supabase):
-- `LOVABLE_API_KEY` - For AI task enhancement
-- `STRIPE_SECRET_KEY` - For subscription payments
-- `TWILIO_*` - For phone verification
+**Note**: `VITE_SUPABASE_PUBLISHABLE_KEY` is the anon/public key from Supabase Dashboard → Settings → API. This is safe to expose in client-side code.
+
+See `.env.example` for the correct format.
+
+Edge function secrets (set in Supabase Dashboard → Edge Functions → Secrets):
+- `STRIPE_SECRET_KEY` - For subscription payments (get from Stripe Dashboard → Developers → API keys)
+- `TWILIO_ACCOUNT_SID` - For phone verification
+- `TWILIO_AUTH_TOKEN` - For phone verification
+- `TWILIO_PHONE_NUMBER` - For phone verification
+- `OPENAI_API_KEY` - Optional, for AI features
+- `GOOGLE_AI_API_KEY` - Optional, for AI features
+- `RESEND_API_KEY` - Optional, for email sending
+
+**Note**: Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to all edge functions - you don't need to set these manually.
+
+⚠️ **Security**: Never commit API keys to git. Only set them in Supabase secrets.
+
+## ✉️ Email Verification
+
+Swaami uses Supabase Auth for email verification with a beautifully branded email template. 
+
+**Setup Required**: 
+1. Copy the email template from `supabase/email-templates/confirm-signup.html`
+2. Paste it into Supabase Dashboard → Authentication → Email Templates → "Confirm signup"
+3. Configure redirect URLs in Authentication → URL Configuration
+
+See [Email Verification Setup Guide](docs/EMAIL_VERIFICATION_SETUP.md) for detailed instructions.
 
 ## 📖 Documentation
 
@@ -105,6 +129,7 @@ See the `/docs` folder for detailed documentation:
 - [Audit Status](docs/AUDIT_STATUS.md) - Security & quality status
 - [Purpose](docs/PURPOSE.md) - Mission & values
 - [SEO Strategy](docs/SEO_STRATEGY.md) - Content marketing & SEO plan
+- [Email Verification Setup](docs/EMAIL_VERIFICATION_SETUP.md) - Configure branded verification emails
 
 ## 🤝 Contributing
 

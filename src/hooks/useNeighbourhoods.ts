@@ -27,6 +27,10 @@ export function useNeighbourhoods(city: City | null) {
       return data as Neighbourhood[];
     },
     enabled: !!city,
+    // Prevent unnecessary refetches that cause loading state flicker
+    staleTime: 1000 * 60 * 5, // Data stays fresh for 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Don't refetch when component remounts (if data exists)
   });
 }
 

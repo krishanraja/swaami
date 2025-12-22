@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  createSupabaseClient,
+  corsHeaders,
+  createErrorResponse,
+  createSuccessResponse,
+} from "../_shared/supabase.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 // ============================================================================
 // LOGGING UTILITIES (10/10 Standard)
@@ -44,14 +45,7 @@ interface OtpRequest {
 // ============================================================================
 
 function getSupabaseClient() {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error("Missing Supabase configuration");
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
+  return createSupabaseClient({ useServiceRole: true });
 }
 
 // ============================================================================
@@ -196,9 +190,10 @@ const handler = async (req: Request): Promise<Response> => {
         phone: maskPhone(phone || ""),
         error: "Invalid E.164 format",
       });
-      return new Response(
-        JSON.stringify({ error: "Invalid phone format. Use E.164 format (e.g., +61400123456)" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return createErrorResponse(
+        new Error("Invalid phone format. Use E.164 format (e.g., +61400123456)"),
+        400,
+        corsHeaders
       );
     }
 
@@ -235,9 +230,10 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (insertError) {
         log(requestId, "ERROR", "OTP_STORE_FAILED", { error: insertError.message });
-        return new Response(
-          JSON.stringify({ error: "Failed to generate verification code" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        return createErrorResponse(
+          new Error("Failed to generate verification code"),
+          500,
+          corsHeaders
         );
       }
       
@@ -263,9 +259,10 @@ const handler = async (req: Request): Promise<Response> => {
           .delete()
           .eq('phone', phone);
 
-        return new Response(
-          JSON.stringify({ error: sendResult.error || `Failed to send ${channel} message` }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        return createErrorResponse(
+          new Error(sendResult.error || `Failed to send ${channel} message`),
+          500,
+          corsHeaders
         );
       }
 
@@ -276,9 +273,9 @@ const handler = async (req: Request): Promise<Response> => {
         durationMs: duration,
       });
       
-      return new Response(
-        JSON.stringify({ success: true, message: `OTP sent via ${channel.toUpperCase()}` }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return createSuccessResponse(
+        { success: true, message: `OTP sent via ${channel.toUpperCase()}` },
+        corsHeaders
       );
     }
 
@@ -293,9 +290,10 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (!code) {
         log(requestId, "WARN", "VERIFY_MISSING_CODE");
-        return new Response(
-          JSON.stringify({ error: "OTP code required" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        return createErrorResponse(
+          new Error("OTP code required"),
+          400,
+          corsHeaders
         );
       }
 
@@ -310,9 +308,10 @@ const handler = async (req: Request): Promise<Response> => {
       
       if (lookupError || !stored) {
         log(requestId, "WARN", "VERIFY_NO_OTP", { phone: maskPhone(phone), error: lookupError?.message });
-        return new Response(
-          JSON.stringify({ error: "No OTP found for this number. Please request a new code." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        return createErrorResponse(
+          new Error("No OTP found for this number. Please request a new code."),
+          400,
+          corsHeaders
         );
       }
 
@@ -330,17 +329,19 @@ const handler = async (req: Request): Promise<Response> => {
           .eq('id', stored.id);
         
         log(requestId, "WARN", "VERIFY_EXPIRED", { phone: maskPhone(phone) });
-        return new Response(
-          JSON.stringify({ error: "OTP expired. Please request a new code." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        return createErrorResponse(
+          new Error("OTP expired. Please request a new code."),
+          400,
+          corsHeaders
         );
       }
 
       if (stored.code !== code) {
         log(requestId, "WARN", "VERIFY_MISMATCH", { phone: maskPhone(phone) });
-        return new Response(
-          JSON.stringify({ error: "Invalid OTP code" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        return createErrorResponse(
+          new Error("Invalid OTP code"),
+          400,
+          corsHeaders
         );
       }
 
@@ -358,17 +359,18 @@ const handler = async (req: Request): Promise<Response> => {
         durationMs: duration,
       });
 
-      return new Response(
-        JSON.stringify({ success: true, verified: true, channel: verifiedChannel }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return createSuccessResponse(
+        { success: true, verified: true, channel: verifiedChannel },
+        corsHeaders
       );
     }
 
     // Invalid action
     log(requestId, "WARN", "INVALID_ACTION", { action });
-    return new Response(
-      JSON.stringify({ error: "Invalid action" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    return createErrorResponse(
+      new Error("Invalid action"),
+      400,
+      corsHeaders
     );
 
   } catch (error: unknown) {
@@ -382,9 +384,10 @@ const handler = async (req: Request): Promise<Response> => {
       durationMs: duration,
     });
 
-    return new Response(
-      JSON.stringify({ error: message || "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    return createErrorResponse(
+      new Error(message || "Internal server error"),
+      500,
+      corsHeaders
     );
   }
 };

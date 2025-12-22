@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import {
+  createSupabaseClient,
+  corsHeaders,
+  createErrorResponse,
+  createSuccessResponse,
+} from "../_shared/supabase.ts";
 
 // Diverse name pools reflecting city demographics
 const SYDNEY_NAMES = [
@@ -197,11 +197,8 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createSupabaseClient({ useServiceRole: true });
 
     // Fetch neighbourhood coordinates for location-aware task creation
     const { data: neighbourhoodData } = await supabase
@@ -238,16 +235,17 @@ serve(async (req) => {
         await supabase.from("profiles").delete().eq("is_demo", true);
       }
       
-      return new Response(
-        JSON.stringify({ success: true, deleted: demoIds.length }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return createSuccessResponse(
+        { success: true, deleted: demoIds.length },
+        corsHeaders
       );
     }
 
     if (action !== "generate") {
-      return new Response(
-        JSON.stringify({ error: "Invalid action. Use 'generate' or 'cleanup'" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return createErrorResponse(
+        new Error("Invalid action. Use 'generate' or 'cleanup'"),
+        400,
+        corsHeaders
       );
     }
 
@@ -449,15 +447,11 @@ serve(async (req) => {
         success: true,
         ...results,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      corsHeaders
     );
 
   } catch (error) {
     console.error("Seed error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return createErrorResponse(error, 500, corsHeaders);
   }
 });

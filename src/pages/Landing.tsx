@@ -2,54 +2,39 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Heart, LogOut, Users } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/contexts/AuthContext";
 import { useLiveActivity } from "@/hooks/useLiveActivity";
 import SplashScreen from "@/components/SplashScreen";
 
 const swaamiWordmark = "/images/swaami-wordmark.png";
 const videoPoster = "/videos/swaami-poster.jpg";
 
-type LoadingPhase = "splash" | "ready";
-
 export default function Landing() {
   const navigate = useNavigate();
-  const { user, signOut, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { user, authState, signOut } = useAuth();
   const { tasksCompletedToday, activeHelpers, isLoading: activityLoading } = useLiveActivity();
   
-  const [phase, setPhase] = useState<LoadingPhase>("splash");
-  const [splashComplete, setSplashComplete] = useState(false);
-  
-  const dataReady = !authLoading && !profileLoading;
-
-  useEffect(() => {
-    if (splashComplete && dataReady) {
-      const timer = setTimeout(() => setPhase("ready"), 50);
-      return () => clearTimeout(timer);
-    }
-  }, [splashComplete, dataReady]);
+  const [showSplash, setShowSplash] = useState(true);
 
   const handleSplashComplete = useCallback(() => {
-    setSplashComplete(true);
-  }, []);
+    console.log('[Landing] splash complete callback, authState:', authState);
+    setShowSplash(false);
+  }, [authState]);
 
-  // Profile is complete if all required fields are filled
-  const isProfileComplete = useMemo(() => {
-    if (!profile) return false;
-    return !!(profile.city && profile.neighbourhood && profile.phone && profile.skills?.length > 0);
-  }, [profile]);
+  useEffect(() => {
+    console.log('[Landing] state change:', { showSplash, authState, hasUser: !!user });
+  }, [showSplash, authState, user]);
 
-  // Determine where the main CTA should go
+  // Determine CTA based on auth state
   const primaryCTA = useMemo(() => {
     if (!user) {
       return { text: "Join Your Neighbourhood", path: "/auth?mode=signup" };
     }
-    if (isProfileComplete) {
+    if (authState === "ready") {
       return { text: "Go to Your Neighbourhood", path: "/app" };
     }
     return { text: "Continue Your Setup", path: "/join" };
-  }, [user, isProfileComplete]);
+  }, [user, authState]);
 
   const hasActivityData = tasksCompletedToday > 0 || activeHelpers > 0;
   const showActivity = !activityLoading && hasActivityData;
@@ -58,7 +43,8 @@ export default function Landing() {
     await signOut();
   };
 
-  if (phase === "splash") {
+  // Show splash until animation completes AND auth is not loading
+  if (showSplash || authState === "loading") {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
@@ -107,7 +93,7 @@ export default function Landing() {
         <main className="flex-1 flex flex-col justify-center px-6 py-6 max-w-lg mx-auto w-full">
           <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150 fill-mode-both">
             {user && (
-              <p className="text-accent font-medium text-lg mb-2 text-shadow-sub animate-in fade-in duration-300 delay-300 fill-mode-both">
+              <p className="text-accent font-medium text-lg mb-2 text-shadow-sub">
                 Welcome back!
               </p>
             )}
@@ -117,7 +103,6 @@ export default function Landing() {
                 Get help from verified neighbours{" "}
                 <span className="text-accent">in minutes.</span>
               </h1>
-              
               <p className="text-lg md:text-xl text-white/90 text-shadow-sub">
                 Quick favours. Trusted faces. Walking distance.
               </p>
@@ -143,9 +128,7 @@ export default function Landing() {
                       <span className="font-semibold text-white">{tasksCompletedToday} neighbours helped today</span>
                     )}
                     {tasksCompletedToday > 0 && activeHelpers > 0 && " · "}
-                    {activeHelpers > 0 && (
-                      <span>{activeHelpers} active helpers</span>
-                    )}
+                    {activeHelpers > 0 && <span>{activeHelpers} active helpers</span>}
                   </span>
                 </div>
               </div>

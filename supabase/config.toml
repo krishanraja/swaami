@@ -1,4 +1,5 @@
-project_id = "qivqdltstmlxbcaldjzs"
+# Project ID is now managed via environment variables
+# Remove hardcoded project_id to support multiple projects
 
 [functions.transcribe-audio]
 verify_jwt = false
