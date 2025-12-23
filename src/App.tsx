@@ -14,6 +14,7 @@ import Join from "./pages/Join";
 import FAQ from "./pages/FAQ";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+import AdminPage from "./pages/AdminPage";
 import { ChatScreen } from "./screens/ChatScreen";
 import { VerificationScreen } from "./screens/VerificationScreen";
 
@@ -41,6 +42,9 @@ const App = () => (
                 <Route path="/faq" element={<FAQ />} />
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/blog/:slug" element={<BlogPost />} />
+                
+                {/* Admin/Dev Tools */}
+                <Route path="/admin" element={<AdminPage />} />
                 
                 {/* Catch-all redirect to home */}
                 <Route path="*" element={<Navigate to="/" replace />} />
