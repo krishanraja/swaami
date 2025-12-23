@@ -5,10 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Database, Trash2, RefreshCw, CheckCircle2, XCircle, Info } from "lucide-react";
 import { checkDemoData, getDemoDataStats, seedDemoData, cleanupDemoData } from "@/utils/seedDemoData";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+
+const ADMIN_EMAIL = "hello@krishraja.com";
 
 export default function AdminPage() {
   const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [stats, setStats] = useState<{
@@ -19,6 +23,9 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [cleaning, setCleaning] = useState(false);
+
+  // Check admin access
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   // Check demo data on mount
   useEffect(() => {
@@ -90,18 +97,44 @@ export default function AdminPage() {
     }
   };
 
-  // Only show in development
-  const isDev = import.meta.env.DEV;
-  if (!isDev) {
+  // Show loading while checking auth
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Alert>
-          <XCircle className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            This page is only available in development mode.
-          </AlertDescription>
-        </Alert>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Checking access...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Check admin access - must be authenticated and have admin email
+  if (!user || !isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <Alert variant="destructive">
+            <XCircle className="h-4 w-4" />
+            <AlertTitle>Access Denied</AlertTitle>
+            <AlertDescription>
+              {!user 
+                ? "You must be logged in to access this page."
+                : "This page is restricted to administrators only."}
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4 flex gap-2">
+            {!user ? (
+              <Button onClick={() => navigate("/auth")} className="w-full">
+                Go to Login
+              </Button>
+            ) : (
+              <Button onClick={() => navigate("/app")} className="w-full">
+                Back to App
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
