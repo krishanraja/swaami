@@ -76,27 +76,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Get initial session with timeout fallback
     const initAuth = async () => {
-      console.log('[AuthContext] initAuth started');
-      
-      // Timeout fallback - don't let auth hang forever
+      // Timeout fallback - don't let auth hang forever (5s max)
       const timeoutId = setTimeout(() => {
-        console.warn('[AuthContext] getSession timed out after 5s, proceeding as unauthenticated');
         if (mounted) {
           setAuthLoading(false);
         }
       }, 5000);
       
       try {
-        console.log('[AuthContext] calling getSession');
         const { data, error } = await supabase.auth.getSession();
         clearTimeout(timeoutId);
         
         if (error) {
-          console.error('[AuthContext] getSession error:', error);
+          console.error('Auth session error:', error);
         }
         
         const initialSession = data?.session;
-        console.log('[AuthContext] getSession completed', { hasSession: !!initialSession, hasUser: !!initialSession?.user });
         
         if (!mounted) return;
         
@@ -104,16 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(initialSession?.user ?? null);
         
         if (initialSession?.user) {
-          console.log('[AuthContext] fetching profile for user', initialSession.user.id);
           await fetchProfile(initialSession.user.id);
-          console.log('[AuthContext] profile fetch completed');
         }
       } catch (err) {
         clearTimeout(timeoutId);
-        console.error("[AuthContext] Auth init error:", err);
+        console.error("Auth init error:", err);
       } finally {
         if (mounted) {
-          console.log('[AuthContext] setAuthLoading false');
           setAuthLoading(false);
         }
       }

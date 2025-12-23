@@ -17,13 +17,8 @@ export default function Landing() {
   const [showSplash, setShowSplash] = useState(true);
 
   const handleSplashComplete = useCallback(() => {
-    console.log('[Landing] splash complete callback, authState:', authState);
     setShowSplash(false);
-  }, [authState]);
-
-  useEffect(() => {
-    console.log('[Landing] state change:', { showSplash, authState, hasUser: !!user });
-  }, [showSplash, authState, user]);
+  }, []);
 
   // Determine CTA based on auth state
   const primaryCTA = useMemo(() => {
