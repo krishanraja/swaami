@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,28 +39,13 @@ export default function Auth() {
     if (mode === "login") setIsLogin(true);
   }, []);
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    // Don't redirect while loading
-    if (authState === "loading") {
-      return;
-    }
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Auth.tsx:42',message:'Auth redirect effect',data:{authState,willRedirectTo:authState==='needs_onboarding'?'/join':authState==='ready'?'/app':null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    if (authState === "needs_onboarding") {
-      // #region agent log
-      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Auth.tsx:44',message:'Auth redirecting to /join',data:{authState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      navigate("/join", { replace: true });
-    } else if (authState === "ready") {
-      // #region agent log
-      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Auth.tsx:46',message:'Auth redirecting to /app',data:{authState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      navigate("/app", { replace: true });
-    }
-  }, [authState, navigate]);
+  // Consolidated redirect logic - redirect authenticated users away from auth page
+  useAuthRedirect({
+    redirects: {
+      needs_onboarding: "/join",
+      ready: "/app",
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,13 +82,38 @@ export default function Auth() {
       }
     } catch (error) {
       console.error("Auth error:", error);
-      const errorMessage = error instanceof Error ? error.message : "";
-      if (errorMessage.includes("already registered")) {
-        toast.error("This email is already registered. Try logging in.");
-      } else if (errorMessage.includes("Invalid login")) {
-        toast.error("Invalid email or password.");
+      
+      // Extract error message from Supabase error structure
+      let errorMessage = "";
+      if (error && typeof error === "object") {
+        // Supabase AuthError structure
+        if ("message" in error) {
+          errorMessage = String(error.message);
+        } else if ("error" in error && typeof error.error === "object" && "message" in error.error) {
+          errorMessage = String(error.error.message);
+        } else if ("code" in error) {
+          errorMessage = `Error code: ${error.code}`;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
       } else {
-        toast.error(errorMessage || "Authentication failed");
+        errorMessage = String(error);
+      }
+      
+      // Provide user-friendly error messages
+      const lowerMessage = errorMessage.toLowerCase();
+      if (lowerMessage.includes("already registered") || lowerMessage.includes("user already registered")) {
+        toast.error("This email is already registered. Try logging in.");
+      } else if (lowerMessage.includes("invalid login") || lowerMessage.includes("invalid credentials")) {
+        toast.error("Invalid email or password.");
+      } else if (lowerMessage.includes("email not confirmed") || lowerMessage.includes("email_not_confirmed")) {
+        toast.error("Please confirm your email before signing in.");
+      } else if (lowerMessage.includes("network") || lowerMessage.includes("fetch")) {
+        toast.error("Network error. Please check your connection and try again.");
+      } else if (errorMessage) {
+        toast.error(errorMessage);
+      } else {
+        toast.error("Authentication failed. Please try again.");
       }
     } finally {
       setLoading(false);

@@ -12,7 +12,7 @@
 
 import { ReactNode, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuthContext, AuthStatus } from "@/contexts/AuthContext";
+import { useAuth, AuthState } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -51,21 +51,13 @@ function DefaultLoader() {
  * Map auth status to redirect path
  */
 function getRedirectPath(
-  status: AuthStatus,
+  status: AuthState,
   requireAuth: boolean,
   requireOnboarding: boolean
 ): string | null {
   switch (status) {
-    case "anonymous":
+    case "unauthenticated":
       if (requireAuth) return "/auth?mode=signup";
-      return null;
-
-    case "awaiting_verification":
-      if (requireAuth) return "/auth?mode=login";
-      return null;
-
-    case "session_expired":
-      if (requireAuth) return "/auth?mode=login&expired=true";
       return null;
 
     case "needs_onboarding":
@@ -73,7 +65,6 @@ function getRedirectPath(
       return null;
 
     case "ready":
-    case "signed_in":
       return null;
 
     case "loading":
@@ -93,7 +84,7 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { authState, isLoading } = useAuthContext();
+  const { authState, isLoading } = useAuth();
 
   useEffect(() => {
     // Don't redirect while loading
@@ -101,25 +92,21 @@ export function ProtectedRoute({
 
     // Handle redirect for authenticated users (e.g., on auth page)
     if (redirectIfAuthenticated) {
-      if (authState.status === "ready") {
+      if (authState === "ready") {
         navigate(authenticatedRedirect, { replace: true });
         return;
       }
-      if (authState.status === "needs_onboarding") {
+      if (authState === "needs_onboarding") {
         navigate("/join", { replace: true });
         return;
       }
-      if (authState.status === "signed_in" && authState.isEmailVerified) {
-        navigate("/join", { replace: true });
-        return;
-      }
-      // Stay on current page
+      // Stay on current page if unauthenticated or loading
       return;
     }
 
     // Handle protected route redirects
     const defaultRedirect = getRedirectPath(
-      authState.status,
+      authState,
       requireAuth,
       requireOnboarding
     );
@@ -136,8 +123,7 @@ export function ProtectedRoute({
       navigate(url, { replace: true });
     }
   }, [
-    authState.status,
-    authState.isEmailVerified,
+    authState,
     isLoading,
     requireAuth,
     requireOnboarding,
@@ -156,15 +142,14 @@ export function ProtectedRoute({
   // Show loading during redirect
   if (redirectIfAuthenticated) {
     if (
-      authState.status === "ready" ||
-      authState.status === "needs_onboarding" ||
-      (authState.status === "signed_in" && authState.isEmailVerified)
+      authState === "ready" ||
+      authState === "needs_onboarding"
     ) {
       return loadingComponent ? <>{loadingComponent}</> : <DefaultLoader />;
     }
   } else {
     const needsRedirect = getRedirectPath(
-      authState.status,
+      authState,
       requireAuth,
       requireOnboarding
     );

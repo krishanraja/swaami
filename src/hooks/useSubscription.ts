@@ -26,7 +26,7 @@ export const PLUS_LIMITS = {
 };
 
 export function useSubscription() {
-  const { user } = useAuth();
+  const { user, authState, isLoading } = useAuth();
   const [state, setState] = useState<SubscriptionState>({
     plan: "free",
     subscribed: false,
@@ -37,6 +37,11 @@ export function useSubscription() {
   });
 
   const checkSubscription = useCallback(async () => {
+    // Wait for auth state to resolve before checking user
+    if (isLoading || authState === "loading") {
+      return;
+    }
+    
     if (!user) {
       setState(prev => ({ ...prev, loading: false }));
       return;
@@ -73,7 +78,7 @@ export function useSubscription() {
         error: err instanceof Error ? err.message : "Failed to check subscription",
       }));
     }
-  }, [user]);
+  }, [user, authState, isLoading]);
 
   useEffect(() => {
     checkSubscription();

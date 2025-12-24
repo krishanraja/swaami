@@ -1,6 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNeighbourhoods, City, CITY_CONFIG } from "@/hooks/useNeighbourhoods";
-import { MapPin } from "lucide-react";
+import { MapPin, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface NeighbourhoodSelectorProps {
   city: City;
@@ -9,7 +10,7 @@ interface NeighbourhoodSelectorProps {
 }
 
 export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSelectorProps) {
-  const { data: neighbourhoods, isLoading } = useNeighbourhoods(city);
+  const { data: neighbourhoods, isLoading, error, refetch } = useNeighbourhoods(city);
   const config = CITY_CONFIG[city];
 
   return (
@@ -19,16 +20,53 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
         <span>Neighbourhoods in {config.label}</span>
       </div>
       
-      <Select value={value} onValueChange={onChange} disabled={isLoading}>
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>
+              {error instanceof Error ? error.message : "Failed to load neighbourhoods"}
+            </span>
+            <button
+              onClick={() => refetch()}
+              className="text-sm underline hover:no-underline ml-2"
+            >
+              Retry
+            </button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <Select 
+        value={value} 
+        onValueChange={onChange} 
+        disabled={isLoading || !!error}
+      >
         <SelectTrigger className="h-12 rounded-xl">
-          <SelectValue placeholder={isLoading ? "Loading..." : "Select your neighbourhood"} />
+          <SelectValue 
+            placeholder={
+              isLoading 
+                ? "Loading..." 
+                : error 
+                  ? "Error loading neighbourhoods" 
+                  : "Select your neighbourhood"
+            } 
+          />
         </SelectTrigger>
         <SelectContent>
-          {neighbourhoods?.map((n) => (
-            <SelectItem key={n.id} value={n.name}>
-              {n.name}
-            </SelectItem>
-          ))}
+          {neighbourhoods && neighbourhoods.length > 0 ? (
+            neighbourhoods.map((n) => (
+              <SelectItem key={n.id} value={n.name}>
+                {n.name}
+              </SelectItem>
+            ))
+          ) : (
+            !isLoading && !error && (
+              <SelectItem value="" disabled>
+                No neighbourhoods found
+              </SelectItem>
+            )
+          )}
         </SelectContent>
       </Select>
     </div>

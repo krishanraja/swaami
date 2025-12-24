@@ -65,14 +65,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         console.error("Error fetching profile:", error);
-        setProfile(null);
+        // Check if it's a session/auth error
+        const errorCode = error.code || "";
+        const errorMessage = error.message || "";
+        const isAuthError = 
+          errorCode.includes("PGRST301") || 
+          errorCode.includes("42501") ||
+          errorMessage.toLowerCase().includes("jwt") ||
+          errorMessage.toLowerCase().includes("token") ||
+          errorMessage.toLowerCase().includes("unauthorized");
+        
+        if (isAuthError) {
+          console.warn("Profile fetch failed due to auth error - session may be expired");
+          // Don't clear profile immediately - let session refresh handle it
+        } else {
+          // For other errors (like profile not found), clear profile
+          setProfile(null);
+        }
       } else {
         setProfile(data);
       }
     } catch (err) {
       clearTimeout(timeoutId);
       console.error("Profile fetch error:", err);
-      setProfile(null);
+      // Only clear profile if it's not an auth error
+      const errorMessage = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+      const isAuthError = 
+        errorMessage.includes("jwt") ||
+        errorMessage.includes("token") ||
+        errorMessage.includes("unauthorized");
+      
+      if (!isAuthError) {
+        setProfile(null);
+      }
     } finally {
       setProfileLoading(false);
     }
@@ -135,18 +160,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (newSession?.user) {
           // Fetch profile on sign in or token refresh
+          // Keep authLoading true until profile fetch completes
           if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
             await fetchProfile(newSession.user.id);
+          } else {
+            // For other events (like PASSWORD_RECOVERY), we don't need to fetch profile
+            // but we should still mark auth as loaded
+            setAuthLoading(false);
+          }
+          // Set authLoading to false after profile fetch completes
+          // (fetchProfile handles profileLoading, but we need to ensure authLoading is also false)
+          if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+            // #region agent log
+            fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:134',message:'Auth state change, profile fetch complete, setting authLoading=false',data:{event,hasSession:!!newSession,hasUser:!!newSession?.user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            setAuthLoading(false);
           }
         } else {
           // Clear profile on sign out
           setProfile(null);
+          // #region agent log
+          fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:134',message:'Auth state change, signed out, setting authLoading=false',data:{event,hasSession:false,hasUser:false},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
+          setAuthLoading(false);
         }
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:134',message:'Auth state change, setting authLoading=false',data:{event,hasSession:!!newSession,hasUser:!!newSession?.user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
-        setAuthLoading(false);
       }
     );
 
@@ -169,18 +206,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const refreshSession = async () => {
+  const refreshSession = async (): Promise<boolean> => {
     try {
-      const { data: { session: newSession } } = await supabase.auth.refreshSession();
+      const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error("Session refresh error:", error);
+        // If refresh fails, clear session
+        if (error.message?.includes("refresh_token_not_found") || 
+            error.message?.includes("invalid_grant")) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
+        return false;
+      }
+      
       if (newSession) {
         setSession(newSession);
         setUser(newSession.user);
         if (newSession.user) {
           await fetchProfile(newSession.user.id);
         }
+        return true;
       }
+      
+      return false;
     } catch (err) {
       console.error("Session refresh error:", err);
+      return false;
     }
   };
 

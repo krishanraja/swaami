@@ -38,7 +38,7 @@ const TIER_REQUIREMENTS: Record<TrustTier, VerificationType[]> = {
 };
 
 export function useTrustTier() {
-  const { user } = useAuth();
+  const { user, authState, isLoading } = useAuth();
   const [state, setState] = useState<TrustTierState>({
     tier: 'tier_0',
     verifications: [],
@@ -51,6 +51,11 @@ export function useTrustTier() {
   });
 
   const fetchTrustTier = useCallback(async () => {
+    // Wait for auth state to resolve before checking user
+    if (isLoading || authState === "loading") {
+      return;
+    }
+    
     if (!user) {
       setState(prev => ({ ...prev, loading: false }));
       return;
@@ -87,7 +92,7 @@ export function useTrustTier() {
       console.error('Error fetching trust tier:', error);
       setState(prev => ({ ...prev, loading: false }));
     }
-  }, [user]);
+  }, [user, authState, isLoading]);
 
   useEffect(() => {
     fetchTrustTier();

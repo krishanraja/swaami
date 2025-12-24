@@ -1,34 +1,19 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { JoinScreen } from "@/screens/JoinScreen";
+import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 
 export default function Join() {
   const navigate = useNavigate();
   const { authState, refreshProfile } = useAuth();
 
-  // Handle routing based on auth state
-  useEffect(() => {
-    // Don't redirect while loading
-    if (authState === "loading") {
-      return;
-    }
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Join.tsx:11',message:'Join redirect effect',data:{authState,willRedirectTo:authState==='unauthenticated'?'/auth?mode=signup':authState==='ready'?'/app':null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    if (authState === "unauthenticated") {
-      // #region agent log
-      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Join.tsx:13',message:'Join redirecting to /auth',data:{authState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      navigate("/auth?mode=signup", { replace: true });
-    } else if (authState === "ready") {
-      // #region agent log
-      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Join.tsx:15',message:'Join redirecting to /app',data:{authState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-      navigate("/app", { replace: true });
-    }
-  }, [authState, navigate]);
+  // Consolidated redirect logic
+  useAuthRedirect({
+    redirects: {
+      unauthenticated: "/auth?mode=signup",
+      ready: "/app",
+    },
+  });
 
   const handleComplete = async () => {
     await refreshProfile();
@@ -59,5 +44,5 @@ export default function Join() {
     );
   }
 
-  return <JoinScreen onComplete={handleComplete} />;
+  return <JoinScreen onComplete={handleComplete} refetchProfile={refreshProfile} />;
 }

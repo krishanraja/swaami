@@ -10,7 +10,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, LogIn, RefreshCw } from "lucide-react";
-import { useAuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SessionExpiredModalProps {
   isOpen: boolean;
@@ -19,7 +19,7 @@ interface SessionExpiredModalProps {
 
 export function SessionExpiredModal({ isOpen, onDismiss }: SessionExpiredModalProps) {
   const navigate = useNavigate();
-  const { refreshSession, authState } = useAuthContext();
+  const { refreshSession, session } = useAuth();
   
   if (!isOpen) return null;
 
@@ -74,7 +74,7 @@ export function SessionExpiredModal({ isOpen, onDismiss }: SessionExpiredModalPr
             Sign In Again
           </Button>
           
-          {authState.session && (
+          {session && (
             <Button
               variant="outline"
               size="lg"
