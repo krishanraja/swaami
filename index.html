@@ -51,7 +51,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: white;
+        background: white !important;
         transition: opacity 0.3s ease-out;
       }
       #splash-placeholder.hidden {
@@ -162,18 +162,35 @@
     
     <!-- Hide placeholder once React app loads -->
     <script>
-      // Remove placeholder after a short delay to ensure React has rendered
-      window.addEventListener('load', function() {
-        setTimeout(function() {
+      // Remove placeholder immediately when React mounts, with fallback
+      (function() {
+        function removePlaceholder() {
           var placeholder = document.getElementById('splash-placeholder');
           if (placeholder) {
             placeholder.classList.add('hidden');
             setTimeout(function() {
-              placeholder.remove();
+              if (placeholder.parentNode) {
+                placeholder.remove();
+              }
             }, 300);
           }
-        }, 100);
-      });
+        }
+        
+        // Try to remove when DOM is ready
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', removePlaceholder);
+        } else {
+          removePlaceholder();
+        }
+        
+        // Fallback: remove after window load
+        window.addEventListener('load', function() {
+          setTimeout(removePlaceholder, 100);
+        });
+        
+        // Fallback: remove after React should have loaded (2s max)
+        setTimeout(removePlaceholder, 2000);
+      })();
     </script>
   </body>
 </html>

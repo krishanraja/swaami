@@ -112,8 +112,16 @@
     @apply border-border;
   }
 
-  body {
+  html, body {
     @apply bg-background text-foreground font-sans antialiased;
+    background-color: hsl(var(--background));
+    margin: 0;
+    padding: 0;
+  }
+  
+  #root {
+    min-height: 100vh;
+    background-color: hsl(var(--background));
   }
 
   h1, h2, h3, h4, h5, h6 {

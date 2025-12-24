@@ -59,9 +59,9 @@ const Index = () => {
     fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Index.tsx:30',message:'Rendering loading spinner',data:{authState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
     return (
-      <div className="h-[100dvh] bg-background flex items-center justify-center">
+      <div className="h-[100dvh] w-full bg-background flex items-center justify-center" style={{ backgroundColor: 'hsl(var(--background))' }}>
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" style={{ borderColor: 'hsl(var(--foreground) / 0.2)', borderTopColor: 'hsl(var(--foreground))' }} />
           <span className="text-sm text-muted-foreground animate-pulse">Loading your neighbourhood...</span>
         </div>
       </div>
