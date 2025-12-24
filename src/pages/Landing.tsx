@@ -38,10 +38,15 @@ export default function Landing() {
     await signOut();
   };
 
-  // Show splash until animation completes AND auth is not loading
-  if (showSplash || authState === "loading") {
+  // Show splash only for animation duration, don't block on auth
+  // This lets users see the landing page faster
+  if (showSplash) {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
+
+  // While auth is still loading, show the landing page with a generic CTA
+  // This prevents the blank screen while waiting for auth state
+  const isAuthLoading = authState === "loading";
 
   return (
     <div className="min-h-[100dvh] w-full overflow-hidden bg-background flex flex-col relative">
@@ -87,7 +92,7 @@ export default function Landing() {
         {/* Hero */}
         <main className="flex-1 flex flex-col justify-center px-6 py-6 max-w-lg mx-auto w-full">
           <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150 fill-mode-both">
-            {user && (
+            {user && !isAuthLoading && (
               <p className="text-accent font-medium text-lg mb-2 text-shadow-sub">
                 Welcome back!
               </p>
@@ -135,16 +140,17 @@ export default function Landing() {
         <footer className="px-6 pb-safe pt-4 bg-gradient-to-t from-background via-background/95 to-transparent animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 fill-mode-both">
           <div className="max-w-lg mx-auto w-full space-y-2 pb-4">
             <Button
-              onClick={() => navigate(primaryCTA.path)}
+              onClick={() => navigate(isAuthLoading ? "/auth?mode=signup" : primaryCTA.path)}
               variant="swaami"
               size="xl"
               className="w-full h-14 text-lg font-semibold rounded-2xl shadow-lg"
+              disabled={isAuthLoading}
             >
-              {primaryCTA.text}
-              <ArrowRight className="ml-2 h-5 w-5" />
+              {isAuthLoading ? "Loading..." : primaryCTA.text}
+              {!isAuthLoading && <ArrowRight className="ml-2 h-5 w-5" />}
             </Button>
 
-            {user ? (
+            {user && !isAuthLoading ? (
               <Button
                 onClick={handleSignOut}
                 variant="ghost"
