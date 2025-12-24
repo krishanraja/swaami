@@ -48,11 +48,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileLoading(true);
     
     try {
-      const { data, error } = await supabase
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Profile fetch timeout")), 10000);
+      });
+
+      const profilePromise = supabase
         .from("profiles")
         .select("*")
         .eq("user_id", userId)
         .single();
+
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
 
       if (error) {
         console.error("Error fetching profile:", error);
@@ -70,10 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let initCompleted = false;
 
     const initAuth = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        // Add timeout to prevent hanging - 5 second timeout
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("Auth init timeout")), 5000);
+        });
+
+        const sessionPromise = supabase.auth.getSession();
+        const { data, error } = await Promise.race([sessionPromise, timeoutPromise]);
         
         if (error) {
           console.error('Auth session error:', error);
@@ -91,8 +105,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (err) {
         console.error("Auth init error:", err);
+        // On timeout or error, assume unauthenticated
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
       } finally {
         if (mounted) {
+          initCompleted = true;
           setAuthLoading(false);
         }
       }
@@ -104,6 +125,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (event, newSession) => {
         if (!mounted) return;
 
+        // Only update authLoading if init has completed to avoid race conditions
+        if (initCompleted) {
+          setAuthLoading(false);
+        }
+
         setSession(newSession);
         setUser(newSession?.user ?? null);
 
@@ -114,8 +140,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null);
         }
-        
-        setAuthLoading(false);
       }
     );
 

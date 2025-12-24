@@ -18,11 +18,18 @@ export function useNeighbourhoods(city: City | null) {
       if (!city) return [];
       
       try {
-        const { data, error } = await supabase
+        // Add timeout to prevent hanging - 8 second timeout
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("Neighbourhoods query timeout")), 8000);
+        });
+
+        const queryPromise = supabase
           .from("neighbourhoods")
           .select("*")
           .eq("city", city)
           .order("name");
+
+        const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
 
         if (error) {
           console.error("Error fetching neighbourhoods:", error);
@@ -42,6 +49,10 @@ export function useNeighbourhoods(city: City | null) {
         console.error("Neighbourhoods query error:", err);
         // Re-throw with more context
         if (err instanceof Error) {
+          // If it's a timeout, provide user-friendly message
+          if (err.message.includes("timeout")) {
+            throw new Error("Request timed out. Please check your connection and try again.");
+          }
           throw err;
         }
         throw new Error("Unexpected error loading neighbourhoods");
@@ -52,8 +63,10 @@ export function useNeighbourhoods(city: City | null) {
     staleTime: 1000 * 60 * 5, // Data stays fresh for 5 minutes
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
     refetchOnMount: false, // Don't refetch when component remounts (if data exists)
-    retry: 2, // Retry failed requests up to 2 times
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    retry: 1, // Reduced retries to fail faster
+    retryDelay: 1000, // Fixed delay instead of exponential backoff
+    // Add query timeout at React Query level as well
+    gcTime: 1000 * 60 * 5, // Cache time (formerly cacheTime)
   });
 }
 

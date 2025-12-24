@@ -19,7 +19,20 @@ import AdminPage from "./pages/AdminPage";
 import { ChatScreen } from "./screens/ChatScreen";
 import { VerificationScreen } from "./screens/VerificationScreen";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Add default timeout to all queries
+      retry: 1,
+      retryDelay: 1000,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 5, // 5 minutes cache time
+      refetchOnWindowFocus: false,
+      // Network mode to handle offline better
+      networkMode: 'online',
+    },
+  },
+});
 
 const App = () => {
   // Ensure splash placeholder is removed and body has correct background

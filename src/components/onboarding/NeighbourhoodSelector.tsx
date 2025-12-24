@@ -13,6 +13,10 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
   const { data: neighbourhoods, isLoading, error, refetch } = useNeighbourhoods(city);
   const config = CITY_CONFIG[city];
 
+  // If we have an error but also have cached data, allow selection
+  const hasData = neighbourhoods && neighbourhoods.length > 0;
+  const isDisabled = isLoading || (!!error && !hasData);
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -20,7 +24,7 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
         <span>Neighbourhoods in {config.label}</span>
       </div>
       
-      {error && (
+      {error && !hasData && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
@@ -40,14 +44,14 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
       <Select 
         value={value} 
         onValueChange={onChange} 
-        disabled={isLoading || !!error}
+        disabled={isDisabled}
       >
         <SelectTrigger className="h-12 rounded-xl">
           <SelectValue 
             placeholder={
               isLoading 
                 ? "Loading..." 
-                : error 
+                : error && !hasData
                   ? "Error loading neighbourhoods" 
                   : "Select your neighbourhood"
             } 
@@ -62,7 +66,7 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
           // Prevent portal issues on mobile by keeping it in the DOM flow
           onCloseAutoFocus={(e) => e.preventDefault()}
         >
-          {neighbourhoods && neighbourhoods.length > 0 ? (
+          {hasData ? (
             neighbourhoods.map((n) => (
               <SelectItem key={n.id} value={n.name}>
                 {n.name}
