@@ -40,9 +40,23 @@ export default function Auth() {
 
   // Redirect if already authenticated
   useEffect(() => {
+    // Don't redirect while loading
+    if (authState === "loading") {
+      return;
+    }
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Auth.tsx:42',message:'Auth redirect effect',data:{authState,willRedirectTo:authState==='needs_onboarding'?'/join':authState==='ready'?'/app':null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
     if (authState === "needs_onboarding") {
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Auth.tsx:44',message:'Auth redirecting to /join',data:{authState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       navigate("/join", { replace: true });
     } else if (authState === "ready") {
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Auth.tsx:46',message:'Auth redirecting to /app',data:{authState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       navigate("/app", { replace: true });
     }
   }, [authState, navigate]);
@@ -99,7 +113,10 @@ export default function Auth() {
   if (authState === "loading") {
     return (
       <div className="h-[100dvh] bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
+          <span className="text-sm text-muted-foreground animate-pulse">Loading...</span>
+        </div>
       </div>
     );
   }

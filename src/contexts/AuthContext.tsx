@@ -49,6 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Fetch profile for a given user
   const fetchProfile = async (userId: string) => {
     setProfileLoading(true);
+    // Timeout fallback - don't let profile fetch hang forever (3s max)
+    const timeoutId = setTimeout(() => {
+      setProfileLoading(false);
+    }, 3000);
+    
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -56,6 +61,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("user_id", userId)
         .single();
 
+      clearTimeout(timeoutId);
+      
       if (error) {
         console.error("Error fetching profile:", error);
         setProfile(null);
@@ -63,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(data);
       }
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error("Profile fetch error:", err);
       setProfile(null);
     } finally {
@@ -83,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }, 5000);
       
+      let initialSession = null;
       try {
         const { data, error } = await supabase.auth.getSession();
         clearTimeout(timeoutId);
@@ -91,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error('Auth session error:', error);
         }
         
-        const initialSession = data?.session;
+        initialSession = data?.session;
         
         if (!mounted) return;
         
@@ -106,6 +115,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Auth init error:", err);
       } finally {
         if (mounted) {
+          // #region agent log
+          fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:109',message:'Auth init complete, setting authLoading=false',data:{hasSession:!!initialSession,hasUser:!!initialSession?.user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
           setAuthLoading(false);
         }
       }
@@ -131,6 +143,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfile(null);
         }
         
+        // #region agent log
+        fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:134',message:'Auth state change, setting authLoading=false',data:{event,hasSession:!!newSession,hasUser:!!newSession?.user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         setAuthLoading(false);
       }
     );
@@ -173,8 +188,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Compute auth state from current data
   const authState = useMemo((): AuthState => {
-    if (authLoading || profileLoading) return "loading";
-    if (!user) return "unauthenticated";
+    // #region agent log
+    const stateData = {authLoading,profileLoading,hasUser:!!user,hasProfile:!!profile,profileCity:profile?.city,profileNeighbourhood:profile?.neighbourhood,profilePhone:profile?.phone,profileSkillsLength:profile?.skills?.length??0};
+    // #endregion
+    if (authLoading || profileLoading) {
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:175',message:'AuthState computed: loading',data:stateData,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      return "loading";
+    }
+    if (!user) {
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:177',message:'AuthState computed: unauthenticated',data:stateData,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      return "unauthenticated";
+    }
     
     // Check if profile is complete
     const isComplete = profile?.city && 
@@ -182,8 +210,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                        profile?.phone && 
                        (profile?.skills?.length ?? 0) > 0;
     
-    if (!isComplete) return "needs_onboarding";
+    if (!isComplete) {
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:185',message:'AuthState computed: needs_onboarding',data:{...stateData,isComplete},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      return "needs_onboarding";
+    }
     
+    // #region agent log
+    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:187',message:'AuthState computed: ready',data:{...stateData,isComplete},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     return "ready";
   }, [authLoading, profileLoading, user, profile]);
 
