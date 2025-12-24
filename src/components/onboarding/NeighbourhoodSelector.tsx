@@ -53,7 +53,15 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
             } 
           />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent
+          position="popper"
+          side="bottom"
+          align="start"
+          sideOffset={4}
+          className="max-h-[40vh] overflow-y-auto"
+          // Prevent portal issues on mobile by keeping it in the DOM flow
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
           {neighbourhoods && neighbourhoods.length > 0 ? (
             neighbourhoods.map((n) => (
               <SelectItem key={n.id} value={n.name}>
@@ -62,7 +70,7 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
             ))
           ) : (
             !isLoading && !error && (
-              <SelectItem value="" disabled>
+              <SelectItem value="_empty" disabled>
                 No neighbourhoods found
               </SelectItem>
             )
