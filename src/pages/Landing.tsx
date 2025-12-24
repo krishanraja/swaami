@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Heart, LogOut, Users } from "lucide-react";
@@ -16,16 +16,7 @@ export default function Landing() {
   
   const [showSplash, setShowSplash] = useState(true);
 
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Landing.tsx:14',message:'Landing component render',data:{authState,showSplash,hasUser:!!user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  }, [authState, showSplash, user]);
-  // #endregion
-
   const handleSplashComplete = useCallback(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Landing.tsx:19',message:'Splash complete callback',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     setShowSplash(false);
   }, []);
 
@@ -49,9 +40,6 @@ export default function Landing() {
 
   // Show splash until animation completes AND auth is not loading
   if (showSplash || authState === "loading") {
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Landing.tsx:42',message:'Rendering SplashScreen',data:{showSplash,authState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { FeedScreen } from "@/screens/FeedScreen";
@@ -29,9 +29,6 @@ const Index = () => {
 
   // Show loading or redirect states
   if (authState !== "ready") {
-    // #region agent log
-    fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Index.tsx:30',message:'Rendering loading spinner',data:{authState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     return (
       <div className="h-[100dvh] w-full bg-background flex items-center justify-center" style={{ backgroundColor: 'hsl(var(--background))' }}>
         <div className="flex flex-col items-center gap-3">
@@ -56,14 +53,6 @@ const Index = () => {
         return <FeedScreen />;
     }
   };
-
-  // #region agent log
-  useEffect(() => {
-    if (authState === "ready") {
-      fetch('http://127.0.0.1:7246/ingest/aad48c30-4ebd-475a-b7ac-4c9b2a5031e4',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Index.tsx:56',message:'Rendering main app content',data:{authState,activeTab},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    }
-  }, [authState, activeTab]);
-  // #endregion
 
   return (
     <div className="h-[100dvh] flex flex-col overflow-hidden bg-background">
