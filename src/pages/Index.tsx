@@ -30,9 +30,9 @@ const Index = () => {
   // Show loading or redirect states
   if (authState !== "ready") {
     return (
-      <div className="h-[100dvh] w-full bg-background flex items-center justify-center" style={{ backgroundColor: 'hsl(var(--background))' }}>
+      <div className="h-[100dvh] w-full bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" style={{ borderColor: 'hsl(var(--foreground) / 0.2)', borderTopColor: 'hsl(var(--foreground))' }} />
+          <div className="w-8 h-8 border-2 border-foreground/20 border-t-foreground rounded-full animate-spin" />
           <span className="text-sm text-muted-foreground animate-pulse">Loading your neighbourhood...</span>
         </div>
       </div>
