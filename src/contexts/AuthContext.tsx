@@ -22,8 +22,6 @@ export interface Profile {
 }
 
 export type AuthState = "loading" | "unauthenticated" | "needs_onboarding" | "ready";
-
-// Alias for backwards compatibility
 export type AuthStatus = AuthState;
 
 interface AuthContextType {
@@ -46,13 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // Fetch profile for a given user
   const fetchProfile = async (userId: string) => {
     setProfileLoading(true);
-    // Timeout fallback - don't let profile fetch hang forever (3s max)
-    const timeoutId = setTimeout(() => {
-      setProfileLoading(false);
-    }, 3000);
     
     try {
       const { data, error } = await supabase
@@ -61,71 +54,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("user_id", userId)
         .single();
 
-      clearTimeout(timeoutId);
-      
       if (error) {
         console.error("Error fetching profile:", error);
-        // Check if it's a session/auth error
-        const errorCode = error.code || "";
-        const errorMessage = error.message || "";
-        const isAuthError = 
-          errorCode.includes("PGRST301") || 
-          errorCode.includes("42501") ||
-          errorMessage.toLowerCase().includes("jwt") ||
-          errorMessage.toLowerCase().includes("token") ||
-          errorMessage.toLowerCase().includes("unauthorized");
-        
-        if (isAuthError) {
-          console.warn("Profile fetch failed due to auth error - session may be expired");
-          // Don't clear profile immediately - let session refresh handle it
-        } else {
-          // For other errors (like profile not found), clear profile
-          setProfile(null);
-        }
+        setProfile(null);
       } else {
         setProfile(data);
       }
     } catch (err) {
-      clearTimeout(timeoutId);
       console.error("Profile fetch error:", err);
-      // Only clear profile if it's not an auth error
-      const errorMessage = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
-      const isAuthError = 
-        errorMessage.includes("jwt") ||
-        errorMessage.includes("token") ||
-        errorMessage.includes("unauthorized");
-      
-      if (!isAuthError) {
-        setProfile(null);
-      }
+      setProfile(null);
     } finally {
       setProfileLoading(false);
     }
   };
 
-  // Initialize auth state once on mount
   useEffect(() => {
     let mounted = true;
 
-    // Get initial session with timeout fallback
     const initAuth = async () => {
-      // Timeout fallback - don't let auth hang forever (5s max)
-      const timeoutId = setTimeout(() => {
-        if (mounted) {
-          setAuthLoading(false);
-        }
-      }, 5000);
-      
-      let initialSession = null;
       try {
         const { data, error } = await supabase.auth.getSession();
-        clearTimeout(timeoutId);
         
         if (error) {
           console.error('Auth session error:', error);
         }
         
-        initialSession = data?.session;
+        const initialSession = data?.session;
         
         if (!mounted) return;
         
@@ -136,7 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await fetchProfile(initialSession.user.id);
         }
       } catch (err) {
-        clearTimeout(timeoutId);
         console.error("Auth init error:", err);
       } finally {
         if (mounted) {
@@ -147,7 +100,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         if (!mounted) return;
@@ -156,25 +108,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(newSession?.user ?? null);
 
         if (newSession?.user) {
-          // Fetch profile on sign in or token refresh
-          // Keep authLoading true until profile fetch completes
           if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
             await fetchProfile(newSession.user.id);
-          } else {
-            // For other events (like PASSWORD_RECOVERY), we don't need to fetch profile
-            // but we should still mark auth as loaded
-            setAuthLoading(false);
-          }
-          // Set authLoading to false after profile fetch completes
-          // (fetchProfile handles profileLoading, but we need to ensure authLoading is also false)
-          if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-            setAuthLoading(false);
           }
         } else {
-          // Clear profile on sign out
           setProfile(null);
-          setAuthLoading(false);
         }
+        
+        setAuthLoading(false);
       }
     );
 
@@ -203,7 +144,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (error) {
         console.error("Session refresh error:", error);
-        // If refresh fails, clear session
         if (error.message?.includes("refresh_token_not_found") || 
             error.message?.includes("invalid_grant")) {
           setSession(null);
@@ -231,7 +171,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isLoading = authLoading || profileLoading;
 
-  // Compute auth state from current data
   const authState = useMemo((): AuthState => {
     if (authLoading || profileLoading) {
       return "loading";
@@ -240,7 +179,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return "unauthenticated";
     }
     
-    // Check if profile is complete
     const isComplete = profile?.city && 
                        profile?.neighbourhood && 
                        profile?.phone && 
@@ -279,5 +217,4 @@ export function useAuth() {
   return context;
 }
 
-// Alias for backwards compatibility with components using useAuthContext
 export const useAuthContext = useAuth;
