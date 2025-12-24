@@ -48,18 +48,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileLoading(true);
     
     try {
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Profile fetch timeout")), 10000);
-      });
-
+      // Increased timeout to 20 seconds for slow connections
       const profilePromise = supabase
         .from("profiles")
         .select("*")
         .eq("user_id", userId)
         .single();
 
-      const { data, error } = await Promise.race([profilePromise, timeoutPromise]);
+      // Set a timeout to stop blocking UI, but let request continue
+      const timeoutId = setTimeout(() => {
+        // Stop blocking UI after 3 seconds, but let request continue
+        setProfileLoading(false);
+      }, 3000);
+
+      const { data, error } = await profilePromise;
+      clearTimeout(timeoutId);
 
       if (error) {
         console.error("Error fetching profile:", error);
@@ -81,38 +84,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initAuth = async () => {
       try {
-        // Add timeout to prevent hanging - 5 second timeout
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error("Auth init timeout")), 5000);
-        });
-
+        // Increased timeout to 15 seconds for slow connections
         const sessionPromise = supabase.auth.getSession();
-        const { data, error } = await Promise.race([sessionPromise, timeoutPromise]);
         
-        if (error) {
-          console.error('Auth session error:', error);
-        }
-        
-        const initialSession = data?.session;
-        
-        if (!mounted) return;
-        
-        setSession(initialSession ?? null);
-        setUser(initialSession?.user ?? null);
-        
-        if (initialSession?.user) {
-          await fetchProfile(initialSession.user.id);
+        // Create a timeout that allows UI to become interactive
+        let timeoutFired = false;
+        const timeoutId = setTimeout(() => {
+          timeoutFired = true;
+          // Allow UI to become interactive even if request is still pending
+          if (mounted) {
+            initCompleted = true;
+            setAuthLoading(false);
+            // Assume unauthenticated for now, will update when request completes
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+          }
+        }, 3000); // Show UI as interactive after 3 seconds, even if request pending
+
+        try {
+          const { data, error } = await sessionPromise;
+          clearTimeout(timeoutId);
+          
+          if (error) {
+            console.error('Auth session error:', error);
+          }
+          
+          const initialSession = data?.session;
+          
+          if (!mounted) return;
+          
+          // Update state even if timeout already fired
+          setSession(initialSession ?? null);
+          setUser(initialSession?.user ?? null);
+          
+          if (initialSession?.user) {
+            await fetchProfile(initialSession.user.id);
+          } else if (!timeoutFired) {
+            // Only set loading to false if timeout didn't already fire
+            initCompleted = true;
+            setAuthLoading(false);
+          }
+        } catch (err) {
+          clearTimeout(timeoutId);
+          console.error("Auth init error:", err);
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            initCompleted = true;
+            setAuthLoading(false);
+          }
         }
       } catch (err) {
         console.error("Auth init error:", err);
-        // On timeout or error, assume unauthenticated
+        // On error, assume unauthenticated
         if (mounted) {
           setSession(null);
           setUser(null);
           setProfile(null);
-        }
-      } finally {
-        if (mounted) {
           initCompleted = true;
           setAuthLoading(false);
         }

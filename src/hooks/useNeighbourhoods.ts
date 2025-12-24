@@ -18,9 +18,9 @@ export function useNeighbourhoods(city: City | null) {
       if (!city) return [];
       
       try {
-        // Add timeout to prevent hanging - 8 second timeout
+        // Increased timeout to 15 seconds for slow connections
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error("Neighbourhoods query timeout")), 8000);
+          setTimeout(() => reject(new Error("Neighbourhoods query timeout")), 15000);
         });
 
         const queryPromise = supabase
