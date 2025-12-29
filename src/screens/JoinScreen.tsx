@@ -236,7 +236,7 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
         )}
       </div>
 
-      <div className="flex-1 flex flex-col items-center px-6 pt-4 pb-2 overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center px-6 pt-4 pb-2 overflow-hidden">
         {/* Logo */}
         <div className="mb-4 shrink-0">
           <img src={swaamiIcon} alt="Swaami" className="h-20 w-auto" />

@@ -15,7 +15,19 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
 
   // If we have an error but also have cached data, allow selection
   const hasData = neighbourhoods && neighbourhoods.length > 0;
-  const isDisabled = isLoading || (!!error && !hasData);
+  // Disable if (loading OR error) AND no cached data exists
+  // Allow interaction if data exists even during background refetch or error
+  const isDisabled = !hasData && (isLoading || !!error);
+
+  // Diagnostic logging
+  console.log('[NeighbourhoodSelector]', { 
+    city, 
+    isLoading, 
+    error: error?.message, 
+    hasData, 
+    isDisabled,
+    neighbourhoodsCount: neighbourhoods?.length 
+  });
 
   return (
     <div className="space-y-3">
@@ -58,12 +70,11 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
           />
         </SelectTrigger>
         <SelectContent
-          position="popper"
+          position="item-aligned"
           side="bottom"
           align="start"
           sideOffset={4}
           className="max-h-[40vh] overflow-y-auto"
-          // Prevent portal issues on mobile by keeping it in the DOM flow
           onCloseAutoFocus={(e) => e.preventDefault()}
         >
           {hasData ? (
