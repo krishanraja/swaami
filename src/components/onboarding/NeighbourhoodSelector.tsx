@@ -15,9 +15,10 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
 
   // If we have an error but also have cached data, allow selection
   const hasData = neighbourhoods && neighbourhoods.length > 0;
-  // Disable if (loading OR error) AND no cached data exists
-  // Allow interaction if data exists even during background refetch or error
-  const isDisabled = !hasData && (isLoading || !!error);
+  // Only disable if loading AND no cached data exists
+  // Allow interaction on error so user can see error message and retry
+  // Don't disable on error - let user see the error and retry button
+  const isDisabled = !hasData && isLoading;
 
   // Diagnostic logging
   console.log('[NeighbourhoodSelector]', { 
@@ -45,7 +46,7 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
             </span>
             <button
               onClick={() => refetch()}
-              className="text-sm underline hover:no-underline ml-2"
+              className="text-sm underline hover:no-underline ml-2 font-medium"
             >
               Retry
             </button>

@@ -62,8 +62,14 @@ export function useNeighbourhoods(city: City | null) {
     // Prevent unnecessary refetches that cause loading state flicker
     staleTime: 1000 * 60 * 5, // Data stays fresh for 5 minutes
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: false, // Don't refetch when component remounts (if data exists)
-    retry: 1, // Reduced retries to fail faster
+    refetchOnMount: true, // Allow retry on mount if previous attempt failed
+    // Smart retry: don't retry on timeout (network issues won't resolve quickly)
+    retry: (failureCount, error) => {
+      if (error instanceof Error && error.message.includes('timeout')) {
+        return false; // Don't retry timeout errors
+      }
+      return failureCount < 1; // Retry once for other errors
+    },
     retryDelay: 1000, // Fixed delay instead of exponential backoff
     // Add query timeout at React Query level as well
     gcTime: 1000 * 60 * 5, // Cache time (formerly cacheTime)
