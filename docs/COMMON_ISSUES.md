@@ -64,6 +64,43 @@
 
 ## UI Issues
 
+### Neighbourhood dropdown stuck on "Loading..." during onboarding
+**Date Fixed**: 2025-01-27  
+**Severity**: P0 - Critical (blocks onboarding)
+
+**Symptoms**:
+- Dropdown shows "Loading..." indefinitely
+- Dropdown is completely inactive/unclickable
+- Continue button remains disabled
+- User stuck in onboarding flow
+
+**Root Cause**:
+- Query timeout (15 seconds) + React Query automatic retry (1 attempt)
+- Total wait time: 30+ seconds with no error visibility
+- Dropdown disabled during entire retry period
+- Error state not visible until both attempts fail
+
+**Console Error**:
+```
+Neighbourhoods query error: Error: Neighbourhoods query timeout
+```
+
+**Solution** (Fixed in commit `5e219f0`):
+1. **Smart retry logic**: Don't retry on timeout errors (network issues won't resolve quickly)
+2. **Allow retry on mount**: `refetchOnMount: true` so navigating away/back retries automatically
+3. **Don't disable on error**: Allow dropdown interaction when error exists so user can see error and retry button
+4. **Improved error visibility**: Error alert always shown when error exists
+
+**Prevention**:
+- Always use smart retry logic for network-dependent queries
+- Don't retry on timeout errors - they indicate network issues that won't resolve quickly
+- Allow user interaction on error states so they can manually retry
+- Show error states immediately, don't wait for retries to complete
+
+**Related Documentation**:
+- `docs/DIAGNOSIS_NEIGHBOURHOOD_DROPDOWN_STUCK.md` - Full diagnostic analysis
+- `docs/ROOT_CAUSE_NEIGHBOURHOOD_DROPDOWN.md` - Root cause analysis with fixes
+
 ### Splash screen icon not appearing
 **Cause**: Image not yet cached on first load
 **Solution**: The splash screen now uses a two-phase approach:

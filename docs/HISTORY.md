@@ -2,6 +2,30 @@
 
 All notable changes to Swaami.
 
+## [Unreleased] - 2025-01-27
+
+### Fixed
+- **Neighbourhood dropdown stuck in loading state on timeout**
+  - Root cause: Query timeout (15s) + React Query retry (1) caused 30+ second loading state with no error visibility
+  - Fix: Smart retry logic that doesn't retry on timeout errors, allowing immediate error display
+  - Fix: Allow retry on mount so navigating away/back retries automatically
+  - Fix: Don't disable dropdown on error, allowing user to see error message and retry button
+  - Impact: Timeout now fails immediately (15s) instead of retrying (30s+), error state visible immediately
+  - Files: `src/hooks/useNeighbourhoods.ts`, `src/components/onboarding/NeighbourhoodSelector.tsx`
+  - Documentation: `docs/DIAGNOSIS_NEIGHBOURHOOD_DROPDOWN_STUCK.md`, `docs/ROOT_CAUSE_NEIGHBOURHOOD_DROPDOWN.md`
+
+- **404 error on `/join` route**
+  - Root cause: Missing Vercel SPA routing configuration
+  - Fix: Added `vercel.json` with rewrites to serve `index.html` for all routes
+  - Impact: `/join` route now loads correctly on direct access or refresh
+  - Files: `vercel.json`
+
+- **Unwanted tiny scrolling on location step**
+  - Root cause: `overflow-y-auto` enabled unconditionally
+  - Fix: Changed to `overflow-hidden` to prevent scrolling when content fits viewport
+  - Impact: No unwanted scrolling when content fits screen
+  - Files: `src/screens/JoinScreen.tsx`
+
 ## [0.2.0] - 2024-12-13
 
 ### Added
