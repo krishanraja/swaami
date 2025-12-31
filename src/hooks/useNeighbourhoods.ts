@@ -11,16 +11,40 @@ export interface Neighbourhood {
   longitude: number | null;
 }
 
+// Custom error class for timeout errors to enable proper error type checking
+class NeighbourhoodsTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NeighbourhoodsTimeoutError';
+  }
+}
+
 export function useNeighbourhoods(city: City | null) {
   return useQuery({
     queryKey: ["neighbourhoods", city],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       if (!city) return [];
       
+      // Create AbortController for this request
+      const abortController = new AbortController();
+      
+      // Combine with React Query's signal if available
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          abortController.abort();
+        });
+      }
+      
       try {
-        // Increased timeout to 15 seconds for slow connections
+        console.log('[useNeighbourhoods] Query started for city:', city);
+        
+        // Reduced timeout to 10 seconds for faster failure feedback
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error("Neighbourhoods query timeout")), 15000);
+          setTimeout(() => {
+            console.log('[useNeighbourhoods] Timeout fired after 10s');
+            abortController.abort(); // Cancel the request
+            reject(new NeighbourhoodsTimeoutError("Neighbourhoods query timeout"));
+          }, 10000);
         });
 
         const queryPromise = supabase
@@ -32,7 +56,7 @@ export function useNeighbourhoods(city: City | null) {
         const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
 
         if (error) {
-          console.error("Error fetching neighbourhoods:", error);
+          console.error("[useNeighbourhoods] Supabase error:", error);
           // Check if it's an auth error
           if (error.code === "PGRST301" || error.message?.includes("JWT") || error.message?.includes("token")) {
             throw new Error("Authentication required to load neighbourhoods");
@@ -44,15 +68,18 @@ export function useNeighbourhoods(city: City | null) {
           throw new Error(error.message || "Failed to load neighbourhoods");
         }
         
+        console.log('[useNeighbourhoods] Query succeeded, data count:', data?.length);
         return (data || []) as Neighbourhood[];
       } catch (err) {
-        console.error("Neighbourhoods query error:", err);
-        // Re-throw with more context
+        console.error("[useNeighbourhoods] Query error:", err);
+        
+        // Re-throw with proper error type
+        if (err instanceof NeighbourhoodsTimeoutError) {
+          throw new NeighbourhoodsTimeoutError("Request timed out. Please check your connection and try again.");
+        }
+        
+        // Re-throw other errors as-is
         if (err instanceof Error) {
-          // If it's a timeout, provide user-friendly message
-          if (err.message.includes("timeout")) {
-            throw new Error("Request timed out. Please check your connection and try again.");
-          }
           throw err;
         }
         throw new Error("Unexpected error loading neighbourhoods");
@@ -65,9 +92,27 @@ export function useNeighbourhoods(city: City | null) {
     refetchOnMount: true, // Allow retry on mount if previous attempt failed
     // Smart retry: don't retry on timeout (network issues won't resolve quickly)
     retry: (failureCount, error) => {
-      if (error instanceof Error && error.message.includes('timeout')) {
-        return false; // Don't retry timeout errors
+      console.log('[useNeighbourhoods] Retry check:', { failureCount, errorType: error?.constructor?.name, errorName: (error as any)?.name, errorMessage: error?.message });
+      
+      // Check error type instead of message (more reliable)
+      if (error instanceof NeighbourhoodsTimeoutError) {
+        console.log('[useNeighbourhoods] Timeout error detected (instanceof), not retrying');
+        return false;
       }
+      
+      // Check error name property (in case React Query doesn't preserve instance)
+      if (error && typeof error === 'object' && 'name' in error && (error as any).name === 'NeighbourhoodsTimeoutError') {
+        console.log('[useNeighbourhoods] Timeout error detected (name check), not retrying');
+        return false;
+      }
+      
+      // Also check message as fallback
+      if (error instanceof Error && error.message.includes('timeout')) {
+        console.log('[useNeighbourhoods] Timeout in message, not retrying');
+        return false;
+      }
+      
+      console.log('[useNeighbourhoods] Non-timeout error, retrying if attempts < 1');
       return failureCount < 1; // Retry once for other errors
     },
     retryDelay: 1000, // Fixed delay instead of exponential backoff

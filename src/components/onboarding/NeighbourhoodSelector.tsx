@@ -37,7 +37,7 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
         <span>Neighbourhoods in {config.label}</span>
       </div>
       
-      {error && !hasData && (
+      {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
@@ -45,8 +45,11 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
               {error instanceof Error ? error.message : "Failed to load neighbourhoods"}
             </span>
             <button
-              onClick={() => refetch()}
-              className="text-sm underline hover:no-underline ml-2 font-medium"
+              onClick={() => {
+                console.log('[NeighbourhoodSelector] Manual retry triggered');
+                refetch();
+              }}
+              className="text-sm underline hover:no-underline ml-2 font-medium text-destructive"
             >
               Retry
             </button>
