@@ -1,6 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-
 export type City = "sydney" | "new_york";
 
 export interface Neighbourhood {
@@ -11,114 +8,48 @@ export interface Neighbourhood {
   longitude: number | null;
 }
 
-// Custom error class for timeout errors to enable proper error type checking
-class NeighbourhoodsTimeoutError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'NeighbourhoodsTimeoutError';
-  }
-}
+// Static neighbourhood data - no network request needed
+const NEIGHBOURHOODS: Record<City, Neighbourhood[]> = {
+  sydney: [
+    { id: "syd-1", city: "sydney", name: "Balmain", latitude: -33.8578, longitude: 151.1800 },
+    { id: "syd-2", city: "sydney", name: "Bondi", latitude: -33.8914, longitude: 151.2743 },
+    { id: "syd-3", city: "sydney", name: "Darlinghurst", latitude: -33.8774, longitude: 151.2167 },
+    { id: "syd-4", city: "sydney", name: "Glebe", latitude: -33.8791, longitude: 151.1871 },
+    { id: "syd-5", city: "sydney", name: "Manly", latitude: -33.7969, longitude: 151.2847 },
+    { id: "syd-6", city: "sydney", name: "Marrickville", latitude: -33.9111, longitude: 151.1547 },
+    { id: "syd-7", city: "sydney", name: "Mosman", latitude: -33.8295, longitude: 151.2440 },
+    { id: "syd-8", city: "sydney", name: "Neutral Bay", latitude: -33.8347, longitude: 151.2203 },
+    { id: "syd-9", city: "sydney", name: "Newtown", latitude: -33.8975, longitude: 151.1790 },
+    { id: "syd-10", city: "sydney", name: "Paddington", latitude: -33.8840, longitude: 151.2266 },
+    { id: "syd-11", city: "sydney", name: "Redfern", latitude: -33.8928, longitude: 151.2027 },
+    { id: "syd-12", city: "sydney", name: "Surry Hills", latitude: -33.8856, longitude: 151.2115 },
+  ],
+  new_york: [
+    { id: "nyc-1", city: "new_york", name: "Astoria", latitude: 40.7720, longitude: -73.9301 },
+    { id: "nyc-2", city: "new_york", name: "Chelsea", latitude: 40.7465, longitude: -74.0014 },
+    { id: "nyc-3", city: "new_york", name: "DUMBO", latitude: 40.7033, longitude: -73.9883 },
+    { id: "nyc-4", city: "new_york", name: "Greenwich Village", latitude: 40.7336, longitude: -74.0027 },
+    { id: "nyc-5", city: "new_york", name: "Harlem", latitude: 40.8116, longitude: -73.9465 },
+    { id: "nyc-6", city: "new_york", name: "Long Island City", latitude: 40.7447, longitude: -73.9485 },
+    { id: "nyc-7", city: "new_york", name: "Park Slope", latitude: 40.6710, longitude: -73.9814 },
+    { id: "nyc-8", city: "new_york", name: "SoHo", latitude: 40.7233, longitude: -74.0030 },
+    { id: "nyc-9", city: "new_york", name: "Tribeca", latitude: 40.7163, longitude: -74.0086 },
+    { id: "nyc-10", city: "new_york", name: "Upper East Side", latitude: 40.7736, longitude: -73.9566 },
+    { id: "nyc-11", city: "new_york", name: "Upper West Side", latitude: 40.7870, longitude: -73.9754 },
+    { id: "nyc-12", city: "new_york", name: "Williamsburg", latitude: 40.7081, longitude: -73.9571 },
+  ],
+};
 
+// Simple hook that returns static data - no network request, no timeout, no errors
 export function useNeighbourhoods(city: City | null) {
-  return useQuery({
-    queryKey: ["neighbourhoods", city],
-    queryFn: async ({ signal }) => {
-      if (!city) return [];
-      
-      // Create AbortController for this request
-      const abortController = new AbortController();
-      
-      // Combine with React Query's signal if available
-      if (signal) {
-        signal.addEventListener('abort', () => {
-          abortController.abort();
-        });
-      }
-      
-      try {
-        console.log('[useNeighbourhoods] Query started for city:', city);
-        
-        // Reduced timeout to 10 seconds for faster failure feedback
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => {
-            console.log('[useNeighbourhoods] Timeout fired after 10s');
-            abortController.abort(); // Cancel the request
-            reject(new NeighbourhoodsTimeoutError("Neighbourhoods query timeout"));
-          }, 10000);
-        });
-
-        const queryPromise = supabase
-          .from("neighbourhoods")
-          .select("*")
-          .eq("city", city)
-          .order("name");
-
-        const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
-
-        if (error) {
-          console.error("[useNeighbourhoods] Supabase error:", error);
-          // Check if it's an auth error
-          if (error.code === "PGRST301" || error.message?.includes("JWT") || error.message?.includes("token")) {
-            throw new Error("Authentication required to load neighbourhoods");
-          }
-          // Check if it's a network error
-          if (error.message?.includes("fetch") || error.message?.includes("network")) {
-            throw new Error("Network error. Please check your connection.");
-          }
-          throw new Error(error.message || "Failed to load neighbourhoods");
-        }
-        
-        console.log('[useNeighbourhoods] Query succeeded, data count:', data?.length);
-        return (data || []) as Neighbourhood[];
-      } catch (err) {
-        console.error("[useNeighbourhoods] Query error:", err);
-        
-        // Re-throw with proper error type
-        if (err instanceof NeighbourhoodsTimeoutError) {
-          throw new NeighbourhoodsTimeoutError("Request timed out. Please check your connection and try again.");
-        }
-        
-        // Re-throw other errors as-is
-        if (err instanceof Error) {
-          throw err;
-        }
-        throw new Error("Unexpected error loading neighbourhoods");
-      }
-    },
-    enabled: !!city,
-    // Prevent unnecessary refetches that cause loading state flicker
-    staleTime: 1000 * 60 * 5, // Data stays fresh for 5 minutes
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: true, // Allow retry on mount if previous attempt failed
-    // Smart retry: don't retry on timeout (network issues won't resolve quickly)
-    retry: (failureCount, error) => {
-      console.log('[useNeighbourhoods] Retry check:', { failureCount, errorType: error?.constructor?.name, errorName: (error as any)?.name, errorMessage: error?.message });
-      
-      // Check error type instead of message (more reliable)
-      if (error instanceof NeighbourhoodsTimeoutError) {
-        console.log('[useNeighbourhoods] Timeout error detected (instanceof), not retrying');
-        return false;
-      }
-      
-      // Check error name property (in case React Query doesn't preserve instance)
-      if (error && typeof error === 'object' && 'name' in error && (error as any).name === 'NeighbourhoodsTimeoutError') {
-        console.log('[useNeighbourhoods] Timeout error detected (name check), not retrying');
-        return false;
-      }
-      
-      // Also check message as fallback
-      if (error instanceof Error && error.message.includes('timeout')) {
-        console.log('[useNeighbourhoods] Timeout in message, not retrying');
-        return false;
-      }
-      
-      console.log('[useNeighbourhoods] Non-timeout error, retrying if attempts < 1');
-      return failureCount < 1; // Retry once for other errors
-    },
-    retryDelay: 1000, // Fixed delay instead of exponential backoff
-    // Add query timeout at React Query level as well
-    gcTime: 1000 * 60 * 5, // Cache time (formerly cacheTime)
-  });
+  const data = city ? NEIGHBOURHOODS[city] : [];
+  
+  return {
+    data,
+    isLoading: false,
+    error: null,
+    refetch: () => Promise.resolve({ data, error: null }),
+  };
 }
 
 export const CITY_CONFIG = {
