@@ -122,18 +122,36 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
     isSubmittingRef.current = true;
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-phone-otp', {
+      console.log('[JoinScreen] Sending OTP to:', phone);
+      
+      // Add timeout to prevent hanging forever
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Request timed out. Please check your connection and try again.")), 15000);
+      });
+      
+      const invokePromise = supabase.functions.invoke('send-phone-otp', {
         body: { phone, action: 'send' }
       });
+      
+      const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
+      
+      console.log('[JoinScreen] OTP response:', { data, error });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error) {
+        console.error('[JoinScreen] Supabase function error:', error);
+        throw new Error(error.message || "Failed to send verification code");
+      }
+      if (data?.error) {
+        console.error('[JoinScreen] OTP service error:', data.error);
+        throw new Error(data.error);
+      }
 
       toast.success("Verification code sent!");
       setStep('otp');
     } catch (error) {
-      console.error("OTP send error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to send verification code");
+      console.error("[JoinScreen] OTP send error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to send verification code";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
