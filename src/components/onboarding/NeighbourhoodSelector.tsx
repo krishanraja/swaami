@@ -1,5 +1,6 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNeighbourhoods, City, CITY_CONFIG } from "@/hooks/useNeighbourhoods";
+import { useQueryClient } from "@tanstack/react-query";
 import { MapPin, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -11,6 +12,7 @@ interface NeighbourhoodSelectorProps {
 
 export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSelectorProps) {
   const { data: neighbourhoods, isLoading, error, refetch } = useNeighbourhoods(city);
+  const queryClient = useQueryClient();
   const config = CITY_CONFIG[city];
 
   // If we have an error but also have cached data, allow selection
@@ -42,11 +44,13 @@ export function NeighbourhoodSelector({ city, value, onChange }: NeighbourhoodSe
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
             <span>
-              {error instanceof Error ? error.message : "Failed to load neighbourhoods"}
+              {error instanceof Error ? error.message : typeof error === 'string' ? error : "Failed to load neighbourhoods"}
             </span>
             <button
-              onClick={() => {
+              onClick={async () => {
                 console.log('[NeighbourhoodSelector] Manual retry triggered');
+                // Invalidate query to reset error state, then refetch
+                await queryClient.invalidateQueries({ queryKey: ["neighbourhoods", city] });
                 refetch();
               }}
               className="text-sm underline hover:no-underline ml-2 font-medium text-destructive"
