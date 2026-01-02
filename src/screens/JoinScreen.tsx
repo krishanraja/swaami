@@ -121,36 +121,76 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
     if (isSubmittingRef.current || loading) return;
     isSubmittingRef.current = true;
     setLoading(true);
+    
+    const requestStartTime = Date.now();
+    
     try {
-      console.log('[JoinScreen] Sending OTP to:', phone);
+      const maskedPhone = phone.length > 6 ? phone.slice(0, 4) + "****" + phone.slice(-2) : "***";
+      console.log('[JoinScreen] Sending OTP to:', maskedPhone, '| Start time:', new Date(requestStartTime).toISOString());
       
-      // Add timeout to prevent hanging forever
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Request timed out. Please check your connection and try again.")), 15000);
+      // Create timeout promise with 30 second timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          const duration = Date.now() - requestStartTime;
+          console.error('[JoinScreen] Request timeout after', duration, 'ms');
+          reject(new Error("TIMEOUT: Request timed out after 30 seconds. The verification service may be slow. Please try again."));
+        }, 30000);
       });
       
+      // Create the actual invoke promise
       const invokePromise = supabase.functions.invoke('send-phone-otp', {
         body: { phone, action: 'send' }
       });
       
+      // Race between the invoke and timeout
       const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
       
-      console.log('[JoinScreen] OTP response:', { data, error });
+      const duration = Date.now() - requestStartTime;
+      console.log('[JoinScreen] OTP response received:', { 
+        duration: `${duration}ms`,
+        hasData: !!data,
+        hasError: !!error,
+        timestamp: new Date().toISOString()
+      });
 
       if (error) {
+        // Check if error is due to timeout
+        if (error.message?.includes('TIMEOUT') || error.message?.includes('timed out')) {
+          console.error('[JoinScreen] Request timed out after', duration, 'ms');
+          throw new Error("Request timed out. The verification service may be slow. Please try again.");
+        }
         console.error('[JoinScreen] Supabase function error:', error);
         throw new Error(error.message || "Failed to send verification code");
       }
+      
       if (data?.error) {
         console.error('[JoinScreen] OTP service error:', data.error);
         throw new Error(data.error);
       }
 
+      console.log('[JoinScreen] OTP sent successfully in', duration, 'ms');
       toast.success("Verification code sent!");
       setStep('otp');
     } catch (error) {
-      console.error("[JoinScreen] OTP send error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to send verification code";
+      const duration = Date.now() - requestStartTime;
+      
+      // Determine error type for better user messaging
+      let errorMessage = "Failed to send verification code";
+      if (error instanceof Error) {
+        if (error.message.includes('TIMEOUT') || error.message.includes('timed out')) {
+          errorMessage = "Request timed out. Please check your connection and try again.";
+          console.error("[JoinScreen] OTP send timeout after", duration, "ms");
+        } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
+          errorMessage = "Network error. Please check your connection and try again.";
+          console.error("[JoinScreen] OTP send network error:", error.message);
+        } else {
+          errorMessage = error.message;
+          console.error("[JoinScreen] OTP send error:", error.message);
+        }
+      } else {
+        console.error("[JoinScreen] OTP send unknown error:", error);
+      }
+      
       toast.error(errorMessage);
     } finally {
       setLoading(false);

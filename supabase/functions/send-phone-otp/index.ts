@@ -62,6 +62,7 @@ async function sendViaTwilio(
   channel: "sms" | "whatsapp",
   requestId: string
 ): Promise<{ success: boolean; error?: string }> {
+  const twilioStartTime = Date.now();
   const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
   const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
   const fromNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
@@ -93,9 +94,17 @@ async function sendViaTwilio(
     channel,
     to: maskPhone(phone),
     fromPrefix: fromAddr.slice(0, 12),
+    timestamp: new Date(twilioStartTime).toISOString(),
   });
 
+  // Create AbortController for timeout
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => {
+    abortController.abort();
+  }, 20000); // 20 second timeout for Twilio API call
+
   try {
+    const fetchStartTime = Date.now();
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -107,13 +116,20 @@ async function sendViaTwilio(
         From: fromAddr,
         Body: message,
       }),
+      signal: abortController.signal,
     });
 
+    clearTimeout(timeoutId);
+    const fetchDuration = Date.now() - fetchStartTime;
+    
     const responseText = await response.text();
+    const totalDuration = Date.now() - twilioStartTime;
 
     log(requestId, "DEBUG", "TWILIO_RESPONSE", {
       status: response.status,
       ok: response.ok,
+      fetchDurationMs: fetchDuration,
+      totalDurationMs: totalDuration,
       bodyPreview: responseText.slice(0, 200),
     });
 
@@ -128,9 +144,13 @@ async function sendViaTwilio(
           code: errorJson.code,
           message: errorJson.message,
           moreInfo: errorJson.more_info,
+          durationMs: totalDuration,
         });
       } catch {
-        log(requestId, "ERROR", "TWILIO_API_ERROR", { rawError: responseText.slice(0, 200) });
+        log(requestId, "ERROR", "TWILIO_API_ERROR", { 
+          rawError: responseText.slice(0, 200),
+          durationMs: totalDuration,
+        });
       }
       
       return { success: false, error: twilioError };
@@ -139,13 +159,30 @@ async function sendViaTwilio(
     log(requestId, "INFO", "TWILIO_SEND_SUCCESS", {
       channel,
       to: maskPhone(phone),
+      durationMs: totalDuration,
     });
 
     return { success: true };
 
   } catch (error) {
+    clearTimeout(timeoutId);
+    const totalDuration = Date.now() - twilioStartTime;
+    
+    // Check if error is due to timeout
+    if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('aborted'))) {
+      log(requestId, "ERROR", "TWILIO_TIMEOUT", {
+        error: "Twilio API call timed out after 20 seconds",
+        durationMs: totalDuration,
+        to: maskPhone(phone),
+      });
+      return { success: false, error: "Twilio API request timed out. Please try again." };
+    }
+    
     const message = error instanceof Error ? error.message : "Unknown Twilio error";
-    log(requestId, "ERROR", "TWILIO_EXCEPTION", { error: message });
+    log(requestId, "ERROR", "TWILIO_EXCEPTION", { 
+      error: message,
+      durationMs: totalDuration,
+    });
     return { success: false, error: message };
   }
 }
@@ -203,9 +240,11 @@ const handler = async (req: Request): Promise<Response> => {
     // ACTION: SEND OTP
     // ========================================================================
     if (action === "send") {
+      const sendActionStartTime = Date.now();
       log(requestId, "INFO", "ACTION_SEND_START", {
         phone: maskPhone(phone),
         channel,
+        timestamp: new Date(sendActionStartTime).toISOString(),
       });
 
       // Generate OTP
@@ -213,12 +252,18 @@ const handler = async (req: Request): Promise<Response> => {
       const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes expiry
       
       // Delete any existing OTPs for this phone first
+      const deleteStartTime = Date.now();
       await supabase
         .from('otp_verifications')
         .delete()
         .eq('phone', phone);
+      const deleteDuration = Date.now() - deleteStartTime;
+      log(requestId, "DEBUG", "OTP_DELETE_EXISTING", {
+        durationMs: deleteDuration,
+      });
       
       // Store OTP in database
+      const insertStartTime = Date.now();
       const { error: insertError } = await supabase
         .from('otp_verifications')
         .insert({
@@ -227,9 +272,13 @@ const handler = async (req: Request): Promise<Response> => {
           channel,
           expires_at: expiresAt,
         });
+      const insertDuration = Date.now() - insertStartTime;
 
       if (insertError) {
-        log(requestId, "ERROR", "OTP_STORE_FAILED", { error: insertError.message });
+        log(requestId, "ERROR", "OTP_STORE_FAILED", { 
+          error: insertError.message,
+          durationMs: insertDuration,
+        });
         return createErrorResponse(
           new Error("Failed to generate verification code"),
           500,
@@ -240,17 +289,22 @@ const handler = async (req: Request): Promise<Response> => {
       log(requestId, "DEBUG", "OTP_STORED", {
         expiresAt,
         channel,
+        durationMs: insertDuration,
       });
 
       // Send via selected channel
       const message = `Your Swaami verification code is: ${otp}. Valid for 5 minutes.`;
+      const sendStartTime = Date.now();
       const sendResult = await sendViaTwilio(phone, message, channel, requestId);
+      const sendDuration = Date.now() - sendStartTime;
 
       if (!sendResult.success) {
         log(requestId, "ERROR", "SEND_FAILED", {
           phone: maskPhone(phone),
           channel,
           error: sendResult.error,
+          sendDurationMs: sendDuration,
+          totalDurationMs: Date.now() - sendActionStartTime,
         });
 
         // Clean up stored OTP on failure
@@ -266,11 +320,14 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      const duration = Date.now() - startTime;
+      const totalDuration = Date.now() - startTime;
+      const actionDuration = Date.now() - sendActionStartTime;
       log(requestId, "INFO", "SEND_SUCCESS", {
         phone: maskPhone(phone),
         channel,
-        durationMs: duration,
+        sendDurationMs: sendDuration,
+        actionDurationMs: actionDuration,
+        totalDurationMs: totalDuration,
       });
       
       return createSuccessResponse(
