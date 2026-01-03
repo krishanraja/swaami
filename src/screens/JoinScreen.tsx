@@ -128,21 +128,35 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
       const maskedPhone = phone.length > 6 ? phone.slice(0, 4) + "****" + phone.slice(-2) : "***";
       console.log('[JoinScreen] Sending OTP to:', maskedPhone, '| Start time:', new Date(requestStartTime).toISOString());
       
-      // Get current session for auth token
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get auth token from localStorage directly to avoid supabase client hanging
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const projectId = supabaseUrl?.split('//')[1]?.split('.')[0] || '';
+      
+      let accessToken = supabaseKey;
+      try {
+        const storedSession = localStorage.getItem(`sb-${projectId}-auth-token`);
+        if (storedSession) {
+          const parsed = JSON.parse(storedSession);
+          if (parsed?.access_token) {
+            accessToken = parsed.access_token;
+          }
+        }
+      } catch (e) {
+        console.log('[JoinScreen] Using apikey for auth (no stored session)');
+      }
+      
+      console.log('[JoinScreen] Making fetch request to:', `${supabaseUrl}/functions/v1/send-phone-otp`);
       
       // Use direct fetch instead of supabase.functions.invoke to avoid hanging issues
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
       
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
       const response = await fetch(`${supabaseUrl}/functions/v1/send-phone-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
+          'Authorization': `Bearer ${accessToken}`,
           'apikey': supabaseKey,
         },
         body: JSON.stringify({ phone, action: 'send' }),
@@ -211,21 +225,33 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
     isSubmittingRef.current = true;
     setLoading(true);
     try {
-      // Get current session for auth token
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get auth token from localStorage directly to avoid supabase client hanging
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const projectId = supabaseUrl?.split('//')[1]?.split('.')[0] || '';
+      
+      let accessToken = supabaseKey;
+      try {
+        const storedSession = localStorage.getItem(`sb-${projectId}-auth-token`);
+        if (storedSession) {
+          const parsed = JSON.parse(storedSession);
+          if (parsed?.access_token) {
+            accessToken = parsed.access_token;
+          }
+        }
+      } catch (e) {
+        console.log('[JoinScreen] Using apikey for auth (no stored session)');
+      }
       
       // Use direct fetch instead of supabase.functions.invoke to avoid hanging issues
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
       
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
       const response = await fetch(`${supabaseUrl}/functions/v1/send-phone-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
+          'Authorization': `Bearer ${accessToken}`,
           'apikey': supabaseKey,
         },
         body: JSON.stringify({ phone, action: 'verify', code: otp }),

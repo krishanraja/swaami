@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { PhoneInput, isValidPhone } from "@/components/onboarding/PhoneInput";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Smartphone, MessageCircle, Loader2 } from "lucide-react";
 import type { City } from "@/hooks/useNeighbourhoods";
@@ -39,21 +37,33 @@ export function PhoneVerification({ city, onVerified, onCancel }: PhoneVerificat
 
     setLoading(true);
     try {
-      // Get current session for auth token
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get auth token from localStorage directly to avoid supabase client hanging
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const projectId = supabaseUrl?.split('//')[1]?.split('.')[0] || '';
+      
+      let accessToken = supabaseKey;
+      try {
+        const storedSession = localStorage.getItem(`sb-${projectId}-auth-token`);
+        if (storedSession) {
+          const parsed = JSON.parse(storedSession);
+          if (parsed?.access_token) {
+            accessToken = parsed.access_token;
+          }
+        }
+      } catch (e) {
+        console.log('[PhoneVerification] Using apikey for auth (no stored session)');
+      }
       
       // Use direct fetch instead of supabase.functions.invoke to avoid hanging issues
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
       
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
       const response = await fetch(`${supabaseUrl}/functions/v1/send-phone-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
+          'Authorization': `Bearer ${accessToken}`,
           'apikey': supabaseKey,
         },
         body: JSON.stringify({ phone, action: 'send', channel }),
@@ -88,21 +98,33 @@ export function PhoneVerification({ city, onVerified, onCancel }: PhoneVerificat
 
     setLoading(true);
     try {
-      // Get current session for auth token
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get auth token from localStorage directly to avoid supabase client hanging
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const projectId = supabaseUrl?.split('//')[1]?.split('.')[0] || '';
+      
+      let accessToken = supabaseKey;
+      try {
+        const storedSession = localStorage.getItem(`sb-${projectId}-auth-token`);
+        if (storedSession) {
+          const parsed = JSON.parse(storedSession);
+          if (parsed?.access_token) {
+            accessToken = parsed.access_token;
+          }
+        }
+      } catch (e) {
+        console.log('[PhoneVerification] Using apikey for auth (no stored session)');
+      }
       
       // Use direct fetch instead of supabase.functions.invoke to avoid hanging issues
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000);
       
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
       const response = await fetch(`${supabaseUrl}/functions/v1/send-phone-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
+          'Authorization': `Bearer ${accessToken}`,
           'apikey': supabaseKey,
         },
         body: JSON.stringify({ phone, action: 'verify', otp }),
