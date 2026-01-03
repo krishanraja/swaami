@@ -128,39 +128,42 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
       const maskedPhone = phone.length > 6 ? phone.slice(0, 4) + "****" + phone.slice(-2) : "***";
       console.log('[JoinScreen] Sending OTP to:', maskedPhone, '| Start time:', new Date(requestStartTime).toISOString());
       
-      // Create timeout promise with 30 second timeout
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          const duration = Date.now() - requestStartTime;
-          console.error('[JoinScreen] Request timeout after', duration, 'ms');
-          reject(new Error("TIMEOUT: Request timed out after 30 seconds. The verification service may be slow. Please try again."));
-        }, 30000);
+      // Get current session for auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Use direct fetch instead of supabase.functions.invoke to avoid hanging issues
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-phone-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({ phone, action: 'send' }),
+        signal: controller.signal,
       });
       
-      // Create the actual invoke promise
-      const invokePromise = supabase.functions.invoke('send-phone-otp', {
-        body: { phone, action: 'send' }
-      });
-      
-      // Race between the invoke and timeout
-      const { data, error } = await Promise.race([invokePromise, timeoutPromise]) as any;
+      clearTimeout(timeoutId);
       
       const duration = Date.now() - requestStartTime;
+      const data = await response.json();
+      
       console.log('[JoinScreen] OTP response received:', { 
         duration: `${duration}ms`,
+        status: response.status,
         hasData: !!data,
-        hasError: !!error,
         timestamp: new Date().toISOString()
       });
 
-      if (error) {
-        // Check if error is due to timeout
-        if (error.message?.includes('TIMEOUT') || error.message?.includes('timed out')) {
-          console.error('[JoinScreen] Request timed out after', duration, 'ms');
-          throw new Error("Request timed out. The verification service may be slow. Please try again.");
-        }
-        console.error('[JoinScreen] Supabase function error:', error);
-        throw new Error(error.message || "Failed to send verification code");
+      if (!response.ok) {
+        console.error('[JoinScreen] OTP service error:', data.error);
+        throw new Error(data.error || "Failed to send verification code");
       }
       
       if (data?.error) {
@@ -177,7 +180,7 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
       // Determine error type for better user messaging
       let errorMessage = "Failed to send verification code";
       if (error instanceof Error) {
-        if (error.message.includes('TIMEOUT') || error.message.includes('timed out')) {
+        if (error.name === 'AbortError' || error.message.includes('aborted')) {
           errorMessage = "Request timed out. Please check your connection and try again.";
           console.error("[JoinScreen] OTP send timeout after", duration, "ms");
         } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
@@ -208,11 +211,31 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
     isSubmittingRef.current = true;
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-phone-otp', {
-        body: { phone, action: 'verify', code: otp }
+      // Get current session for auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Use direct fetch instead of supabase.functions.invoke to avoid hanging issues
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-phone-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({ phone, action: 'verify', code: otp }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
+      const data = await response.json();
 
-      if (error) throw error;
+      if (!response.ok) throw new Error(data.error || "Verification failed");
       if (data?.error) throw new Error(data.error);
 
       if (data?.verified) {

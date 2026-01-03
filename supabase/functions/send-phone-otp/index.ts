@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import {
   createSupabaseClient,
-  corsHeaders,
+  getCorsHeaders,
   createErrorResponse,
   createSuccessResponse,
 } from "../_shared/supabase.ts";
@@ -194,16 +194,21 @@ async function sendViaTwilio(
 const handler = async (req: Request): Promise<Response> => {
   const requestId = crypto.randomUUID().slice(0, 8);
   const startTime = Date.now();
+  
+  // Get dynamic CORS headers based on request origin
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
 
   // CORS preflight
   if (req.method === "OPTIONS") {
-    log(requestId, "DEBUG", "CORS preflight request");
+    log(requestId, "DEBUG", "CORS preflight request", { origin });
     return new Response(null, { headers: corsHeaders });
   }
 
   log(requestId, "INFO", "REQUEST_START", {
     method: req.method,
     url: req.url,
+    origin,
   });
 
   try {

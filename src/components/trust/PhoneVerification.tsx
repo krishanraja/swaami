@@ -39,11 +39,31 @@ export function PhoneVerification({ city, onVerified, onCancel }: PhoneVerificat
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-phone-otp', {
-        body: { phone, action: 'send', channel }
+      // Get current session for auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Use direct fetch instead of supabase.functions.invoke to avoid hanging issues
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-phone-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({ phone, action: 'send', channel }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
+      const data = await response.json();
 
-      if (error) throw error;
+      if (!response.ok) throw new Error(data.error || 'Failed to send OTP');
       if (!data.success) throw new Error(data.error || 'Failed to send OTP');
 
       setStep('otp');
@@ -68,11 +88,31 @@ export function PhoneVerification({ city, onVerified, onCancel }: PhoneVerificat
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-phone-otp', {
-        body: { phone, action: 'verify', otp }
+      // Get current session for auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Use direct fetch instead of supabase.functions.invoke to avoid hanging issues
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-phone-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || supabaseKey}`,
+          'apikey': supabaseKey,
+        },
+        body: JSON.stringify({ phone, action: 'verify', otp }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
+      const data = await response.json();
 
-      if (error) throw error;
+      if (!response.ok) throw new Error(data.error || 'Verification failed');
       if (!data.verified) throw new Error(data.error || 'Verification failed');
 
       toast({

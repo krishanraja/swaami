@@ -249,3 +249,8 @@ Query executes:
 - [ ] refetchOnMount behavior verified
 - [ ] Mobile touch events working (if CSS issue)
 
+
+
+
+
+
