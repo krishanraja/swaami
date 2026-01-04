@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { withTimeout, TIMEOUT_MS } from "@/lib/timeout";
 
 export interface Profile {
   id: string;
@@ -32,7 +33,7 @@ interface AuthContextType {
   isLoading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  refreshSession: () => Promise<void>;
+  refreshSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,27 +49,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileLoading(true);
     
     try {
-      // Increased timeout to 20 seconds for slow connections
-      const profilePromise = supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
+      // Use proper timeout that actually rejects if request hangs
+      const result = await withTimeout(
+        supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", userId)
+          .single(),
+        TIMEOUT_MS.NORMAL,
+        "Profile fetch timed out"
+      );
 
-      // Set a timeout to stop blocking UI, but let request continue
-      const timeoutId = setTimeout(() => {
-        // Stop blocking UI after 3 seconds, but let request continue
-        setProfileLoading(false);
-      }, 3000);
-
-      const { data, error } = await profilePromise;
-      clearTimeout(timeoutId);
-
-      if (error) {
-        console.error("Error fetching profile:", error);
+      if (result.error) {
+        console.error("Error fetching profile:", result.error);
         setProfile(null);
       } else {
-        setProfile(data);
+        setProfile(result.data);
       }
     } catch (err) {
       console.error("Profile fetch error:", err);
@@ -84,61 +80,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initAuth = async () => {
       try {
-        // Increased timeout to 15 seconds for slow connections
-        const sessionPromise = supabase.auth.getSession();
+        // Use proper timeout that actually rejects
+        const { data, error } = await withTimeout(
+          supabase.auth.getSession(),
+          TIMEOUT_MS.NORMAL,
+          "Auth session fetch timed out"
+        );
         
-        // Create a timeout that allows UI to become interactive
-        let timeoutFired = false;
-        const timeoutId = setTimeout(() => {
-          timeoutFired = true;
-          // Allow UI to become interactive even if request is still pending
-          if (mounted) {
-            initCompleted = true;
-            setAuthLoading(false);
-            // Assume unauthenticated for now, will update when request completes
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-          }
-        }, 3000); // Show UI as interactive after 3 seconds, even if request pending
-
-        try {
-          const { data, error } = await sessionPromise;
-          clearTimeout(timeoutId);
-          
-          if (error) {
-            console.error('Auth session error:', error);
-          }
-          
-          const initialSession = data?.session;
-          
-          if (!mounted) return;
-          
-          // Update state even if timeout already fired
-          setSession(initialSession ?? null);
-          setUser(initialSession?.user ?? null);
-          
-          if (initialSession?.user) {
-            await fetchProfile(initialSession.user.id);
-          } else if (!timeoutFired) {
-            // Only set loading to false if timeout didn't already fire
-            initCompleted = true;
-            setAuthLoading(false);
-          }
-        } catch (err) {
-          clearTimeout(timeoutId);
-          console.error("Auth init error:", err);
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-            initCompleted = true;
-            setAuthLoading(false);
-          }
+        if (error) {
+          console.error('Auth session error:', error);
         }
+        
+        const initialSession = data?.session;
+        
+        if (!mounted) return;
+        
+        setSession(initialSession ?? null);
+        setUser(initialSession?.user ?? null);
+        
+        if (initialSession?.user) {
+          await fetchProfile(initialSession.user.id);
+        }
+        
+        initCompleted = true;
+        setAuthLoading(false);
       } catch (err) {
         console.error("Auth init error:", err);
-        // On error, assume unauthenticated
+        // On error or timeout, assume unauthenticated
         if (mounted) {
           setSession(null);
           setUser(null);

@@ -10,7 +10,8 @@ import { PhoneInput, isValidPhone } from "@/components/onboarding/PhoneInput";
 import { SKILLS } from "@/types/swaami";
 import { City } from "@/hooks/useNeighbourhoods";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, CheckCircle, ArrowLeft, Shield, MapPin, Heart, Gift } from "lucide-react";
+import { withTimeout, TimeoutError, TIMEOUT_MS } from "@/lib/timeout";
+import { Loader2, CheckCircle, ArrowLeft, Shield, MapPin, Heart, Gift, AlertCircle, RefreshCw } from "lucide-react";
 import swaamiIcon from "@/assets/swaami-icon.png";
 
 interface JoinScreenProps {
@@ -46,6 +47,7 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [availability, setAvailability] = useState<'now' | 'later' | 'this-week'>('now');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const isSubmittingRef = useRef(false);
   const hasRestoredRef = useRef(false);
@@ -59,14 +61,56 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
       const saved = localStorage.getItem(ONBOARDING_STORAGE_KEY);
       if (saved) {
         const progress: OnboardingProgress = JSON.parse(saved);
-        setStep(progress.step);
-        setCity(progress.city);
+        
+        // Validate city is a valid value
+        const validCities: City[] = ['sydney', 'new_york'];
+        const validatedCity = progress.city && validCities.includes(progress.city) 
+          ? progress.city 
+          : null;
+        
+        // Validate step is a valid value
+        const validSteps: Step[] = ['welcome', 'location', 'phone', 'otp', 'preferences'];
+        const validatedStep = progress.step && validSteps.includes(progress.step)
+          ? progress.step
+          : 'welcome';
+        
+        // Validate availability
+        const validAvailability: Array<'now' | 'later' | 'this-week'> = ['now', 'later', 'this-week'];
+        const validatedAvailability = progress.availability && validAvailability.includes(progress.availability)
+          ? progress.availability
+          : 'now';
+        
+        // Validate phoneVerified is consistent with phone
+        const validatedPhoneVerified = progress.phoneVerified && progress.phone 
+          ? progress.phoneVerified 
+          : false;
+        
+        // If phoneVerified but no phone, something is wrong - reset to phone step
+        const finalStep = validatedPhoneVerified && !progress.phone 
+          ? 'phone' 
+          : validatedStep;
+        
+        // If on preferences step but not phoneVerified, go back to phone
+        const safeStep = finalStep === 'preferences' && !validatedPhoneVerified
+          ? 'phone'
+          : finalStep;
+        
+        console.log('[JoinScreen] Restored progress:', {
+          step: safeStep,
+          city: validatedCity,
+          phoneVerified: validatedPhoneVerified,
+          hasPhone: !!progress.phone,
+          skills: progress.selectedSkills?.length || 0
+        });
+        
+        setStep(safeStep);
+        setCity(validatedCity);
         setNeighbourhood(progress.neighbourhood || '');
         setPhone(progress.phone || '');
         setRadius(progress.radius || 500);
-        setSelectedSkills(progress.selectedSkills || []);
-        setAvailability(progress.availability || 'now');
-        setPhoneVerified(progress.phoneVerified || false);
+        setSelectedSkills(Array.isArray(progress.selectedSkills) ? progress.selectedSkills : []);
+        setAvailability(validatedAvailability);
+        setPhoneVerified(validatedPhoneVerified);
       }
     } catch (error) {
       console.error("Failed to restore onboarding progress:", error);
@@ -287,39 +331,27 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
     if (isSubmittingRef.current || loading) return;
     isSubmittingRef.current = true;
     setLoading(true);
+    setError(null);
     
     const requestStartTime = Date.now();
     console.log('[JoinScreen] handleComplete started at:', new Date(requestStartTime).toISOString());
     
     try {
-      // Get user with timeout protection
-      const userController = new AbortController();
-      const userTimeoutId = setTimeout(() => userController.abort(), 15000);
+      // Get user with proper timeout that actually rejects
+      const { data: userData } = await withTimeout(
+        supabase.auth.getUser(),
+        TIMEOUT_MS.NORMAL,
+        "Request timed out getting user. Please try again."
+      );
       
-      let user;
-      try {
-        const { data } = await supabase.auth.getUser();
-        user = data?.user;
-        clearTimeout(userTimeoutId);
-      } catch (e) {
-        clearTimeout(userTimeoutId);
-        if (e instanceof Error && e.name === 'AbortError') {
-          throw new Error("Request timed out getting user. Please try again.");
-        }
-        throw e;
-      }
-      
-      if (!user) throw new Error("Not authenticated");
+      const user = userData?.user;
+      if (!user) throw new Error("Not authenticated. Please sign in again.");
       
       console.log('[JoinScreen] Got user, updating profile...');
 
-      // Update profile with timeout protection (using select to verify data saved)
-      const updateController = new AbortController();
-      const updateTimeoutId = setTimeout(() => updateController.abort(), 15000);
-      
-      let updatedProfile;
-      try {
-        const { data, error } = await supabase
+      // Update profile with proper timeout
+      const updateResult = await withTimeout(
+        supabase
           .from('profiles')
           .update({
             city,
@@ -331,21 +363,17 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
           })
           .eq('user_id', user.id)
           .select()
-          .single();
+          .single(),
+        TIMEOUT_MS.NORMAL,
+        "Profile update timed out. Please try again."
+      );
 
-        clearTimeout(updateTimeoutId);
-        
-        if (error) throw error;
-        if (!data) throw new Error("Profile update returned no data");
-        
-        updatedProfile = data;
-      } catch (e) {
-        clearTimeout(updateTimeoutId);
-        if (e instanceof Error && e.name === 'AbortError') {
-          throw new Error("Profile update timed out. Please try again.");
-        }
-        throw e;
+      if (updateResult.error) {
+        console.error('[JoinScreen] Profile update error:', updateResult.error);
+        throw new Error(updateResult.error.message || "Failed to update profile");
       }
+      const updatedProfile = updateResult.data;
+      if (!updatedProfile) throw new Error("Profile update returned no data");
       
       console.log('[JoinScreen] Profile updated successfully:', {
         city: updatedProfile.city,
@@ -370,17 +398,34 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
         throw new Error("Profile is still incomplete. Please fill in all required fields.");
       }
 
-      // Refresh profile context to ensure authState updates
-      await refetchProfile();
+      // Refresh profile context with proper timeout to ensure authState updates
+      await withTimeout(
+        refetchProfile(),
+        TIMEOUT_MS.NORMAL,
+        "Profile refresh timed out. Your profile was saved - please refresh the page."
+      );
       
       const duration = Date.now() - requestStartTime;
       console.log('[JoinScreen] handleComplete succeeded in', duration, 'ms');
       
       clearProgress();
       onComplete();
-    } catch (error) {
+    } catch (err) {
       const duration = Date.now() - requestStartTime;
-      console.error("[JoinScreen] Profile update error after", duration, "ms:", error);
+      
+      // Extract user-friendly error message
+      let errorMessage = "Something went wrong. Please try again.";
+      if (err instanceof TimeoutError) {
+        errorMessage = err.message;
+        console.error("[JoinScreen] Timeout error after", duration, "ms:", err.message);
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+        console.error("[JoinScreen] Profile update error after", duration, "ms:", err.message);
+      } else {
+        console.error("[JoinScreen] Unknown error after", duration, "ms:", err);
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
@@ -598,6 +643,28 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
                   Set your preferences
                 </p>
               </div>
+              
+              {/* Error banner */}
+              {error && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-destructive font-medium">Something went wrong</p>
+                    <p className="text-sm text-destructive/80 mt-1">{error}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setError(null)}
+                    className="text-destructive/60 hover:text-destructive shrink-0"
+                  >
+                    <span className="sr-only">Dismiss</span>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+              
               <div className="bg-card rounded-2xl p-6 border border-border space-y-6">
                 <div>
                   <p className="text-sm font-medium text-foreground mb-3">How far will you go to help?</p>
@@ -634,6 +701,11 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       Saving...
+                    </>
+                  ) : error ? (
+                    <>
+                      <RefreshCw className="h-5 w-5 mr-2" />
+                      Try Again
                     </>
                   ) : (
                     <>
