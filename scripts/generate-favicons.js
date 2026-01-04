@@ -1,4 +1,5 @@
 // Script to generate all required favicon sizes from the main favicon.png
+// NOTE: Run `pnpm add -D sharp` first if sharp is not installed
 import sharp from 'sharp';
 import path from 'path';
 import { fileURLToPath } from 'url';
