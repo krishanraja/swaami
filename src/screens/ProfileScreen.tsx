@@ -22,7 +22,6 @@ import { NeedCard } from "@/components/NeedCard";
 import { CitySelector } from "@/components/onboarding/CitySelector";
 import { NeighbourhoodSelector } from "@/components/onboarding/NeighbourhoodSelector";
 import { CITY_CONFIG, type City } from "@/hooks/useNeighbourhoods";
-import { toast } from "sonner";
 
 interface ProfileScreenProps {
   onLogout: () => void;
@@ -102,9 +101,8 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const handleSaveRadius = async () => {
     const { error } = await updateProfile({ radius: tempRadius });
     if (error) {
-      toast.error("Couldn't update radius");
+      console.error("[ProfileScreen] Couldn't update radius:", error);
     } else {
-      toast.success("Radius updated!");
       setEditingRadius(false);
     }
   };
@@ -112,9 +110,8 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const handleSaveAvailability = async () => {
     const { error } = await updateProfile({ availability: tempAvailability });
     if (error) {
-      toast.error("Couldn't update availability");
+      console.error("[ProfileScreen] Couldn't update availability:", error);
     } else {
-      toast.success("Availability updated!");
       setEditingAvailability(false);
     }
   };
@@ -130,23 +127,21 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const handleSaveSkills = async () => {
     const { error } = await updateProfile({ skills: tempSkills });
     if (error) {
-      toast.error("Couldn't update skills");
+      console.error("[ProfileScreen] Couldn't update skills:", error);
     } else {
-      toast.success("Skills updated!");
       setEditingSkills(false);
     }
   };
 
   const handleSaveLocation = async () => {
     if (!tempCity || !tempNeighbourhood) {
-      toast.error("Please select both city and suburb");
+      console.error("[ProfileScreen] Please select both city and suburb");
       return;
     }
     const { error } = await updateProfile({ city: tempCity, neighbourhood: tempNeighbourhood });
     if (error) {
-      toast.error("Couldn't update location");
+      console.error("[ProfileScreen] Couldn't update location:", error);
     } else {
-      toast.success("Location updated!");
       setEditingLocation(false);
     }
   };
@@ -156,7 +151,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
     try {
       await startCheckout();
     } catch (err) {
-      toast.error("Couldn't start checkout");
+      console.error("[ProfileScreen] Couldn't start checkout:", err);
     } finally {
       setUpgradeLoading(false);
     }
@@ -166,7 +161,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
     try {
       await openCustomerPortal();
     } catch (err) {
-      toast.error("Couldn't open subscription management");
+      console.error("[ProfileScreen] Couldn't open subscription management:", err);
     }
   };
 
@@ -649,14 +644,14 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
                   onCancel={async (taskId) => {
                     const { error } = await cancelTask(taskId);
                     if (error) {
-                      toast.error("Couldn't cancel request");
+                      console.error("[ProfileScreen] Couldn't cancel request:", error);
                     } else {
-                      toast.success("Request cancelled");
+                      console.log("[ProfileScreen] Request cancelled");
                     }
                   }}
                   onView={(taskId) => {
                     // Navigate to chat if matched, otherwise just show info
-                    toast.info("Viewing task details coming soon");
+                    console.log("[ProfileScreen] Viewing task details:", taskId);
                   }}
                 />
               ))}

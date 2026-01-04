@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { useMessages } from "@/hooks/useMessages";
 import { useMatches } from "@/hooks/useMatches";
 import { useProfile } from "@/hooks/useProfile";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeText } from "@/lib/validation";
 
@@ -35,7 +34,7 @@ export function ChatScreen() {
     // Timeout after 5 seconds if still loading and no match
     const timeout = setTimeout(() => {
       if (!loading && !match && matches.length > 0) {
-        toast.error("Chat not found");
+        console.error("[ChatScreen] Chat not found");
         navigate("/app");
       }
     }, 5000);
@@ -46,7 +45,7 @@ export function ChatScreen() {
   // Also check after matches load
   useEffect(() => {
     if (!matchesLoading && matches.length > 0 && !match && matchId) {
-      toast.error("Chat not found");
+      console.error("[ChatScreen] Chat not found");
       navigate("/app");
     }
   }, [matchesLoading, matches, match, matchId, navigate]);
@@ -63,7 +62,7 @@ export function ChatScreen() {
     const sanitizedMessage = sanitizeText(newMessage.trim());
     const { error } = await sendMessage(sanitizedMessage);
     if (error) {
-      toast.error("Failed to send message");
+      console.error("[ChatScreen] Failed to send message:", error);
     } else {
       setNewMessage("");
     }
@@ -75,13 +74,13 @@ export function ChatScreen() {
 
     const { error } = await updateMatchStatus(matchId, status);
     if (error) {
-      toast.error("Failed to update status");
+      console.error("[ChatScreen] Failed to update status:", error);
       return;
     }
 
-    // Only show success if update actually succeeded
+    // Only log success if update actually succeeded
     if (status === "arrived") {
-      toast.success("You've marked yourself as arrived!");
+      console.log("[ChatScreen] Marked as arrived");
     } else if (status === "completed") {
       // Update task status and verify it succeeded
       if (match?.task_id) {
@@ -91,11 +90,11 @@ export function ChatScreen() {
           .eq("id", match.task_id);
         
         if (taskError) {
-          toast.error("Failed to complete task");
+          console.error("[ChatScreen] Failed to complete task:", taskError);
           return;
         }
       }
-      toast.success("Task completed! Great job helping out! 🎉");
+      console.log("[ChatScreen] Task completed!");
     }
   };
 

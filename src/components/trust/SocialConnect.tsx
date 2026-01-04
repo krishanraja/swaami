@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +11,6 @@ interface SocialConnectProps {
 
 export function SocialConnect({ connectedProviders, onConnected }: SocialConnectProps) {
   const [loading, setLoading] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const handleConnect = async (provider: 'google' | 'apple') => {
     setLoading(provider);
@@ -27,12 +25,7 @@ export function SocialConnect({ connectedProviders, onConnected }: SocialConnect
 
       if (error) throw error;
     } catch (error) {
-      console.error('Social connect error:', error);
-      toast({
-        title: "Connection failed",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
+      console.error('[SocialConnect] Connection error:', error);
       setLoading(null);
     }
   };

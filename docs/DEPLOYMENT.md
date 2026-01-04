@@ -1,5 +1,7 @@
 # Swaami Deployment Guide
 
+**Last Updated**: January 3, 2025
+
 ## Overview
 
 Swaami is deployed on Vercel for the frontend and uses Supabase for backend services (database, auth, storage, and edge functions).

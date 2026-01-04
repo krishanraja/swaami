@@ -11,6 +11,7 @@ Build stronger communities by connecting neighbours who need help with those who
 - **Real-time Matching** - Instant notifications when someone offers to help
 - **Walking Distance Focus** - 500m default radius keeps it truly local
 - **Credit System** - Help others, earn credits, get help back
+- **Person Details Drawer** - See detailed profiles before committing to help
 
 ## 🛡️ Security & Quality
 
@@ -21,14 +22,17 @@ Build stronger communities by connecting neighbours who need help with those who
 - ✅ Row Level Security on all tables
 - ✅ Accessibility (ARIA) compliant
 - ✅ Offline-aware with graceful degradation
+- ✅ Race condition prevention (atomic operations)
+- ✅ Dead end elimination (loader timeouts)
 
 ## 🏗️ Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS + shadcn/ui
-- **Backend**: Supabase (PostgreSQL + Auth + Realtime)
+- **Backend**: Supabase (PostgreSQL + Auth + Realtime + Edge Functions)
 - **AI**: Google AI (Gemini) / OpenAI
-- **Deployment**: Vercel
+- **Payments**: Stripe
+- **Deployment**: Vercel (frontend) + Supabase (backend)
 
 ## 📁 Project Structure
 
@@ -39,12 +43,19 @@ src/
 │   ├── trust/      # Verification & trust components
 │   └── ui/         # shadcn/ui components
 ├── contexts/       # React contexts (Accessibility)
+├── data/           # Static data (blog posts)
 ├── hooks/          # Custom React hooks
 ├── integrations/   # Supabase client
-├── lib/            # Utilities (logger, validation, safety)
+├── lib/            # Utilities (logger, validation, safety, stateMachine)
 ├── pages/          # Route pages
 ├── screens/        # Main screen components
-└── types/          # TypeScript definitions
+├── types/          # TypeScript definitions
+└── utils/          # Additional utilities
+
+supabase/
+├── functions/      # Edge functions
+├── migrations/     # Database migrations
+└── email-templates/# Email templates
 
 docs/
 ├── ARCHITECTURE.md    # System design & database schema
@@ -52,9 +63,9 @@ docs/
 ├── DESIGN_SYSTEM.md   # Visual design guidelines
 ├── FEATURES.md        # Feature documentation
 ├── HISTORY.md         # Changelog
-├── ICP.md             # Ideal customer profile
 ├── MASTER_INSTRUCTIONS.md  # Development guidelines
-└── PURPOSE.md         # Mission & values
+├── PURPOSE.md         # Mission & values
+└── [...]              # Additional documentation
 ```
 
 ## 🚀 Getting Started
@@ -96,7 +107,16 @@ VITE_SUPABASE_PROJECT_ID=your-project-id
 
 See `.env.example` for the correct format.
 
-Edge function secrets (set in Supabase Dashboard → Edge Functions → Secrets):
+### Edge Function Secrets
+
+Set in Supabase Dashboard → Edge Functions → Secrets:
+
+**Auto-Provided (No Action Needed):**
+- `SUPABASE_URL` - Automatically available
+- `SUPABASE_ANON_KEY` - Automatically available
+- `SUPABASE_SERVICE_ROLE_KEY` - Automatically available
+
+**Manual Configuration Required:**
 - `STRIPE_SECRET_KEY` - For subscription payments (get from Stripe Dashboard → Developers → API keys)
 - `TWILIO_ACCOUNT_SID` - For phone verification
 - `TWILIO_AUTH_TOKEN` - For phone verification
@@ -104,8 +124,6 @@ Edge function secrets (set in Supabase Dashboard → Edge Functions → Secrets)
 - `OPENAI_API_KEY` - Optional, for AI features
 - `GOOGLE_AI_API_KEY` - Optional, for AI features
 - `RESEND_API_KEY` - Optional, for email sending
-
-**Note**: Supabase automatically provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to all edge functions - you don't need to set these manually.
 
 ⚠️ **Security**: Never commit API keys to git. Only set them in Supabase secrets.
 
@@ -124,12 +142,40 @@ See [Email Verification Setup Guide](docs/EMAIL_VERIFICATION_SETUP.md) for detai
 
 See the `/docs` folder for detailed documentation:
 
-- [Architecture](docs/ARCHITECTURE.md) - System design
+### Core Documentation
+- [Architecture](docs/ARCHITECTURE.md) - System design & database schema
 - [Design System](docs/DESIGN_SYSTEM.md) - Visual guidelines
-- [Audit Status](docs/AUDIT_STATUS.md) - Security & quality status
+- [Features](docs/FEATURES.md) - Feature list & status
 - [Purpose](docs/PURPOSE.md) - Mission & values
-- [SEO Strategy](docs/SEO_STRATEGY.md) - Content marketing & SEO plan
-- [Email Verification Setup](docs/EMAIL_VERIFICATION_SETUP.md) - Configure branded verification emails
+- [Master Instructions](docs/MASTER_INSTRUCTIONS.md) - Development guidelines
+
+### Setup & Deployment
+- [Deployment Guide](docs/DEPLOYMENT.md) - Deployment instructions
+- [Environment Setup](docs/ENV_SETUP.md) - Environment configuration
+- [Stripe Setup](docs/STRIPE_SETUP.md) - Payment integration
+- [Email Verification Setup](docs/EMAIL_VERIFICATION_SETUP.md) - Email configuration
+
+### Audit & Status
+- [Audit Status](docs/AUDIT_STATUS.md) - Security & quality status
+- [Audit Summary](docs/AUDIT_SUMMARY.md) - Adversarial audit findings
+- [History](docs/HISTORY.md) - Changelog
+
+### Troubleshooting
+- [Common Issues](docs/COMMON_ISSUES.md) - Troubleshooting guide
+
+## 🔄 Recent Updates
+
+**January 2025:**
+- Fixed neighbourhood dropdown stuck in loading state
+- Fixed authentication error message display
+- Comprehensive documentation update
+
+**December 2024:**
+- Completed adversarial audit (27 failures identified, P0 fixes complete)
+- Added Person Details Drawer for trust building
+- Production readiness achieved
+
+See [HISTORY.md](docs/HISTORY.md) for complete changelog.
 
 ## 🤝 Contributing
 

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AppHeader } from "@/components/AppHeader";
-import { toast } from "sonner";
 import { Sparkles, Check, AlertCircle, Settings, MessageCircleQuestion, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTasks } from "@/hooks/useTasks";
@@ -200,9 +199,7 @@ export function PostScreen() {
 
       // Only show success if task was actually created
       if (createError || !data) {
-        toast.error("Couldn't post your need", {
-          description: createError?.message || "Failed to create task",
-        });
+        console.error("[PostScreen] Couldn't post your need:", createError?.message || "Failed to create task");
         setConfirming(false);
         return;
       }
@@ -214,9 +211,7 @@ export function PostScreen() {
 
       setIsConfirmed(true);
       setShowConfetti(true);
-      toast.success("Done! Your request is live.", {
-        description: "Neighbours nearby will see it soon",
-      });
+      console.log("[PostScreen] Done! Your request is live.");
 
       setTimeout(() => {
         setInput("");
@@ -228,9 +223,7 @@ export function PostScreen() {
         setConfirming(false);
       }, 2000);
     } catch (err) {
-      toast.error("Couldn't post your need", {
-        description: err instanceof Error ? err.message : "An error occurred",
-      });
+      console.error("[PostScreen] Couldn't post your need:", err instanceof Error ? err.message : "An error occurred");
       setConfirming(false);
     }
   };

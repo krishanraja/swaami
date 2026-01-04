@@ -1,5 +1,7 @@
 # Architecture Decision Records (ADR)
 
+**Last Updated**: January 3, 2025
+
 ## ADR-001: Use Lovable Cloud (Supabase) for Backend
 **Date**: 2024-12-11
 **Status**: Accepted
@@ -169,6 +171,94 @@ Implement an expandable person details drawer that opens when tapping on the own
 - ✅ Reduces "leap of faith" anxiety
 - ⚠️ Additional data fetching (skills, member_since) required
 - ⚠️ Drawer animation adds slight interaction delay
+
+---
+
+## ADR-010: Atomic Database Operations for Task Matching
+**Date**: 2024-12-14
+**Status**: Accepted
+
+### Context
+Race condition identified where multiple users could help the same task simultaneously, causing data integrity issues.
+
+### Decision
+Created atomic `help_with_task()` database function that:
+1. Creates match with status "pending"
+2. Updates task status to "matched"
+3. Returns match ID
+All in a single transaction with database constraint preventing multiple active matches.
+
+### Consequences
+- ✅ Race condition eliminated
+- ✅ Data integrity guaranteed at database level
+- ✅ Single network round-trip
+- ⚠️ Requires database migration
+- ⚠️ Error handling must account for constraint violations
+
+---
+
+## ADR-011: State Machine Validation for Status Transitions
+**Date**: 2024-12-14
+**Status**: Accepted
+
+### Context
+Invalid state transitions were possible (e.g., going from "completed" back to "pending"), which could cause undefined behavior.
+
+### Decision
+Created centralized state machine validation library (`src/lib/stateMachine.ts`) that validates all status transitions for tasks and matches.
+
+### Consequences
+- ✅ Invalid transitions prevented
+- ✅ Clear, documented state flows
+- ✅ Easy to add new states
+- ⚠️ Must update library when adding new states
+- ⚠️ Client-side validation (database should also validate)
+
+---
+
+## ADR-012: Smart Retry Logic for Query Timeouts
+**Date**: 2025-01-27
+**Status**: Accepted
+
+### Context
+Neighbourhood dropdown was stuck in loading state for 30+ seconds. Root cause: React Query's automatic retry (retry: 1) combined with 15-second timeout meant users waited 30+ seconds before seeing an error.
+
+### Decision
+Implement smart retry logic that:
+1. Doesn't retry on timeout errors (network issues won't resolve quickly)
+2. Shows error state immediately after timeout
+3. Allows manual retry via button
+4. Uses `refetchOnMount: true` for automatic retry on navigation
+
+### Consequences
+- ✅ Faster failure (15s max instead of 30s)
+- ✅ Immediate error visibility
+- ✅ Better user experience
+- ⚠️ Must apply pattern to other queries
+- ⚠️ Need to distinguish timeout errors from other errors
+
+---
+
+## ADR-013: Proper Supabase Error Extraction
+**Date**: 2025-01-27
+**Status**: Accepted
+
+### Context
+Error messages were displaying as "[object Object]" instead of readable messages. Supabase PostgrestError objects weren't being properly converted to strings.
+
+### Decision
+Implement proper error extraction that:
+1. Handles Supabase PostgrestError structure (code, message, details, hint)
+2. Handles standard Error objects
+3. Logs diagnostic information for troubleshooting
+4. Returns readable error messages
+
+### Consequences
+- ✅ Readable error messages for users
+- ✅ Diagnostic logging for developers
+- ✅ Consistent error handling pattern
+- ⚠️ Must apply pattern to all hooks
+- ⚠️ Adds code complexity for error handling
 
 ---
 

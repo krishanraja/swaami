@@ -4,7 +4,6 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { PhoneInput, isValidPhone } from "@/components/onboarding/PhoneInput";
-import { useToast } from "@/hooks/use-toast";
 import { Smartphone, MessageCircle, Loader2 } from "lucide-react";
 import type { City } from "@/hooks/useNeighbourhoods";
 
@@ -23,15 +22,10 @@ export function PhoneVerification({ city, onVerified, onCancel }: PhoneVerificat
   const [channel, setChannel] = useState<Channel>('sms');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
 
   const handleSendOtp = async () => {
     if (!isValidPhone(phone, city)) {
-      toast({
-        title: "Invalid phone number",
-        description: "Please enter a valid phone number",
-        variant: "destructive",
-      });
+      console.error('[PhoneVerification] Invalid phone number');
       return;
     }
 
@@ -77,17 +71,9 @@ export function PhoneVerification({ city, onVerified, onCancel }: PhoneVerificat
       if (!data.success) throw new Error(data.error || 'Failed to send OTP');
 
       setStep('otp');
-      toast({
-        title: "Code sent!",
-        description: `Check your ${channel === 'whatsapp' ? 'WhatsApp' : 'SMS'} for the verification code`,
-      });
+      console.log('[PhoneVerification] Code sent via', channel);
     } catch (error) {
-      console.error('Send OTP error:', error);
-      toast({
-        title: "Failed to send code",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
+      console.error('[PhoneVerification] Send OTP error:', error);
     } finally {
       setLoading(false);
     }
@@ -137,18 +123,10 @@ export function PhoneVerification({ city, onVerified, onCancel }: PhoneVerificat
       if (!response.ok) throw new Error(data.error || 'Verification failed');
       if (!data.verified) throw new Error(data.error || 'Verification failed');
 
-      toast({
-        title: "Phone verified!",
-        description: "Your phone number has been verified",
-      });
+      console.log('[PhoneVerification] Phone verified successfully');
       onVerified(data.channel || channel);
     } catch (error) {
-      console.error('Verify OTP error:', error);
-      toast({
-        title: "Verification failed",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
+      console.error('[PhoneVerification] Verify OTP error:', error);
     } finally {
       setLoading(false);
     }

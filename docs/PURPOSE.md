@@ -1,5 +1,7 @@
 # Swaami Purpose & Values
 
+**Last Updated**: January 3, 2025
+
 ## Mission
 
 **Build hyper-local networks of reciprocal help that make neighbourhoods more connected, resilient, and kind.**

@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 interface VoiceInputProps {
@@ -67,16 +66,10 @@ export function VoiceInput({ onTranscript, disabled = false }: VoiceInputProps) 
         setRecordingTime(prev => prev + 1);
       }, 1000);
       
-      toast.success("Recording started", {
-        description: "Take your time. Tap stop when you're done.",
-        duration: 3000,
-      });
+      console.log("[VoiceInput] Recording started");
       
     } catch (error) {
-      console.error("Failed to start recording:", error);
-      toast.error("Couldn't access microphone", {
-        description: "Please allow microphone access in your browser settings",
-      });
+      console.error("[VoiceInput] Failed to start recording:", error);
     }
   }, []);
 
@@ -110,9 +103,7 @@ export function VoiceInput({ onTranscript, disabled = false }: VoiceInputProps) 
       });
       
       if (audioBlob.size < 1000) {
-        toast.error("Recording too short", {
-          description: "Please hold the button longer and speak clearly",
-        });
+        console.error("[VoiceInput] Recording too short");
         setIsProcessing(false);
         return;
       }
@@ -133,10 +124,7 @@ export function VoiceInput({ onTranscript, disabled = false }: VoiceInputProps) 
       }
       
       if (data?.error) {
-        console.error("Transcription failed:", data.error);
-        toast.error("Couldn't understand that", {
-          description: data.error,
-        });
+        console.error("[VoiceInput] Transcription failed:", data.error);
         setIsProcessing(false);
         return;
       }
@@ -145,21 +133,13 @@ export function VoiceInput({ onTranscript, disabled = false }: VoiceInputProps) 
       
       if (transcribedText) {
         onTranscript(transcribedText);
-        toast.success("Got it!", {
-          description: "I've captured what you said",
-          duration: 2000,
-        });
+        console.log("[VoiceInput] Got it! Captured:", transcribedText.substring(0, 50));
       } else {
-        toast.error("Couldn't hear anything", {
-          description: "Please speak a bit louder or closer to the mic",
-        });
+        console.error("[VoiceInput] Couldn't hear anything");
       }
       
     } catch (error) {
-      console.error("Processing error:", error);
-      toast.error("Something went wrong", {
-        description: "Please try again",
-      });
+      console.error("[VoiceInput] Processing error:", error);
     } finally {
       setIsProcessing(false);
       setRecordingTime(0);

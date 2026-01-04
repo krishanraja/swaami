@@ -1,5 +1,7 @@
 # Swaami Design System
 
+**Last Updated**: January 3, 2025
+
 ## Brand Identity
 
 Swaami is a warm, approachable neighbourhood help network. The design emphasizes:

@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { useToast } from "@/hooks/use-toast";
 import { Camera, User, Coffee, MapPin, Check, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +39,6 @@ const PHOTO_CONFIG: Record<PhotoType, {
 export function PhotoUpload({ existingPhotos, onComplete, onCancel }: PhotoUploadProps) {
   const { user } = useAuth();
   const { profile } = useProfile();
-  const { toast } = useToast();
   const [photos, setPhotos] = useState<Record<PhotoType, string | null>>({
     profile: existingPhotos.find(p => p.photo_type === 'profile')?.photo_url || null,
     casual: existingPhotos.find(p => p.photo_type === 'casual')?.photo_url || null,
@@ -57,20 +55,12 @@ export function PhotoUpload({ existingPhotos, onComplete, onCancel }: PhotoUploa
     if (!user || !profile) return;
     
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file",
-        description: "Please select an image file",
-        variant: "destructive",
-      });
+      console.error('[PhotoUpload] Invalid file type');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image under 5MB",
-        variant: "destructive",
-      });
+      console.error('[PhotoUpload] File too large');
       return;
     }
 
@@ -106,18 +96,9 @@ export function PhotoUpload({ existingPhotos, onComplete, onCancel }: PhotoUploa
       if (dbError) throw dbError;
 
       setPhotos(prev => ({ ...prev, [type]: photoUrl }));
-      
-      toast({
-        title: "Photo uploaded",
-        description: `Your ${type} photo has been saved`,
-      });
+      console.log('[PhotoUpload] Photo uploaded:', type);
     } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
+      console.error('[PhotoUpload] Upload error:', error);
     } finally {
       setUploading(null);
     }

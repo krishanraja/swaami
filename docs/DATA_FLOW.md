@@ -1,5 +1,7 @@
 # Swaami Data Flow Documentation
 
+**Last Updated**: January 3, 2025
+
 ## Overview
 
 This document maps all data flows in Swaami, from user input to database storage to AI processing and back to UI.

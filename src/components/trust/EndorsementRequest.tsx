@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import { Copy, Check, Share2, Loader2, UserCheck } from "lucide-react";
 import { useTrustTier } from "@/hooks/useTrustTier";
 
@@ -14,7 +13,6 @@ interface EndorsementRequestProps {
 export function EndorsementRequest({ onEndorsementReceived }: EndorsementRequestProps) {
   const { user, session } = useAuth();
   const { tier, hasVerification } = useTrustTier();
-  const { toast } = useToast();
   const [endorsementLink, setEndorsementLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -55,12 +53,7 @@ export function EndorsementRequest({ onEndorsementReceived }: EndorsementRequest
 
       setEndorsementLink(data.link);
     } catch (error) {
-      console.error('Generate link error:', error);
-      toast({
-        title: "Failed to generate link",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
+      console.error('[EndorsementRequest] Generate link error:', error);
     } finally {
       setLoading(false);
     }
@@ -73,16 +66,9 @@ export function EndorsementRequest({ onEndorsementReceived }: EndorsementRequest
       await navigator.clipboard.writeText(endorsementLink);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      toast({
-        title: "Link copied!",
-        description: "Share it with someone who can endorse you",
-      });
+      console.log('[EndorsementRequest] Link copied');
     } catch (error) {
-      toast({
-        title: "Failed to copy",
-        description: "Please copy the link manually",
-        variant: "destructive",
-      });
+      console.error('[EndorsementRequest] Failed to copy:', error);
     }
   };
 

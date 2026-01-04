@@ -1,5 +1,7 @@
 # Common Issues & Troubleshooting
 
+**Last Updated**: January 3, 2025
+
 ## Authentication Issues
 
 ### "User not found" after signup

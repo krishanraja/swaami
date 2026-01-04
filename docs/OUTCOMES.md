@@ -1,5 +1,7 @@
 # Swaami Success Outcomes & KPIs
 
+**Last Updated**: January 3, 2025
+
 ## North Star Metric
 
 **Successful Task Completions per Week per Neighborhood**

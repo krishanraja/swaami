@@ -1,5 +1,7 @@
 # Master Development Instructions
 
+**Last Updated**: January 3, 2025
+
 These are the guiding principles for all development on Swaami.
 
 ## 1. Architecture Foundations
@@ -151,4 +153,67 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { validateInput } from "@/lib/validation";
 import { checkContentSafety } from "@/lib/safety";
+import { validateMatchTransition, validateTaskTransition } from "@/lib/stateMachine";
+```
+
+## 11. Query Timeout Handling
+
+For queries that may timeout:
+```typescript
+// Smart retry - don't retry on timeout
+retry: (failureCount, error) => {
+  if (error instanceof Error && error.message.includes('timeout')) {
+    return false;
+  }
+  return failureCount < 1;
+},
+refetchOnMount: true, // Allow retry on navigation
+```
+
+## 12. Error Extraction
+
+Always extract errors properly for Supabase:
+```typescript
+function extractErrorMessage(error: unknown): string {
+  if (error && typeof error === 'object') {
+    // Supabase PostgrestError
+    if ('message' in error && typeof (error as any).message === 'string') {
+      return (error as any).message;
+    }
+    // Standard Error
+    if (error instanceof Error) {
+      return error.message;
+    }
+  }
+  return 'An unexpected error occurred';
+}
+```
+
+## 13. State Machine Validation
+
+Before updating match or task status:
+```typescript
+import { validateMatchTransition, validateTaskTransition } from "@/lib/stateMachine";
+
+// Check before updating
+if (!validateMatchTransition(currentStatus, newStatus)) {
+  throw new Error(`Invalid transition: ${currentStatus} → ${newStatus}`);
+}
+```
+
+## 14. Double-Submission Protection
+
+Use Sets or state flags to prevent duplicate operations:
+```typescript
+const [helping] = useState(() => new Set<string>());
+
+const helpWithTask = async (taskId: string) => {
+  if (helping.has(taskId)) return; // Already processing
+  helping.add(taskId);
+  try {
+    await doHelp(taskId);
+  } finally {
+    helping.delete(taskId);
+  }
+};
 ```

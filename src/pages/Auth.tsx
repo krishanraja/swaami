@@ -6,7 +6,6 @@ import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import swaamiIcon from "@/assets/swaami-icon.png";
 
@@ -61,12 +60,12 @@ export default function Auth() {
         
         const isOAuthUser = data.user?.app_metadata?.provider !== 'email';
         if (!isOAuthUser && !data.user?.email_confirmed_at) {
-          toast.error("Please confirm your email before signing in.");
+          console.error("[Auth] Please confirm your email before signing in.");
           setLoading(false);
           return;
         }
         
-        toast.success("Welcome back!");
+        console.log("[Auth] Welcome back!");
         // Navigation will happen via authState change
       } else {
         const { error } = await supabase.auth.signUp({
@@ -103,17 +102,17 @@ export default function Auth() {
       // Provide user-friendly error messages
       const lowerMessage = errorMessage.toLowerCase();
       if (lowerMessage.includes("already registered") || lowerMessage.includes("user already registered")) {
-        toast.error("This email is already registered. Try logging in.");
+        console.error("[Auth] This email is already registered. Try logging in.");
       } else if (lowerMessage.includes("invalid login") || lowerMessage.includes("invalid credentials")) {
-        toast.error("Invalid email or password.");
+        console.error("[Auth] Invalid email or password.");
       } else if (lowerMessage.includes("email not confirmed") || lowerMessage.includes("email_not_confirmed")) {
-        toast.error("Please confirm your email before signing in.");
+        console.error("[Auth] Please confirm your email before signing in.");
       } else if (lowerMessage.includes("network") || lowerMessage.includes("fetch")) {
-        toast.error("Network error. Please check your connection and try again.");
+        console.error("[Auth] Network error. Please check your connection and try again.");
       } else if (errorMessage) {
-        toast.error(errorMessage);
+        console.error("[Auth]", errorMessage);
       } else {
-        toast.error("Authentication failed. Please try again.");
+        console.error("[Auth] Authentication failed. Please try again.");
       }
     } finally {
       setLoading(false);

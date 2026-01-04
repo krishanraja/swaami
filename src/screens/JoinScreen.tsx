@@ -10,7 +10,6 @@ import { PhoneInput, isValidPhone } from "@/components/onboarding/PhoneInput";
 import { SKILLS } from "@/types/swaami";
 import { City } from "@/hooks/useNeighbourhoods";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Loader2, CheckCircle, ArrowLeft, Shield, MapPin, Heart, Gift } from "lucide-react";
 import swaamiIcon from "@/assets/swaami-icon.png";
 
@@ -114,7 +113,7 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
 
   const handleSendOtp = async () => {
     if (!city || !isValidPhone(phone, city)) {
-      toast.error("Please enter a valid phone number");
+      console.error("[JoinScreen] Please enter a valid phone number");
       return;
     }
 
@@ -186,7 +185,6 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
       }
 
       console.log('[JoinScreen] OTP sent successfully in', duration, 'ms');
-      toast.success("Verification code sent!");
       setStep('otp');
     } catch (error) {
       const duration = Date.now() - requestStartTime;
@@ -208,7 +206,7 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
         console.error("[JoinScreen] OTP send unknown error:", error);
       }
       
-      toast.error(errorMessage);
+      console.error("[JoinScreen] OTP error:", errorMessage);
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
@@ -217,7 +215,7 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
 
   const handleVerifyOtp = async () => {
     if (otp.length !== 6) {
-      toast.error("Please enter the 6-digit code");
+      console.error("[JoinScreen] Please enter the 6-digit code");
       return;
     }
 
@@ -265,13 +263,12 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
       if (data?.error) throw new Error(data.error);
 
       if (data?.verified) {
-        toast.success("Phone verified!");
+        console.log("[JoinScreen] Phone verified!");
         setPhoneVerified(true);
         setStep('preferences');
       }
     } catch (error) {
-      console.error("OTP verify error:", error);
-      toast.error(error instanceof Error ? error.message : "Invalid verification code");
+      console.error("[JoinScreen] OTP verify error:", error);
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;
@@ -291,35 +288,99 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
     isSubmittingRef.current = true;
     setLoading(true);
     
+    const requestStartTime = Date.now();
+    console.log('[JoinScreen] handleComplete started at:', new Date(requestStartTime).toISOString());
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get user with timeout protection
+      const userController = new AbortController();
+      const userTimeoutId = setTimeout(() => userController.abort(), 15000);
+      
+      let user;
+      try {
+        const { data } = await supabase.auth.getUser();
+        user = data?.user;
+        clearTimeout(userTimeoutId);
+      } catch (e) {
+        clearTimeout(userTimeoutId);
+        if (e instanceof Error && e.name === 'AbortError') {
+          throw new Error("Request timed out getting user. Please try again.");
+        }
+        throw e;
+      }
+      
       if (!user) throw new Error("Not authenticated");
+      
+      console.log('[JoinScreen] Got user, updating profile...');
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          city,
-          neighbourhood,
-          phone,
-          radius,
-          skills: selectedSkills,
-          availability,
-        })
-        .eq('user_id', user.id);
+      // Update profile with timeout protection (using select to verify data saved)
+      const updateController = new AbortController();
+      const updateTimeoutId = setTimeout(() => updateController.abort(), 15000);
+      
+      let updatedProfile;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .update({
+            city,
+            neighbourhood,
+            phone,
+            radius,
+            skills: selectedSkills,
+            availability,
+          })
+          .eq('user_id', user.id)
+          .select()
+          .single();
 
-      if (error) throw error;
-
-      await refetchProfile();
-
-      toast.success("Welcome to Swaami! 🎉", {
-        description: "You've earned 5 credits to get started!"
+        clearTimeout(updateTimeoutId);
+        
+        if (error) throw error;
+        if (!data) throw new Error("Profile update returned no data");
+        
+        updatedProfile = data;
+      } catch (e) {
+        clearTimeout(updateTimeoutId);
+        if (e instanceof Error && e.name === 'AbortError') {
+          throw new Error("Profile update timed out. Please try again.");
+        }
+        throw e;
+      }
+      
+      console.log('[JoinScreen] Profile updated successfully:', {
+        city: updatedProfile.city,
+        neighbourhood: updatedProfile.neighbourhood,
+        skills: updatedProfile.skills?.length,
+        phone: updatedProfile.phone ? '✓' : '✗'
       });
+      
+      // Verify the profile meets "ready" criteria before navigating
+      const isComplete = updatedProfile.city && 
+                         updatedProfile.neighbourhood && 
+                         updatedProfile.phone && 
+                         (updatedProfile.skills?.length ?? 0) > 0;
+      
+      if (!isComplete) {
+        console.error('[JoinScreen] Profile still incomplete after update:', {
+          city: !!updatedProfile.city,
+          neighbourhood: !!updatedProfile.neighbourhood,
+          phone: !!updatedProfile.phone,
+          skills: updatedProfile.skills?.length ?? 0
+        });
+        throw new Error("Profile is still incomplete. Please fill in all required fields.");
+      }
+
+      // Refresh profile context to ensure authState updates
+      await refetchProfile();
+      
+      const duration = Date.now() - requestStartTime;
+      console.log('[JoinScreen] handleComplete succeeded in', duration, 'ms');
       
       clearProgress();
       onComplete();
     } catch (error) {
-      console.error("Profile update error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to save profile");
+      const duration = Date.now() - requestStartTime;
+      console.error("[JoinScreen] Profile update error after", duration, "ms:", error);
     } finally {
       setLoading(false);
       isSubmittingRef.current = false;

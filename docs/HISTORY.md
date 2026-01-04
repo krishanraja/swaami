@@ -2,7 +2,15 @@
 
 All notable changes to Swaami.
 
-## [Unreleased] - 2025-01-27
+## [Unreleased] - 2025-01-03
+
+### Added
+- **Comprehensive Documentation Audit** - Full review and update of all project documentation
+- **Agent History Integration** - Consolidated all changes from multiple development agents into unified documentation
+
+---
+
+## [0.3.2] - 2025-01-27
 
 ### Fixed
 - **Neighbourhood dropdown stuck in loading state on timeout**
@@ -25,6 +33,72 @@ All notable changes to Swaami.
   - Fix: Changed to `overflow-hidden` to prevent scrolling when content fits viewport
   - Impact: No unwanted scrolling when content fits screen
   - Files: `src/screens/JoinScreen.tsx`
+
+- **Supabase key configuration issue**
+  - Root cause: Using incorrect Supabase anon/public key in environment configuration
+  - Fix: Updated environment variables with correct keys
+  - Documentation: `docs/ROOT_CAUSE_FINAL.md`, `docs/ENV_SETUP.md`
+
+- **Authentication error message display**
+  - Root cause: Supabase PostgrestError objects were being converted to "[object Object]" strings
+  - Fix: Added proper error extraction that preserves Supabase error structure
+  - Files: `src/hooks/useProfile.ts`, `src/pages/Join.tsx`
+  - Documentation: `docs/AUTH_FIX_SUMMARY.md`
+
+---
+
+## [0.3.1] - 2024-12-14
+
+### Added
+- **Adversarial Audit Complete** - Full-stack audit identifying 27 failures
+  - System & State Mapping
+  - UI & UX Audit
+  - Data Pipeline Audit
+  - AI Systems Audit
+  - Documentation: `docs/AUDIT_SUMMARY.md`, `docs/AUDIT_*` files
+
+### Fixed (P0 Critical)
+- **Race condition in task matching** - Database constraint prevents multiple active matches per task
+  - Files: `supabase/migrations/20241214120000_prevent_multiple_matches.sql`
+
+- **Non-atomic task operations** - Created atomic `help_with_task` database function
+  - Files: `supabase/migrations/20241214120001_help_with_task_function.sql`, `src/hooks/useTasks.ts`
+
+- **Dead ends with infinite loaders** - Added error states and 10-second timeouts to all loaders
+  - Files: `src/screens/FeedScreen.tsx`, `src/screens/ProfileScreen.tsx`, `src/hooks/useTasks.ts`
+
+- **ChatScreen dead end** - Added timeout check (5 seconds) and match validation with redirect
+  - Files: `src/screens/ChatScreen.tsx`
+
+- **Auth redirect loop** - Check if already on /auth before redirecting
+  - Files: `src/pages/Auth.tsx`
+
+### Fixed (P1 High Priority)
+- **Double-submission protection** - Added tracking Sets to prevent duplicate operations
+  - Files: `src/hooks/useTasks.ts`, `src/screens/PostScreen.tsx`, `src/screens/FeedScreen.tsx`
+
+- **State machine validation** - Created centralized state machine validation library
+  - Files: `src/lib/stateMachine.ts`, `src/hooks/useMatches.ts`, `src/hooks/useTasks.ts`
+
+- **AI error handling** - Added explicit 30-second timeout with better error messages
+  - Files: `src/screens/PostScreen.tsx`
+
+### Added
+- **Person Details Drawer** - Tap on task card owner section to see detailed person profile
+  - Mobile-first bottom drawer with smooth animation
+  - Large profile photo with trust tier badge overlay
+  - Trust tier explanation with verification points
+  - Stats grid showing tasks completed and reliability score
+  - Skills display with category highlighting
+  - Neighbourhood and member tenure display
+  - Direct "Help" CTA from drawer
+  - Files: `src/components/PersonDetailsDrawer.tsx`, `src/components/NeedCard.tsx`
+  - Architecture Decision: `docs/DECISIONS_LOG.md#ADR-009`
+
+- **Retry mechanisms hook** - Created useRetry hook with exponential backoff
+  - Files: `src/hooks/useRetry.ts`
+
+---
 
 ## [0.2.0] - 2024-12-13
 
@@ -136,6 +210,48 @@ All notable changes to Swaami.
 - AUDIT_STATUS.md: Security and UX audit tracking
 - PURPOSE.md: Mission and values
 - MASTER_INSTRUCTIONS.md: Development guidelines
+
+---
+
+## Agent Session History
+
+### Session 2025-01-27 (Neighbourhood Dropdown Fix)
+- Diagnosed neighbourhood dropdown stuck in loading state
+- Root cause: Query timeout + React Query retry logic
+- Implemented smart retry that doesn't retry on timeout errors
+- Added proper error visibility and recovery
+
+### Session 2025-01-27 (Auth Error Fix)
+- Fixed Supabase key configuration issue
+- Fixed error message display (was showing "[object Object]")
+- Improved error extraction for Supabase PostgrestError objects
+- Added diagnostic logging for troubleshooting
+
+### Session 2024-12-14 (Adversarial Audit)
+- Completed full-stack adversarial audit
+- Identified 27 failures across system
+- Implemented P0 critical fixes (5/5 complete)
+- Implemented P1 high priority fixes (4/10 complete)
+- Created comprehensive audit documentation
+
+### Session 2024-12-14 (Person Details Drawer)
+- Added person details drawer for trust building
+- Implemented progressive disclosure UX pattern
+- Added trust tier explanation UI
+
+### Session 2024-12-13 (Production Readiness)
+- Completed security audit
+- Completed accessibility audit
+- Fixed all ESLint errors
+- Added offline handling
+- Added SEO infrastructure
+
+### Session 2024-12-11 (Initial Build)
+- Initial project setup
+- Core database schema
+- Authentication flow
+- Basic UI screens
+- AI task enhancement
 
 ---
 

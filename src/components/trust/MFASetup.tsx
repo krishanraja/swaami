@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Lock, Loader2, Check, Copy, QrCode } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +13,6 @@ interface MFASetupProps {
 type Step = 'intro' | 'qr' | 'verify';
 
 export function MFASetup({ onComplete, onCancel }: MFASetupProps) {
-  const { toast } = useToast();
   const [step, setStep] = useState<Step>('intro');
   const [loading, setLoading] = useState(false);
   const [qrCode, setQrCode] = useState<string | null>(null);
@@ -38,12 +36,7 @@ export function MFASetup({ onComplete, onCancel }: MFASetupProps) {
       setFactorId(data.id);
       setStep('qr');
     } catch (error) {
-      console.error('MFA enroll error:', error);
-      toast({
-        title: "Setup failed",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
+      console.error('[MFASetup] MFA enroll error:', error);
     } finally {
       setLoading(false);
     }
@@ -68,18 +61,10 @@ export function MFASetup({ onComplete, onCancel }: MFASetupProps) {
 
       if (verifyError) throw verifyError;
 
-      toast({
-        title: "2FA enabled!",
-        description: "Your account is now protected with two-factor authentication",
-      });
+      console.log('[MFASetup] 2FA enabled successfully');
       onComplete();
     } catch (error) {
-      console.error('MFA verify error:', error);
-      toast({
-        title: "Verification failed",
-        description: error instanceof Error ? error.message : "Please check your code and try again",
-        variant: "destructive",
-      });
+      console.error('[MFASetup] MFA verify error:', error);
     } finally {
       setLoading(false);
     }

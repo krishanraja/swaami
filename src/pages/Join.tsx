@@ -15,8 +15,10 @@ export default function Join() {
     },
   });
 
-  const handleComplete = async () => {
-    await refreshProfile();
+  const handleComplete = () => {
+    // Profile already refreshed in JoinScreen.handleComplete
+    // Navigate immediately - authState should already be "ready"
+    console.log('[Join] handleComplete called, navigating to /app');
     navigate("/app", { replace: true });
   };
 

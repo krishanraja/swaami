@@ -1,5 +1,7 @@
 # Swaami Ideal Customer Profile (ICP)
 
+**Last Updated**: January 3, 2025
+
 ## Primary Persona: The Urban Helper
 
 ### Demographics

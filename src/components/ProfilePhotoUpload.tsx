@@ -2,7 +2,6 @@ import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { useToast } from "@/hooks/use-toast";
 import { Camera, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +13,6 @@ interface ProfilePhotoUploadProps {
 export function ProfilePhotoUpload({ existingPhotoUrl, onPhotoChange }: ProfilePhotoUploadProps) {
   const { user } = useAuth();
   const { profile } = useProfile();
-  const { toast } = useToast();
   const [photoUrl, setPhotoUrl] = useState<string | null>(existingPhotoUrl || null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -23,20 +21,12 @@ export function ProfilePhotoUpload({ existingPhotoUrl, onPhotoChange }: ProfileP
     if (!user || !profile) return;
     
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file",
-        description: "Please select an image file",
-        variant: "destructive",
-      });
+      console.error('[ProfilePhotoUpload] Invalid file type');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image under 5MB",
-        variant: "destructive",
-      });
+      console.error('[ProfilePhotoUpload] File too large');
       return;
     }
 
@@ -73,18 +63,9 @@ export function ProfilePhotoUpload({ existingPhotoUrl, onPhotoChange }: ProfileP
 
       setPhotoUrl(newPhotoUrl);
       onPhotoChange?.(newPhotoUrl);
-      
-      toast({
-        title: "Photo updated!",
-        description: "Your profile photo has been saved",
-      });
+      console.log('[ProfilePhotoUpload] Photo updated successfully');
     } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
-      });
+      console.error('[ProfilePhotoUpload] Upload error:', error);
     } finally {
       setUploading(false);
     }
