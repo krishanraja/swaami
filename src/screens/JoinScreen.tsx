@@ -11,6 +11,7 @@ import { SKILLS } from "@/types/swaami";
 import { City } from "@/hooks/useNeighbourhoods";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout, TimeoutError, TIMEOUT_MS } from "@/lib/timeout";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, CheckCircle, ArrowLeft, Shield, MapPin, Heart, Gift, AlertCircle, RefreshCw } from "lucide-react";
 import swaamiIcon from "@/assets/swaami-icon.png";
 
@@ -38,6 +39,7 @@ interface OnboardingProgress {
 }
 
 export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
+  const { markOnboardingComplete, authState } = useAuth();
   const [step, setStep] = useState<Step>('welcome');
   const [city, setCity] = useState<City | null>(null);
   const [neighbourhood, setNeighbourhood] = useState('');
@@ -398,6 +400,11 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
         throw new Error("Profile is still incomplete. Please fill in all required fields.");
       }
 
+      // CRITICAL: Mark onboarding complete BEFORE refreshing profile
+      // This ensures the user won't be redirected back to /join even if profile fetch fails later
+      markOnboardingComplete();
+      console.log('[JoinScreen] Onboarding completion flag set');
+
       // Refresh profile context with proper timeout to ensure authState updates
       await withTimeout(
         refetchProfile(),
@@ -405,8 +412,11 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
         "Profile refresh timed out. Your profile was saved - please refresh the page."
       );
       
+      // Small delay to ensure React state has propagated before navigation
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const duration = Date.now() - requestStartTime;
-      console.log('[JoinScreen] handleComplete succeeded in', duration, 'ms');
+      console.log('[JoinScreen] handleComplete succeeded in', duration, 'ms, authState:', authState);
       
       clearProgress();
       onComplete();

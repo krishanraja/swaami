@@ -1,7 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout, TIMEOUT_MS } from "@/lib/timeout";
+
+// Stable localStorage key for onboarding completion - acts as resilience fallback
+const ONBOARDING_COMPLETED_KEY = "swaami_onboarding_completed";
 
 export interface Profile {
   id: string;
@@ -34,6 +37,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
+  markOnboardingComplete: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,6 +48,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [profileLoading, setProfileLoading] = useState(false);
+  // Resilience flag: if true, user has completed onboarding even if profile fetch fails
+  const [onboardingCompletedFlag, setOnboardingCompletedFlag] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(ONBOARDING_COMPLETED_KEY) === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  // Mark onboarding as complete - called after successful profile update
+  const markOnboardingComplete = useCallback(() => {
+    try {
+      localStorage.setItem(ONBOARDING_COMPLETED_KEY, "true");
+      setOnboardingCompletedFlag(true);
+      console.log("[AuthContext] Onboarding marked complete in localStorage");
+    } catch (err) {
+      console.error("[AuthContext] Failed to save onboarding flag:", err);
+    }
+  }, []);
+
+  // Clear onboarding flag on sign out
+  const clearOnboardingFlag = useCallback(() => {
+    try {
+      localStorage.removeItem(ONBOARDING_COMPLETED_KEY);
+      setOnboardingCompletedFlag(false);
+    } catch {
+      // Ignore errors
+    }
+  }, []);
 
   const fetchProfile = async (userId: string) => {
     setProfileLoading(true);
@@ -65,10 +98,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
       } else {
         setProfile(result.data);
+        // If profile is complete, ensure localStorage flag is set
+        const isComplete = result.data?.city && 
+                           result.data?.neighbourhood && 
+                           result.data?.phone && 
+                           (result.data?.skills?.length ?? 0) > 0;
+        if (isComplete && !onboardingCompletedFlag) {
+          markOnboardingComplete();
+        }
       }
     } catch (err) {
       console.error("Profile fetch error:", err);
       setProfile(null);
+      // Don't clear onboarding flag on fetch failure - that's the resilience mechanism
     } finally {
       setProfileLoading(false);
     }
@@ -152,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setProfile(null);
+    clearOnboardingFlag(); // Clear onboarding flag on explicit sign out
   };
 
   const refreshProfile = async () => {
@@ -206,12 +249,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                        profile?.phone && 
                        (profile?.skills?.length ?? 0) > 0;
     
+    // RESILIENCE: If profile fetch failed but user previously completed onboarding,
+    // treat them as "ready" to prevent redirect loop back to /join
     if (!isComplete) {
+      if (onboardingCompletedFlag) {
+        console.log("[AuthContext] Profile incomplete but onboarding flag set - treating as ready");
+        return "ready";
+      }
       return "needs_onboarding";
     }
     
     return "ready";
-  }, [authLoading, profileLoading, user, profile]);
+  }, [authLoading, profileLoading, user, profile, onboardingCompletedFlag]);
 
   const value = useMemo(() => ({
     user,
@@ -222,7 +271,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     refreshProfile,
     refreshSession,
-  }), [user, session, profile, authState, isLoading]);
+    markOnboardingComplete,
+  }), [user, session, profile, authState, isLoading, markOnboardingComplete]);
 
   return (
     <AuthContext.Provider value={value}>

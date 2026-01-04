@@ -273,6 +273,4 @@ src/
 
 - **Frontend**: Vercel with SPA routing (`vercel.json`)
 - **Backend**: Supabase (managed)
-- **Edge Functions**: Deployed via Supabase CLI
-
-See `docs/DEPLOYMENT.md` for detailed deployment instructions.
+- **Edge Functions**: Deployed via Supabase CLISee `docs/DEPLOYMENT.md` for detailed deployment instructions.

@@ -5,11 +5,13 @@ import { AppHeader } from "@/components/AppHeader";
 import { useTasks } from "@/hooks/useTasks";
 import { useProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
-import { RefreshCw, PlusCircle, FlaskConical, MapPin, ArrowUpDown, AlertCircle } from "lucide-react";
+import { RefreshCw, PlusCircle, FlaskConical, MapPin, ArrowUpDown, AlertCircle, Search, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VoiceSearchButton } from "@/components/VoiceSearchButton";
+import { Input } from "@/components/ui/input";
 
 type SortOption = "nearest" | "recent" | "urgent";
 
@@ -27,6 +29,8 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
   const [maxDistance, setMaxDistance] = useState(2000);
   const [sortBy, setSortBy] = useState<SortOption>("nearest");
   const [timeoutError, setTimeoutError] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
 
   // Add timeout for loading state
   useEffect(() => {
@@ -76,12 +80,28 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
     return meters >= 1000 ? `${(meters / 1000).toFixed(1)}km` : `${meters}m`;
   };
   
+  // Handle voice search result
+  const handleVoiceSearch = (query: string) => {
+    setSearchQuery(query);
+    setShowSearch(true);
+  };
+
   // Apply filters and sorting
   const filteredTasks = useMemo(() => {
+    const searchLower = searchQuery.toLowerCase().trim();
     const filtered = tasks
       .filter((t) => !selectedCategory || t.category === selectedCategory)
       .filter((t) => showDemoTasks || !t.is_demo)
-      .filter((t) => t.distance === null || t.distance === undefined || t.distance <= maxDistance);
+      .filter((t) => t.distance === null || t.distance === undefined || t.distance <= maxDistance)
+      // Text search filter
+      .filter((t) => {
+        if (!searchLower) return true;
+        return (
+          t.title?.toLowerCase().includes(searchLower) ||
+          t.description?.toLowerCase().includes(searchLower) ||
+          t.category?.toLowerCase().includes(searchLower)
+        );
+      });
     
     // Sort based on selected option
     return [...filtered].sort((a, b) => {
@@ -117,19 +137,57 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
     <div className="h-[100dvh] overflow-hidden bg-background flex flex-col">
       <AppHeader
         actions={
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="h-9 w-9"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-            />
-          </Button>
+          <div className="flex items-center gap-1">
+            <VoiceSearchButton onSearchResult={handleVoiceSearch} />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSearch(!showSearch)}
+              className="h-9 w-9"
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="h-9 w-9"
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+              />
+            </Button>
+          </div>
         }
       />
+
+      {/* Search bar - collapsible */}
+      {showSearch && (
+        <div className="px-4 py-2 bg-background border-b border-border animate-fade-in">
+          <div className="relative max-w-lg mx-auto">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search requests..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-10 h-10"
+              autoFocus
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Filters - Combined compact layout */}
       <div className="sticky top-[73px] bg-background/95 backdrop-blur-sm border-b border-border z-10">
@@ -137,10 +195,10 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
           {/* Top row: Categories + Demo toggle */}
           <div className="flex items-center gap-2">
             <div className="flex-1 overflow-x-auto scrollbar-hide">
-              <div className="flex gap-1.5">
+              <div className="flex gap-2">
                 <button
                   onClick={() => setSelectedCategory(null)}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                  className={`px-3.5 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors min-h-[36px] ${
                     !selectedCategory
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -152,7 +210,7 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium capitalize whitespace-nowrap transition-colors ${
+                    className={`px-3.5 py-1.5 rounded-full text-sm font-medium capitalize whitespace-nowrap transition-colors min-h-[36px] ${
                       selectedCategory === cat
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -190,8 +248,8 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
             </span>
             <div className="pl-2 border-l border-border flex-shrink-0">
               <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                <SelectTrigger className="h-7 w-[100px] text-xs border-0 bg-muted/50 gap-1">
-                  <ArrowUpDown className="w-3 h-3" />
+                <SelectTrigger className="h-8 min-w-[110px] text-sm border-0 bg-muted/50 gap-1.5 px-2.5">
+                  <ArrowUpDown className="w-3.5 h-3.5 flex-shrink-0" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
