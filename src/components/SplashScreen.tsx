@@ -18,7 +18,7 @@ type SplashPhase = 'preload' | 'enter' | 'hold' | 'exit';
  * 3. Once loaded, fade in the full splash
  * 4. Animate and exit gracefully
  */
-const SplashScreen = ({ onComplete, minDisplayTime = 1800 }: SplashScreenProps) => {
+const SplashScreen = ({ onComplete, minDisplayTime = 1200 }: SplashScreenProps) => {
   const [phase, setPhase] = useState<SplashPhase>('preload');
   const [imageLoaded, setImageLoaded] = useState(false);
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);

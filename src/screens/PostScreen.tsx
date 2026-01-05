@@ -14,6 +14,7 @@ import { VoiceInput } from "@/components/VoiceInput";
 import { AccessibilitySettings } from "@/components/AccessibilitySettings";
 import { useAccessibility } from "@/contexts/AccessibilityContext";
 import { checkContentSafety } from "@/lib/safety";
+import { toast } from "sonner";
 import {
   Sheet,
   SheetContent,

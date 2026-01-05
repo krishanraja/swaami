@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Heart, LogOut, Users } from "lucide-react";
+import { ArrowRight, Shield, Heart, LogOut, Users, Loader2, Mic } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLiveActivity } from "@/hooks/useLiveActivity";
 import SplashScreen from "@/components/SplashScreen";
@@ -44,9 +44,13 @@ export default function Landing() {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
-  // While auth is still loading, show the landing page with a generic CTA
-  // This prevents the blank screen while waiting for auth state
-  const isAuthLoading = authState === "loading";
+  // IMPROVED: Only block button when we have no user AND auth is loading
+  // If user exists (even while profile is still loading), enable button immediately
+  // This prevents the 10+ second wait for users who are already logged in
+  const isAuthLoading = authState === "loading" && !user;
+  
+  // Show subtle loading indicator when user exists but profile still loading
+  const isProfileLoading = authState === "loading" && !!user;
 
   return (
     <div className="min-h-[100dvh] w-full overflow-hidden bg-background flex flex-col relative">
@@ -117,6 +121,10 @@ export default function Landing() {
                 <Heart className="h-4 w-4 text-accent drop-shadow-lg" />
                 <span>Free to start</span>
               </div>
+              <div className="flex items-center gap-1.5 text-sm text-white/90 text-shadow-sub">
+                <Mic className="h-4 w-4 text-accent drop-shadow-lg" />
+                <span>Voice-first</span>
+              </div>
             </div>
 
             {showActivity && (
@@ -146,8 +154,21 @@ export default function Landing() {
               className="w-full h-14 text-lg font-semibold rounded-2xl shadow-lg"
               disabled={isAuthLoading}
             >
-              {isAuthLoading ? "Loading..." : primaryCTA.text}
-              {!isAuthLoading && <ArrowRight className="ml-2 h-5 w-5" />}
+              {isAuthLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  {primaryCTA.text}
+                  {isProfileLoading ? (
+                    <Loader2 className="ml-2 h-5 w-5 animate-spin" />
+                  ) : (
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  )}
+                </>
+              )}
             </Button>
 
             {user && !isAuthLoading ? (

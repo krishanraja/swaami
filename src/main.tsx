@@ -1,6 +1,10 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { initDiagnostics } from "./lib/diagnostics";
+
+// Initialize diagnostics on app startup (non-blocking)
+initDiagnostics();
 
 // Remove splash placeholder when React mounts
 const removeSplashPlaceholder = () => {

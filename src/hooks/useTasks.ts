@@ -64,13 +64,23 @@ export function useTasks() {
         (n) => n.name === profile.neighbourhood
       );
       if (userNeighbourhood?.latitude && userNeighbourhood?.longitude) {
+        console.log("[useTasks] Location resolved:", {
+          neighbourhood: profile.neighbourhood,
+          lat: userNeighbourhood.latitude,
+          lng: userNeighbourhood.longitude,
+        });
         setUserLocation({
           lat: userNeighbourhood.latitude,
           lng: userNeighbourhood.longitude,
         });
+      } else {
+        console.warn("[useTasks] Could not resolve location for neighbourhood:", profile.neighbourhood);
+        setUserLocation(null);
       }
+    } else if (profile?.neighbourhood) {
+      console.warn("[useTasks] No neighbourhoods data available for city:", profile?.city);
     }
-  }, [profile?.neighbourhood, neighbourhoods]);
+  }, [profile?.neighbourhood, profile?.city, neighbourhoods]);
 
   const fetchTasks = useCallback(async () => {
     setError(null);
@@ -79,9 +89,11 @@ export function useTasks() {
     try {
       let data: Record<string, unknown>[] | null = null;
       let fetchError: { message: string } | null = null;
+      let usedFallback = false;
 
       // Always try location-based query with 5km radius for client-side filtering
       if (userLocation) {
+        console.log("[useTasks] Fetching nearby tasks for location:", userLocation);
         const result = await supabase.rpc("get_nearby_tasks", {
           user_lat: userLocation.lat,
           user_lng: userLocation.lng,
@@ -89,16 +101,34 @@ export function useTasks() {
         });
         data = result.data;
         fetchError = result.error;
+        
+        // FALLBACK: If location-based query returns empty, try public tasks
+        // This handles cases where demo tasks don't have coordinates or are outside radius
+        if (!fetchError && (!data || data.length === 0)) {
+          console.log("[useTasks] No nearby tasks found, falling back to get_public_tasks");
+          const fallbackResult = await supabase.rpc("get_public_tasks");
+          data = fallbackResult.data;
+          fetchError = fallbackResult.error;
+          usedFallback = true;
+        }
       } else {
-        // Fallback to non-location-based query when no location available
+        // No location available - use public tasks query
+        console.log("[useTasks] No user location, using get_public_tasks");
         const result = await supabase.rpc("get_public_tasks");
         data = result.data;
         fetchError = result.error;
+        usedFallback = true;
       }
 
       if (fetchError) {
         throw new Error(fetchError.message || 'Failed to fetch tasks');
       }
+      
+      console.log("[useTasks] Fetched tasks:", {
+        count: data?.length || 0,
+        usedFallback,
+        hasLocation: !!userLocation,
+      });
 
       // Map RPC response to Task interface
       const allTasks: Task[] = (data || []).map((task: Record<string, unknown>) => ({

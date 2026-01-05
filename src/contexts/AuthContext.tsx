@@ -79,22 +79,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchProfile = async (userId: string) => {
+    const startTime = performance.now();
     setProfileLoading(true);
+    console.log("[AuthContext] Starting profile fetch for user:", userId);
     
     try {
-      // Use proper timeout that actually rejects if request hangs
+      // Use FAST timeout (5s) for responsive UX - don't block users waiting for profile
       const result = await withTimeout(
         supabase
           .from("profiles")
           .select("*")
           .eq("user_id", userId)
           .single(),
-        TIMEOUT_MS.NORMAL,
+        TIMEOUT_MS.FAST, // Reduced from NORMAL (10s) to FAST (5s)
         "Profile fetch timed out"
       );
 
+      const elapsed = Math.round(performance.now() - startTime);
+      console.log(`[AuthContext] Profile fetch completed in ${elapsed}ms`);
+
       if (result.error) {
-        console.error("Error fetching profile:", result.error);
+        console.error("[AuthContext] Error fetching profile:", result.error);
         setProfile(null);
       } else {
         setProfile(result.data);
@@ -108,7 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (err) {
-      console.error("Profile fetch error:", err);
+      const elapsed = Math.round(performance.now() - startTime);
+      console.error(`[AuthContext] Profile fetch failed after ${elapsed}ms:`, err);
       setProfile(null);
       // Don't clear onboarding flag on fetch failure - that's the resilience mechanism
     } finally {
@@ -121,16 +127,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let initCompleted = false;
 
     const initAuth = async () => {
+      const startTime = performance.now();
+      console.log("[AuthContext] Starting auth initialization...");
+      
       try {
-        // Use proper timeout that actually rejects
+        // Use FAST timeout (5s) for responsive UX
         const { data, error } = await withTimeout(
           supabase.auth.getSession(),
-          TIMEOUT_MS.NORMAL,
+          TIMEOUT_MS.FAST, // Reduced from NORMAL (10s) to FAST (5s)
           "Auth session fetch timed out"
         );
         
+        const elapsed = Math.round(performance.now() - startTime);
+        console.log(`[AuthContext] Auth session fetched in ${elapsed}ms`);
+        
         if (error) {
-          console.error('Auth session error:', error);
+          console.error('[AuthContext] Auth session error:', error);
         }
         
         const initialSession = data?.session;
@@ -141,14 +153,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(initialSession?.user ?? null);
         
         if (initialSession?.user) {
+          console.log("[AuthContext] User found, fetching profile...");
           await fetchProfile(initialSession.user.id);
+        } else {
+          console.log("[AuthContext] No user session found");
         }
         
         initCompleted = true;
         setAuthLoading(false);
+        console.log(`[AuthContext] Auth init complete in ${Math.round(performance.now() - startTime)}ms`);
       } catch (err) {
-        console.error("Auth init error:", err);
-        // On error or timeout, assume unauthenticated
+        const elapsed = Math.round(performance.now() - startTime);
+        console.error(`[AuthContext] Auth init failed after ${elapsed}ms:`, err);
+        // On error or timeout, assume unauthenticated immediately
         if (mounted) {
           setSession(null);
           setUser(null);
