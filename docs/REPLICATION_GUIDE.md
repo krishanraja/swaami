@@ -6,30 +6,30 @@ This guide explains how to fork and replicate Swaami for a different neighborhoo
 
 ## Prerequisites
 
-- Lovable account
+- Supabase account
 - Twilio account (for phone verification)
 - Understanding of React/TypeScript
 
-## Step 1: Remix the Project
+## Step 1: Fork the Project
 
-1. Open Swaami in Lovable
-2. Go to Settings → Remix this project
-3. Name your remix (e.g., "MyNeighborhood")
+1. Clone the Swaami repository
+2. Set up your own Supabase project
+3. Configure environment variables
 
-## Step 2: Configure Lovable Cloud
+## Step 2: Configure Supabase
 
-The remixed project will have its own Lovable Cloud instance.
+The project uses Supabase for backend services.
 
 ### Database
-Tables are automatically created via migrations. Review in Cloud → Database.
+Tables are automatically created via migrations. Review in Supabase Dashboard → Database.
 
 ### Secrets
-Add your own secrets in Cloud → Secrets:
+Add your own secrets in Supabase Dashboard → Edge Functions → Secrets:
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_PHONE_NUMBER`
-
-`LOVABLE_API_KEY` is auto-provisioned.
+- `GOOGLE_AI_API_KEY` (for AI task enhancement)
+- `OPENAI_API_KEY` (for audio transcription, optional)
 
 ## Step 3: Customize Branding
 
@@ -106,7 +106,7 @@ Currently uses Twilio. To switch providers:
 
 ## Step 8: AI Enhancement
 
-The `rewrite-need` function uses Lovable AI (auto-provisioned).
+The `rewrite-need` function uses an AI service for task enhancement.
 
 To customize AI behavior:
 1. Edit prompts in `supabase/functions/rewrite-need/index.ts`
@@ -122,7 +122,7 @@ To add more storage:
 
 ## Step 10: Deploy
 
-1. Frontend: Click "Publish" in Lovable
+1. Frontend: Deploy to your hosting platform (Vercel, Netlify, etc.)
 2. Edge Functions: Auto-deployed on save
 3. Database: Migrations applied automatically
 
@@ -147,9 +147,9 @@ Check secrets are configured in Cloud → Secrets.
 Ensure user is authenticated and policies match your use case.
 
 ### "AI not responding"
-Check LOVABLE_API_KEY exists and credits available.
+Check GOOGLE_AI_API_KEY exists and has available quota.
 
 ## Support
 
-For Lovable platform issues: support@lovable.dev
+For platform issues: Check your hosting provider's support documentation.
 For project-specific help: Review docs/ folder

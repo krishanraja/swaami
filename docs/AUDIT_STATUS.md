@@ -57,7 +57,7 @@ Security, UX, and code quality audit tracking for Swaami.
 | Check | Status | Notes |
 |-------|--------|-------|
 | CORS configured | ✅ Pass | Edge function has CORS headers |
-| Rate limiting | ⚠️ Partial | Lovable AI has limits, app-level pending |
+| Rate limiting | ⚠️ Partial | AI service has limits, app-level pending |
 | API key protection | ✅ Pass | Keys in environment, not exposed |
 | Error message safety | ✅ Pass | No internal details leaked |
 

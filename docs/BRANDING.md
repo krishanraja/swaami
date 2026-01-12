@@ -19,15 +19,20 @@ Empower urban neighborhoods to help each other with quick, safe micro-tasks (und
 
 ### Logo
 - **Icon**: `src/assets/swaami-icon.png` (used in app headers)
-- **Wordmark**: `src/assets/swaami-wordmark.png` (used with icon on landing page)
+- **Wordmark**: `public/images/swaami-wordmark.png` (used with icon on landing page and in emails)
+- **Public URL**: `https://www.swaami.ai/images/swaami-wordmark.png` (for email templates)
 - Landing page displays icon + wordmark side by side
 - All other screens use icon only
 - Always display at minimum 32px height
 
 ### Color Palette
-- **Primary**: Deep coral/terracotta (warm, community-focused)
-- **Secondary**: Muted earth tones
-- **Trust indicators**: Green for verified, amber for pending
+- **Primary Yellow**: HSL(48, 85%, 75%) / #F5D76E - Warm, community-focused yellow
+- **Deep Yellow**: HSL(48, 90%, 50%) / #E6C84A - Deeper yellow for buttons and accents
+- **Highlight Yellow**: HSL(48, 85%, 85%) / #FDF6B6 - Light yellow for highlights
+- **Accent**: HSL(54, 80%, 55%) / #D4A574 - Warm accent color
+- **Success Green**: HSL(145, 43%, 59%) / #4ADE80 - Trust indicators, verified states
+- **Pending Amber**: HSL(45, 100%, 50%) / #FBBF24 - Pending verification states
+- **Secondary**: HSL(0, 0%, 91%) / #E8E8E8 - Muted earth tones
 - See `src/index.css` for full token definitions
 
 ### Typography

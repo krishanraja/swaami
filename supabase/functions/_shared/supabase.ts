@@ -46,9 +46,9 @@ export function createSupabaseClient(
 /**
  * Allowed origins for CORS
  * In production, this should be set via ALLOWED_ORIGINS environment variable
- * Format: comma-separated list of origins (e.g., "https://swaami.app,https://www.swaami.app")
+ * Format: comma-separated list of origins (e.g., "https://www.swaami.ai,https://swaami.ai")
  */
-const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") || "https://swaami.ai,https://www.swaami.ai,https://swaami.app,https://www.swaami.app,http://localhost:5173,http://localhost:3000").split(",");
+const ALLOWED_ORIGINS = (Deno.env.get("ALLOWED_ORIGINS") || "https://swaami.ai,https://www.swaami.ai,http://localhost:5173,http://localhost:3000").split(",");
 
 /**
  * Get CORS headers for a specific request

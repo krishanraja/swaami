@@ -152,7 +152,7 @@ serve(async (req) => {
         );
       }
 
-      const endorsementLink = `${req.headers.get('origin') || 'https://swaami.app'}/endorse/${newToken}`;
+      const endorsementLink = `${req.headers.get('origin') || 'https://www.swaami.ai'}/endorse/${newToken}`;
       
       const duration = Date.now() - startTime;
       log(requestId, "INFO", "GENERATE_SUCCESS", {

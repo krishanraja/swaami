@@ -2,7 +2,7 @@
 
 **Last Updated**: January 3, 2025
 
-## ADR-001: Use Lovable Cloud (Supabase) for Backend
+## ADR-001: Use Supabase for Backend
 **Date**: 2024-12-11
 **Status**: Accepted
 
@@ -10,7 +10,7 @@
 Need a backend for authentication, database, and real-time features.
 
 ### Decision
-Use Lovable Cloud which provides Supabase integration out of the box.
+Use Supabase for backend services.
 
 ### Consequences
 - ✅ No separate backend setup required
@@ -47,7 +47,7 @@ Use credits for reciprocity, no real money transactions.
 Users write informal, unstructured requests that are hard to parse.
 
 ### Decision
-Use Lovable AI Gateway (Gemini 2.5 Flash) to enhance and structure task descriptions.
+Use AI service (Gemini 2.5 Flash) to enhance and structure task descriptions.
 
 ### Consequences
 - ✅ Better task quality and discoverability

@@ -172,12 +172,12 @@ serve(async (req) => {
       }
     }
 
-    // Get API key
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    // Get Google AI API key
+    const GOOGLE_AI_API_KEY = Deno.env.get("GOOGLE_AI_API_KEY");
     
-    if (!LOVABLE_API_KEY) {
-      log(requestId, "ERROR", "CONFIG_ERROR", { error: "LOVABLE_API_KEY not configured" });
-      throw new Error("LOVABLE_API_KEY is not configured");
+    if (!GOOGLE_AI_API_KEY) {
+      log(requestId, "ERROR", "CONFIG_ERROR", { error: "GOOGLE_AI_API_KEY not configured" });
+      throw new Error("GOOGLE_AI_API_KEY is not configured");
     }
 
     log(requestId, "DEBUG", "API_KEY_CHECK", { hasKey: true });
@@ -286,26 +286,35 @@ Return ONLY valid JSON array with 3-5 needs:
     // Call AI
     log(requestId, "INFO", "AI_CALL_START", {
       type,
-      model: "google/gemini-2.5-flash",
+      model: "gemini-2.0-flash-exp",
       promptLength: systemPrompt.length + userPrompt.length,
       hasClarificationContext: !!clarification_context,
     });
 
     const aiStartTime = Date.now();
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Use Google Gemini API
+    const model = "gemini-2.0-flash-exp";
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+    
+    // Convert OpenAI-style messages to Google's format
+    const contents = [];
+    if (systemPrompt) {
+      contents.push({ role: "user", parts: [{ text: systemPrompt }] });
+      contents.push({ role: "model", parts: [{ text: "Understood. I'll follow these instructions." }] });
+    }
+    contents.push({ role: "user", parts: [{ text: userPrompt }] });
+
+    const response = await fetch(`${endpoint}?key=${GOOGLE_AI_API_KEY}`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.7,
+        contents,
+        generationConfig: {
+          temperature: 0.7,
+        },
       }),
     });
 
@@ -336,7 +345,8 @@ Return ONLY valid JSON array with 3-5 needs:
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    // Google API returns content in candidates[0].content.parts[0].text
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     log(requestId, "INFO", "AI_CALL_COMPLETE", {
       latencyMs: aiLatency,

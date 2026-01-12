@@ -234,7 +234,7 @@
 |---------|------------|----------|--------|
 | Per-user rate limiting | ❌ No | None | **P1: No per-user limiting** |
 | Per-session rate limiting | ❌ No | None | **P1: No per-session limiting** |
-| Global rate limiting | ⚠️ Unknown | Lovable AI Gateway | ⚠️ **P1: Unknown limits** |
+| Global rate limiting | ⚠️ Unknown | AI Gateway Service | ⚠️ **P1: Unknown limits** |
 
 **Issues**:
 1. **P1: No per-user rate limiting**
@@ -244,7 +244,7 @@
    - Fix: Add per-user rate limiting
 
 2. **P1: Unknown global limits**
-   - Location: Lovable AI Gateway (external)
+   - Location: AI Gateway Service (external)
    - Issue: Don't know rate limits
    - Impact: May hit limits unexpectedly
    - Fix: Document limits, add monitoring

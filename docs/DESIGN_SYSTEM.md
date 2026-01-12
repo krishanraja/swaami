@@ -1,6 +1,6 @@
 # Swaami Design System
 
-**Last Updated**: January 3, 2025
+**Last Updated**: January 27, 2025
 
 ## Brand Identity
 
@@ -12,25 +12,46 @@ Swaami is a warm, approachable neighbourhood help network. The design emphasizes
 ## Color Palette
 
 ### Light Mode
-| Token | HSL | Usage |
-|-------|-----|-------|
-| `--background` | 0 0% 100% | Page background |
-| `--foreground` | 0 0% 7% | Primary text |
-| `--primary` | 54 91% 85% | Swaami Yellow - CTAs, highlights |
-| `--primary-foreground` | 0 0% 7% | Text on primary |
-| `--secondary` | 0 0% 91% | Secondary surfaces |
-| `--muted` | 0 0% 96% | Muted backgrounds |
-| `--muted-foreground` | 0 0% 45% | Secondary text |
-| `--accent` | 145 43% 59% | Swaami Green - success, confirmation |
-| `--destructive` | 0 84% 60% | Error, urgent |
-| `--border` | 0 0% 91% | Borders, dividers |
+| Token | HSL | Hex Equivalent | Usage |
+|-------|-----|----------------|-------|
+| `--background` | 0 0% 100% | #FFFFFF | Page background |
+| `--foreground` | 0 0% 7% | #121212 | Primary text |
+| `--primary` | 48 85% 75% | #F5D76E | Swaami Yellow - CTAs, highlights |
+| `--primary-foreground` | 0 0% 7% | #121212 | Text on primary |
+| `--secondary` | 0 0% 91% | #E8E8E8 | Secondary surfaces |
+| `--muted` | 0 0% 96% | #F5F5F5 | Muted backgrounds |
+| `--muted-foreground` | 0 0% 45% | #737373 | Secondary text |
+| `--accent` | 54 80% 55% | #D4A574 | Deep warm yellow accent |
+| `--accent-foreground` | 0 0% 7% | #121212 | Text on accent |
+| `--destructive` | 0 84% 60% | #EF4444 | Error, urgent |
+| `--destructive-foreground` | 0 0% 100% | #FFFFFF | Text on destructive |
+| `--border` | 0 0% 91% | #E8E8E8 | Borders, dividers |
+| `--swaami-yellow` | 48 85% 70% | #F0D05A | Custom Swaami yellow |
+| `--swaami-yellow-deep` | 48 90% 50% | #E6C84A | Deeper yellow variant |
+| `--swaami-yellow-highlight` | 48 85% 85% | #FDF6B6 | Light yellow highlight |
+| `--status-success` | 145 43% 59% | #4ADE80 | Success states (green) |
+| `--status-pending` | 45 100% 50% | #FBBF24 | Pending states (amber) |
+| `--status-active` | 200 80% 50% | #3B82F6 | Active states (blue) |
 
 ### Dark Mode
-Same token names with adjusted values for dark theme.
+| Token | HSL | Usage |
+|-------|-----|-------|
+| `--background` | 0 0% 7% | Dark page background |
+| `--foreground` | 0 0% 98% | Light text |
+| `--primary` | 54 91% 85% | Lighter yellow for dark mode |
+| `--primary-foreground` | 0 0% 7% | Dark text on primary |
+| `--secondary` | 0 0% 15% | Dark secondary surfaces |
+| `--muted` | 0 0% 15% | Dark muted backgrounds |
+| `--muted-foreground` | 0 0% 65% | Muted text in dark mode |
+| `--accent` | 54 80% 55% | Same accent color |
+| `--destructive` | 0 62% 30% | Darker red for dark mode |
+| `--border` | 0 0% 20% | Dark borders |
 
 ## Typography
 
-- **Font Family**: Inter (system fallback: sans-serif)
+- **Font Family**: 
+  - **Display**: DM Sans (system fallback: sans-serif) - Used for headings
+  - **Body**: Inter (system fallback: sans-serif) - Used for body text
 - **Weights**: 400 (regular), 500 (medium), 600 (semibold)
 
 ### Scale

@@ -6,10 +6,15 @@ This document defines how AI (LLM) is used in Swaami, including prompt standards
 
 ## AI Provider
 
-**Lovable AI Gateway** (auto-provisioned)
-- Endpoint: `https://ai.gateway.lovable.dev/v1/chat/completions`
-- Model: `google/gemini-2.5-flash` (default)
-- API Key: `LOVABLE_API_KEY` (auto-configured)
+**Google Gemini API**
+- Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent`
+- Model: `gemini-2.0-flash-exp` (default)
+- API Key: `GOOGLE_AI_API_KEY` (configured in Supabase secrets)
+
+**OpenAI Whisper API** (for audio transcription)
+- Endpoint: `https://api.openai.com/v1/audio/transcriptions`
+- Model: `whisper-1`
+- API Key: `OPENAI_API_KEY` (configured in Supabase secrets)
 
 ## Current AI Functions
 

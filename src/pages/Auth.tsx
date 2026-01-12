@@ -46,6 +46,22 @@ export default function Auth() {
     },
   });
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/join`,
+        },
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error("Google auth error:", error);
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -179,11 +195,15 @@ export default function Auth() {
           type="button"
           variant="outline"
           size="xl"
-          className="w-full relative opacity-50"
-          disabled={true}
-          title="Coming soon"
+          className="w-full"
+          onClick={handleGoogleSignIn}
+          disabled={loading}
         >
-          <GoogleIcon className="h-5 w-5 mr-2" />
+          {loading ? (
+            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+          ) : (
+            <GoogleIcon className="h-5 w-5 mr-2" />
+          )}
           Continue with Google
         </Button>
 

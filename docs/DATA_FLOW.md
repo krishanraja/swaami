@@ -80,7 +80,7 @@ Raw description         → Content safety check → (blocked if unsafe)
                         ↓
                         → rewrite-need function
                         ↓
-                        → Lovable AI Gateway
+                        → AI Gateway Service
                         ↓
                         → Structured response:
                           {

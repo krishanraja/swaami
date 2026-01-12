@@ -18,7 +18,7 @@ export interface SEOConfig {
 }
 
 // Base URL for the site
-export const SITE_URL = 'https://swaami.app';
+export const SITE_URL = 'https://www.swaami.ai';
 export const SITE_NAME = 'Swaami';
 export const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 

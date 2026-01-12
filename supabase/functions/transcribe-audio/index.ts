@@ -59,7 +59,7 @@ serve(async (req) => {
     const binaryAudio = processBase64Chunks(audio);
     console.log("Processed binary audio, size:", binaryAudio.length);
 
-    // Prepare form data for Whisper API via Lovable AI Gateway
+    // Prepare form data for Whisper API via AI Gateway
     const formData = new FormData();
     const arrayBuffer = binaryAudio.buffer.slice(binaryAudio.byteOffset, binaryAudio.byteOffset + binaryAudio.byteLength) as ArrayBuffer;
     const blob = new Blob([arrayBuffer], { type: "audio/webm" });

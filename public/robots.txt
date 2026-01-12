@@ -1,5 +1,5 @@
 # Swaami robots.txt
-# https://swaami.app/robots.txt
+# https://www.swaami.ai/robots.txt
 
 # Allow all major search engines full access
 User-agent: Googlebot
@@ -39,7 +39,7 @@ Disallow: /auth
 Disallow: /join
 
 # Sitemap location
-Sitemap: https://swaami.app/sitemap.xml
+Sitemap: https://www.swaami.ai/sitemap.xml
 
 # Host directive
-Host: https://swaami.app
+Host: https://www.swaami.ai

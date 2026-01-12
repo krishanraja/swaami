@@ -157,7 +157,7 @@ All notable changes to Swaami.
 ### Added
 - Initial project setup with React + Vite + TypeScript
 - Tailwind CSS and shadcn/ui component library
-- Lovable Cloud (Supabase) integration
+- Supabase integration
 
 #### Database
 - `profiles` table with user settings, skills, credits
@@ -191,7 +191,7 @@ All notable changes to Swaami.
 - AvailabilitySelector: Time preference picker
 
 #### Edge Functions
-- `rewrite-need`: AI task enhancement using Lovable AI Gateway
+- `rewrite-need`: AI task enhancement using AI Gateway
 
 #### Utilities
 - `logger.ts`: Centralized structured logging

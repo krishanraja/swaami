@@ -12,17 +12,32 @@ Swaami uses Supabase Auth for email verification. This guide explains how to set
 2. Navigate to **Authentication** → **Email Templates** in the left sidebar
 3. You'll see several email template types
 
-### Step 2: Configure "Confirm signup" Template
+### Step 2: Generate Email Templates
 
-1. Click on **"Confirm signup"** template
-2. This is the email sent when users sign up and need to verify their email
-3. Copy the HTML template from `supabase/email-templates/confirm-signup.html`
-4. **IMPORTANT**: Before pasting, replace the GitHub placeholders:
-   - `YOUR_GITHUB_USERNAME` → Your GitHub username/org
-   - `YOUR_REPO_NAME` → Your repository name
-   - `YOUR_BRANCH` → Your branch (usually `main`)
-5. Paste it into the Supabase email template editor
-6. Click **Save**
+1. Run the email template generation script:
+   ```bash
+   node scripts/generate-email-templates.js
+   ```
+   This will generate all 5 branded email templates in `supabase/email-templates/`:
+   - `confirm-signup.html` - Email verification
+   - `invite-user.html` - User invitations
+   - `magic-link.html` - Passwordless sign-in
+   - `change-email-address.html` - Email change verification
+   - `reset-password.html` - Password reset
+
+2. For each template in Supabase Dashboard:
+   - Go to **Authentication** → **Email Templates**
+   - Click on the template name (e.g., "Confirm signup")
+   - Copy the HTML from the corresponding file in `supabase/email-templates/`
+   - Paste it into the Supabase email template editor
+   - Click **Save**
+
+**Note**: The templates are pre-configured with:
+- ✅ Swaami branding and colors
+- ✅ Logo URL: `https://www.swaami.ai/images/swaami-wordmark.png`
+- ✅ Proper Supabase template variables (e.g., `{{ .ConfirmationURL }}`)
+- ✅ Mobile-responsive design
+- ✅ No base64 images or backend scripts
 
 ### Step 3: Configure Email Settings
 
@@ -43,30 +58,14 @@ Swaami uses Supabase Auth for email verification. This guide explains how to set
    - `http://localhost:5173/join` (for local development)
    - `http://localhost:5173/auth` (for local development)
 
-### Step 5: Add Your Logo (Required)
+### Step 5: Verify Logo URL
 
-**Before testing, you must add your logo URL. The template uses GitHub raw URLs by default:**
+The generated templates use the logo URL: `https://www.swaami.ai/images/swaami-wordmark.png`
 
-1. **Option A - Use GitHub Raw URL** (Easiest if repo is public):
-   - In the email template, find: `YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/YOUR_BRANCH`
-   - Replace with your actual:
-     - `YOUR_GITHUB_USERNAME` → Your GitHub username or organization
-     - `YOUR_REPO_NAME` → Your repository name (e.g., `swaami`)
-     - `YOUR_BRANCH` → Your branch name (usually `main` or `master`)
-   - Example: `https://raw.githubusercontent.com/username/swaami/main/src/assets/swaami-icon.png`
-   - ✅ **This works automatically if your GitHub repo is public!**
-
-2. **Option B - Use Supabase Storage** (If repo is private):
-   - Go to Supabase Dashboard → Storage
-   - Create a public bucket (or use existing)
-   - Upload `src/assets/swaami-icon.png`
-   - Copy the public URL
-   - Replace the entire GitHub URL in the template with the Supabase URL
-
-3. **Option C - Use Your Domain**:
-   - Upload `src/assets/swaami-icon.png` to your public folder
-   - Use URL like: `https://yourdomain.com/images/swaami-icon.png`
-   - Replace the GitHub URL in the template
+**Make sure your logo is accessible at this URL:**
+- The logo file should be at `public/images/swaami-wordmark.png` in your project
+- After deployment, it should be accessible at `https://www.swaami.ai/images/swaami-wordmark.png`
+- If using a different domain, update the logo URL in the generated templates before copying to Supabase
 
 ### Step 6: Test the Email
 

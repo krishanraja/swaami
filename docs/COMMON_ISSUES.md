@@ -43,9 +43,13 @@
 
 ## Edge Function Issues
 
-### "LOVABLE_API_KEY is not configured"
+### "GOOGLE_AI_API_KEY is not configured"
 **Cause**: Secret not available in edge function environment
-**Solution**: This should be auto-configured. If persists, contact support.
+**Solution**: Add `GOOGLE_AI_API_KEY` to Supabase Edge Functions secrets. Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey).
+
+### "OPENAI_API_KEY is not configured" (for audio transcription)
+**Cause**: Secret not available in edge function environment
+**Solution**: Add `OPENAI_API_KEY` to Supabase Edge Functions secrets. Get your API key from [OpenAI Platform](https://platform.openai.com/api-keys).
 
 ### AI rewrite returns fallback
 **Cause**: 

@@ -121,7 +121,8 @@ This audit maps all data flows, identifies gaps, and recommends improvements for
 
 | Secret | Location | Logged | Secure |
 |--------|----------|--------|--------|
-| LOVABLE_API_KEY | Supabase | Never | ✅ |
+| GOOGLE_AI_API_KEY | Supabase | Never | ✅ |
+| OPENAI_API_KEY | Supabase | Never | ✅ |
 | TWILIO_ACCOUNT_SID | Supabase | Presence only | ✅ |
 | TWILIO_AUTH_TOKEN | Supabase | Never | ✅ |
 | TWILIO_PHONE_NUMBER | Supabase | Masked (first 4) | ✅ |

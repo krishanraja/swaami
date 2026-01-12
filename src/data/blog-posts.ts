@@ -78,7 +78,7 @@ Start today with something small. Knock on a door, send a message, or post a qui
 
 ---
 
-*Want help from verified neighbours in your area? [Join Swaami free](https://swaami.app) and start building real community connections today.*
+*Want help from verified neighbours in your area? [Join Swaami free](https://www.swaami.ai) and start building real community connections today.*
     `,
     author: 'Swaami Team',
     publishedAt: '2024-12-01T10:00:00Z',
@@ -155,7 +155,7 @@ Building trust takes time, but every conversation is an investment in your commu
 
 ---
 
-*Looking for verified neighbours in your area? [Swaami](https://swaami.app) connects you with people who want to help and build community.*
+*Looking for verified neighbours in your area? [Swaami](https://www.swaami.ai) connects you with people who want to help and build community.*
     `,
     author: 'Swaami Team',
     publishedAt: '2024-12-05T10:00:00Z',
@@ -227,7 +227,7 @@ The vast majority of neighbour interactions are positive. Apps like Swaami creat
 
 ---
 
-*Swaami verifies every user through phone, social accounts, and community endorsements. [Join your neighbourhood](https://swaami.app) safely today.*
+*Swaami verifies every user through phone, social accounts, and community endorsements. [Join your neighbourhood](https://www.swaami.ai) safely today.*
     `,
     author: 'Swaami Team',
     publishedAt: '2024-12-08T10:00:00Z',
@@ -300,7 +300,7 @@ You don't have to move to find community. You can build it where you are:
 
 ---
 
-*Want to find your community? [Swaami](https://swaami.app) connects you with verified neighbours who are ready to help. Join free today.*
+*Want to find your community? [Swaami](https://www.swaami.ai) connects you with verified neighbours who are ready to help. Join free today.*
     `,
     author: 'Swaami Team',
     publishedAt: '2024-12-10T10:00:00Z',
@@ -376,7 +376,7 @@ Even better: join Swaami and see what your neighbours need help with right now. 
 
 ---
 
-*Ready to help? [Swaami](https://swaami.app) shows you neighbours near you who need a quick hand. Join free and start helping today.*
+*Ready to help? [Swaami](https://www.swaami.ai) shows you neighbours near you who need a quick hand. Join free and start helping today.*
     `,
     author: 'Swaami Team',
     publishedAt: '2024-12-12T10:00:00Z',

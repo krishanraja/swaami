@@ -27,7 +27,7 @@ const FAQ_DATA = [
       },
       {
         question: "How do I sign up for Swaami?",
-        answer: "Signing up takes just 2 minutes. Download the app or visit swaami.app, enter your email to create an account, verify your phone number, and select your neighbourhood. You'll then choose your skills and set your availability. That's it - you're ready to help and get help from your neighbours!"
+        answer: "Signing up takes just 2 minutes. Download the app or visit www.swaami.ai, enter your email to create an account, verify your phone number, and select your neighbourhood. You'll then choose your skills and set your availability. That's it - you're ready to help and get help from your neighbours!"
       },
       {
         question: "What areas does Swaami cover?",

@@ -197,7 +197,7 @@ serve(async (req) => {
   }
 
   try {
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    const googleApiKey = Deno.env.get("GOOGLE_AI_API_KEY");
     const supabase = createSupabaseClient({ useServiceRole: true });
 
     // Fetch neighbourhood coordinates for location-aware task creation
@@ -309,34 +309,42 @@ serve(async (req) => {
           console.log(`Created profile ${results.profilesCreated}/${count}: ${displayName} in ${neighbourhood}`);
 
           // Generate AI photo if enabled and API key available
-          if (generatePhotos && lovableApiKey) {
+          if (generatePhotos && googleApiKey) {
             try {
               const photoStyle = PHOTO_PROMPTS[Math.floor(Math.random() * PHOTO_PROMPTS.length)];
               const ethnicity = cityEthnicities[Math.floor(Math.random() * cityEthnicities.length)];
               
               const photoPrompt = `Generate a friendly, natural headshot portrait photo of a ${photoStyle.age} year old ${ethnicity} ${photoStyle.gender}. ${photoStyle.style}. Looking at camera with genuine warm smile. Soft natural lighting. Suitable for a community help app profile picture. No text or watermarks. Photorealistic.`;
 
-              const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+              // Use Google Gemini API for image generation
+              const model = "gemini-2.0-flash-exp";
+              const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+              
+              const aiResponse = await fetch(`${endpoint}?key=${googleApiKey}`, {
                 method: "POST",
                 headers: {
-                  Authorization: `Bearer ${lovableApiKey}`,
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  model: "google/gemini-2.5-flash-image-preview",
-                  messages: [{ role: "user", content: photoPrompt }],
-                  modalities: ["image", "text"],
+                  contents: [{
+                    role: "user",
+                    parts: [{ text: photoPrompt }]
+                  }],
+                  generationConfig: {
+                    temperature: 0.7,
+                  },
                 }),
               });
 
               if (aiResponse.ok) {
                 const aiData = await aiResponse.json();
-                const imageUrl = aiData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+                // Google API returns images in candidates[0].content.parts (where part has inlineData)
+                const imagePart = aiData.candidates?.[0]?.content?.parts?.find((part: any) => part.inlineData);
+                const base64ImageData = imagePart?.inlineData?.data;
                 
-                if (imageUrl && imageUrl.startsWith("data:image")) {
-                  // Extract base64 data and upload to storage
-                  const base64Data = imageUrl.split(",")[1];
-                  const imageBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                if (base64ImageData) {
+                  // Google API returns base64 data directly (no data:image prefix)
+                  const imageBuffer = Uint8Array.from(atob(base64ImageData), c => c.charCodeAt(0));
                   
                   const fileName = `${profile.id}/profile.png`;
                   
@@ -429,7 +437,7 @@ serve(async (req) => {
           }
 
           // Small delay to avoid rate limiting
-          if (generatePhotos && lovableApiKey && (i + 1) % 5 === 0) {
+          if (generatePhotos && aiApiKey && (i + 1) % 5 === 0) {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
 
