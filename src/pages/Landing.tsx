@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Heart, LogOut, Users, Loader2, Mic } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -195,6 +195,19 @@ export default function Landing() {
                 </Button>
               </>
             )}
+
+            {/* Legal Links */}
+            <div className="flex flex-wrap justify-center gap-4 pt-4 text-xs text-muted-foreground">
+              <Link to="/privacy" className="hover:text-foreground transition-colors underline underline-offset-2">
+                Privacy Policy
+              </Link>
+              <Link to="/terms" className="hover:text-foreground transition-colors underline underline-offset-2">
+                Terms of Service
+              </Link>
+              <Link to="/faq" className="hover:text-foreground transition-colors underline underline-offset-2">
+                FAQ
+              </Link>
+            </div>
           </div>
         </footer>
       </div>

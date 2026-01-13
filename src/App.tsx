@@ -13,6 +13,8 @@ import Join from "./pages/Join";
 import FAQ from "./pages/FAQ";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 import AdminPage from "./pages/AdminPage";
 import { ChatScreen } from "./screens/ChatScreen";
 import { VerificationScreen } from "./screens/VerificationScreen";
@@ -71,6 +73,8 @@ const App = () => {
                   <Route path="/faq" element={<FAQ />} />
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<BlogPost />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/terms" element={<Terms />} />
                   
                   {/* Admin/Dev Tools */}
                   <Route path="/admin" element={<AdminPage />} />
