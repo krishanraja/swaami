@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useMemo, use
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout, TIMEOUT_MS } from "@/lib/timeout";
+import { getAdaptiveTimeout, getNetworkQuality } from "@/lib/networkDetection";
 
 // Stable localStorage key for onboarding completion - acts as resilience fallback
 const ONBOARDING_COMPLETED_KEY = "swaami_onboarding_completed";
@@ -84,14 +85,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log("[AuthContext] Starting profile fetch for user:", userId);
 
     try {
-      // Use NORMAL timeout (10s) instead of FAST (5s) to reduce timeout errors
+      // Use adaptive timeout based on network quality
+      const { quality } = getNetworkQuality();
+      const timeout = getAdaptiveTimeout();
+      console.log(`[AuthContext] Network quality: ${quality}, using timeout: ${timeout}ms`);
+
       const result = await withTimeout(
         supabase
           .from("profiles")
           .select("*")
           .eq("user_id", userId)
           .single(),
-        TIMEOUT_MS.NORMAL, // Increased from FAST (5s) to NORMAL (10s) for better reliability
+        timeout, // Adaptive timeout based on network
         "Profile fetch timed out. Please check your connection and try again."
       );
 
@@ -132,10 +137,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("[AuthContext] Starting auth initialization...");
 
       try {
-        // Use NORMAL timeout (10s) instead of FAST (5s) for better reliability
+        // Use adaptive timeout based on network quality
+        const { quality } = getNetworkQuality();
+        const timeout = getAdaptiveTimeout();
+        console.log(`[AuthContext] Network quality: ${quality}, using timeout: ${timeout}ms`);
+
         const { data, error } = await withTimeout(
           supabase.auth.getSession(),
-          TIMEOUT_MS.NORMAL, // Increased from FAST (5s) to NORMAL (10s)
+          timeout, // Adaptive timeout based on network
           "Auth session fetch timed out. Please check your connection."
         );
 
@@ -154,15 +163,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(initialSession?.user ?? null);
 
         if (initialSession?.user) {
-          console.log("[AuthContext] User found, fetching profile...");
-          await fetchProfile(initialSession.user.id);
+          console.log("[AuthContext] User found, fetching profile in background...");
+          // Don't await - let profile load in parallel with UI render
+          fetchProfile(initialSession.user.id).catch(err => {
+            console.error("[AuthContext] Background profile fetch failed:", err);
+          });
         } else {
           console.log("[AuthContext] No user session found");
         }
 
+        // Unblock UI immediately after session check
         initCompleted = true;
         setAuthLoading(false);
-        console.log(`[AuthContext] Auth init complete in ${Math.round(performance.now() - startTime)}ms`);
+        console.log(`[AuthContext] Auth init complete (UI unblocked) in ${Math.round(performance.now() - startTime)}ms`);
       } catch (err) {
         const elapsed = Math.round(performance.now() - startTime);
         const errorMsg = err instanceof Error ? err.message : "Unknown error";

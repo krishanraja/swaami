@@ -47,10 +47,36 @@ const App = () => {
         }
       }, 300);
     }
-    
+
     // Ensure body and html have white background
     document.body.style.backgroundColor = 'hsl(var(--background))';
     document.documentElement.style.backgroundColor = 'hsl(var(--background))';
+  }, []);
+
+  // Auto-seed demo data if insufficient
+  useEffect(() => {
+    async function initDemoData() {
+      try {
+        const { getDemoDataStats, seedDemoData } = await import('./utils/seedDemoData');
+
+        const stats = await getDemoDataStats();
+        console.log('[App] Demo data stats:', stats);
+
+        // Auto-seed if less than 50 demo tasks
+        if (stats.demoTaskCount < 50) {
+          console.log('[App] Demo data insufficient, seeding 200 profiles...');
+          await seedDemoData(200, false); // 200 profiles, no photos for speed
+          console.log('[App] Demo data seeded successfully');
+        } else {
+          console.log('[App] Demo data sufficient:', stats.demoTaskCount, 'tasks');
+        }
+      } catch (error) {
+        console.error('[App] Failed to seed demo data:', error);
+        // Don't block app if seeding fails - it's non-critical
+      }
+    }
+
+    initDemoData();
   }, []);
 
   return (

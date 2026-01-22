@@ -3,6 +3,8 @@
  * Implements exponential backoff with jitter
  */
 
+import { getAdaptiveRetryConfig, getNetworkQuality } from './networkDetection';
+
 export interface RetryOptions {
   maxAttempts?: number;
   initialDelayMs?: number;
@@ -109,6 +111,54 @@ export async function retrySupabaseOperation<T>(
       'timeout',
     ],
   });
+}
+
+/**
+ * Network-aware retry with exponential backoff
+ * Adapts retry strategy based on current network quality
+ */
+export async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  operationName: string = 'operation'
+): Promise<T> {
+  const config = getAdaptiveRetryConfig();
+  const { quality } = getNetworkQuality();
+
+  console.log(`[Retry] Starting ${operationName} (network: ${quality}, max retries: ${config.maxRetries})`);
+
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
+    try {
+      const result = await fn();
+
+      if (attempt > 0) {
+        console.log(`[Retry] ${operationName} succeeded on attempt ${attempt + 1}`);
+      }
+
+      return result;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Don't retry on last attempt
+      if (attempt === config.maxRetries) {
+        console.error(`[Retry] ${operationName} failed after ${config.maxRetries + 1} attempts:`, lastError);
+        throw lastError;
+      }
+
+      // Calculate exponential backoff delay with jitter
+      const exponentialDelay = config.initialDelay * Math.pow(2, attempt);
+      const jitter = Math.random() * 1000; // Add randomness to prevent thundering herd
+      const delay = Math.min(exponentialDelay + jitter, config.maxDelay);
+
+      console.warn(`[Retry] ${operationName} failed on attempt ${attempt + 1}, retrying in ${Math.round(delay)}ms...`, lastError.message);
+
+      // Wait before retrying
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
 }
 
 /**
