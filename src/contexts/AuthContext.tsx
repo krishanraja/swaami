@@ -82,17 +82,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const startTime = performance.now();
     setProfileLoading(true);
     console.log("[AuthContext] Starting profile fetch for user:", userId);
-    
+
     try {
-      // Use FAST timeout (5s) for responsive UX - don't block users waiting for profile
+      // Use NORMAL timeout (10s) instead of FAST (5s) to reduce timeout errors
       const result = await withTimeout(
         supabase
           .from("profiles")
           .select("*")
           .eq("user_id", userId)
           .single(),
-        TIMEOUT_MS.FAST, // Reduced from NORMAL (10s) to FAST (5s)
-        "Profile fetch timed out"
+        TIMEOUT_MS.NORMAL, // Increased from FAST (5s) to NORMAL (10s) for better reliability
+        "Profile fetch timed out. Please check your connection and try again."
       );
 
       const elapsed = Math.round(performance.now() - startTime);
@@ -104,9 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setProfile(result.data);
         // If profile is complete, ensure localStorage flag is set
-        const isComplete = result.data?.city && 
-                           result.data?.neighbourhood && 
-                           result.data?.phone && 
+        const isComplete = result.data?.city &&
+                           result.data?.neighbourhood &&
+                           result.data?.phone &&
                            (result.data?.skills?.length ?? 0) > 0;
         if (isComplete && !onboardingCompletedFlag) {
           markOnboardingComplete();
@@ -114,7 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       const elapsed = Math.round(performance.now() - startTime);
-      console.error(`[AuthContext] Profile fetch failed after ${elapsed}ms:`, err);
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      console.error(`[AuthContext] Profile fetch failed after ${elapsed}ms:`, errorMsg);
       setProfile(null);
       // Don't clear onboarding flag on fetch failure - that's the resilience mechanism
     } finally {
@@ -129,42 +130,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initAuth = async () => {
       const startTime = performance.now();
       console.log("[AuthContext] Starting auth initialization...");
-      
+
       try {
-        // Use FAST timeout (5s) for responsive UX
+        // Use NORMAL timeout (10s) instead of FAST (5s) for better reliability
         const { data, error } = await withTimeout(
           supabase.auth.getSession(),
-          TIMEOUT_MS.FAST, // Reduced from NORMAL (10s) to FAST (5s)
-          "Auth session fetch timed out"
+          TIMEOUT_MS.NORMAL, // Increased from FAST (5s) to NORMAL (10s)
+          "Auth session fetch timed out. Please check your connection."
         );
-        
+
         const elapsed = Math.round(performance.now() - startTime);
         console.log(`[AuthContext] Auth session fetched in ${elapsed}ms`);
-        
+
         if (error) {
           console.error('[AuthContext] Auth session error:', error);
         }
-        
+
         const initialSession = data?.session;
-        
+
         if (!mounted) return;
-        
+
         setSession(initialSession ?? null);
         setUser(initialSession?.user ?? null);
-        
+
         if (initialSession?.user) {
           console.log("[AuthContext] User found, fetching profile...");
           await fetchProfile(initialSession.user.id);
         } else {
           console.log("[AuthContext] No user session found");
         }
-        
+
         initCompleted = true;
         setAuthLoading(false);
         console.log(`[AuthContext] Auth init complete in ${Math.round(performance.now() - startTime)}ms`);
       } catch (err) {
         const elapsed = Math.round(performance.now() - startTime);
-        console.error(`[AuthContext] Auth init failed after ${elapsed}ms:`, err);
+        const errorMsg = err instanceof Error ? err.message : "Unknown error";
+        console.error(`[AuthContext] Auth init failed after ${elapsed}ms:`, errorMsg);
         // On error or timeout, assume unauthenticated immediately
         if (mounted) {
           setSession(null);

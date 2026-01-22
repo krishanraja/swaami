@@ -39,7 +39,7 @@ export function FeedScreen({ onNavigateToPost }: FeedScreenProps) {
         if (loading) {
           setTimeoutError(true);
         }
-      }, 10000); // 10 second timeout
+      }, 15000); // 15 second timeout (gives task fetch time to complete or timeout)
 
       return () => {
         clearTimeout(timeout);

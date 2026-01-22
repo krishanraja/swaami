@@ -187,7 +187,7 @@ export function ProfileScreen({ onLogout }: ProfileScreenProps) {
         if (loading) {
           setTimeoutError(true);
         }
-      }, 10000); // 10 second timeout
+      }, 15000); // 15 second timeout (gives profile fetch time to complete or timeout)
 
       return () => {
         clearTimeout(timeout);

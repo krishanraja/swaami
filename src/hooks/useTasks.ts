@@ -4,6 +4,7 @@ import { useProfile } from "./useProfile";
 import { useNeighbourhoods, type City } from "./useNeighbourhoods";
 import { validateStatusTransition, TASK_STATUS_TRANSITIONS, getInvalidTransitionError } from "@/lib/stateMachine";
 import { retrySupabaseOperation } from "@/lib/retry";
+import { withTimeout, TIMEOUT_MS } from "@/lib/timeout";
 
 export interface Task {
   id: string;
@@ -94,19 +95,27 @@ export function useTasks() {
       // Always try location-based query with 5km radius for client-side filtering
       if (userLocation) {
         console.log("[useTasks] Fetching nearby tasks for location:", userLocation);
-        const result = await supabase.rpc("get_nearby_tasks", {
-          user_lat: userLocation.lat,
-          user_lng: userLocation.lng,
-          radius_km: 5, // Fetch 5km radius, let client filter
-        });
+        const result = await withTimeout(
+          supabase.rpc("get_nearby_tasks", {
+            user_lat: userLocation.lat,
+            user_lng: userLocation.lng,
+            radius_km: 5, // Fetch 5km radius, let client filter
+          }),
+          TIMEOUT_MS.NORMAL,
+          "Task fetch timed out. Please try again."
+        );
         data = result.data;
         fetchError = result.error;
-        
+
         // FALLBACK: If location-based query returns empty, try public tasks
         // This handles cases where demo tasks don't have coordinates or are outside radius
         if (!fetchError && (!data || data.length === 0)) {
           console.log("[useTasks] No nearby tasks found, falling back to get_public_tasks");
-          const fallbackResult = await supabase.rpc("get_public_tasks");
+          const fallbackResult = await withTimeout(
+            supabase.rpc("get_public_tasks"),
+            TIMEOUT_MS.NORMAL,
+            "Task fetch timed out. Please try again."
+          );
           data = fallbackResult.data;
           fetchError = fallbackResult.error;
           usedFallback = true;
@@ -114,7 +123,11 @@ export function useTasks() {
       } else {
         // No location available - use public tasks query
         console.log("[useTasks] No user location, using get_public_tasks");
-        const result = await supabase.rpc("get_public_tasks");
+        const result = await withTimeout(
+          supabase.rpc("get_public_tasks"),
+          TIMEOUT_MS.NORMAL,
+          "Task fetch timed out. Please try again."
+        );
         data = result.data;
         fetchError = result.error;
         usedFallback = true;
@@ -178,8 +191,10 @@ export function useTasks() {
         setMyTasks([]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch tasks'));
-      console.error("Error fetching tasks:", err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch tasks';
+      const error = err instanceof Error ? err : new Error(errorMessage);
+      setError(error);
+      console.error("[useTasks] Error fetching tasks:", errorMessage, err);
     } finally {
       setLoading(false);
     }
