@@ -44,12 +44,9 @@ export default function Landing() {
     return <SplashScreen onComplete={handleSplashComplete} />;
   }
 
-  // IMPROVED: Only block button when we have no user AND auth is loading
-  // If user exists (even while profile is still loading), enable button immediately
-  // This prevents the 10+ second wait for users who are already logged in
+  // OPTIMISTIC UX: Never disable button - allow users to proceed immediately
+  // Show subtle loading indicator while auth/profile loading
   const isAuthLoading = authState === "loading" && !user;
-  
-  // Show subtle loading indicator when user exists but profile still loading
   const isProfileLoading = authState === "loading" && !!user;
 
   return (
@@ -148,26 +145,16 @@ export default function Landing() {
         <footer className="px-6 pb-safe pt-4 bg-gradient-to-t from-background via-background/95 to-transparent animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 fill-mode-both">
           <div className="max-w-lg mx-auto w-full space-y-2 pb-4">
             <Button
-              onClick={() => navigate(isAuthLoading ? "/auth?mode=signup" : primaryCTA.path)}
+              onClick={() => navigate(primaryCTA.path)}
               variant="swaami"
               size="xl"
               className="w-full h-14 text-lg font-semibold rounded-2xl shadow-lg"
-              disabled={isAuthLoading}
             >
-              {isAuthLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Loading...
-                </>
+              {primaryCTA.text}
+              {isAuthLoading || isProfileLoading ? (
+                <Loader2 className="ml-2 h-5 w-5 animate-spin" />
               ) : (
-                <>
-                  {primaryCTA.text}
-                  {isProfileLoading ? (
-                    <Loader2 className="ml-2 h-5 w-5 animate-spin" />
-                  ) : (
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  )}
-                </>
+                <ArrowRight className="ml-2 h-5 w-5" />
               )}
             </Button>
 

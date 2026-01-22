@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "./useProfile";
 import { useNeighbourhoods, type City } from "./useNeighbourhoods";
 import { validateStatusTransition, TASK_STATUS_TRANSITIONS, getInvalidTransitionError } from "@/lib/stateMachine";
-import { retrySupabaseOperation } from "@/lib/retry";
+import { retrySupabaseOperation, retryWithBackoff } from "@/lib/retry";
 import { withTimeout, TIMEOUT_MS } from "@/lib/timeout";
+import { getAdaptiveTimeout } from "@/lib/networkDetection";
 
 export interface Task {
   id: string;
@@ -93,17 +94,26 @@ export function useTasks() {
       let usedFallback = false;
 
       // Always try location-based query with 5km radius for client-side filtering
+      const timeout = getAdaptiveTimeout();
+
       if (userLocation) {
         console.log("[useTasks] Fetching nearby tasks for location:", userLocation);
-        const result = await withTimeout(
-          supabase.rpc("get_nearby_tasks", {
-            user_lat: userLocation.lat,
-            user_lng: userLocation.lng,
-            radius_km: 5, // Fetch 5km radius, let client filter
-          }),
-          TIMEOUT_MS.NORMAL,
-          "Task fetch timed out. Please try again."
+
+        const result = await retryWithBackoff(
+          async () => {
+            return await withTimeout(
+              supabase.rpc("get_nearby_tasks", {
+                user_lat: userLocation.lat,
+                user_lng: userLocation.lng,
+                radius_km: 5, // Fetch 5km radius, let client filter
+              }),
+              timeout,
+              "Task fetch timed out. Please try again."
+            );
+          },
+          'get_nearby_tasks'
         );
+
         data = result.data;
         fetchError = result.error;
 
@@ -111,11 +121,18 @@ export function useTasks() {
         // This handles cases where demo tasks don't have coordinates or are outside radius
         if (!fetchError && (!data || data.length === 0)) {
           console.log("[useTasks] No nearby tasks found, falling back to get_public_tasks");
-          const fallbackResult = await withTimeout(
-            supabase.rpc("get_public_tasks"),
-            TIMEOUT_MS.NORMAL,
-            "Task fetch timed out. Please try again."
+
+          const fallbackResult = await retryWithBackoff(
+            async () => {
+              return await withTimeout(
+                supabase.rpc("get_public_tasks"),
+                timeout,
+                "Task fetch timed out. Please try again."
+              );
+            },
+            'get_public_tasks'
           );
+
           data = fallbackResult.data;
           fetchError = fallbackResult.error;
           usedFallback = true;
@@ -123,11 +140,18 @@ export function useTasks() {
       } else {
         // No location available - use public tasks query
         console.log("[useTasks] No user location, using get_public_tasks");
-        const result = await withTimeout(
-          supabase.rpc("get_public_tasks"),
-          TIMEOUT_MS.NORMAL,
-          "Task fetch timed out. Please try again."
+
+        const result = await retryWithBackoff(
+          async () => {
+            return await withTimeout(
+              supabase.rpc("get_public_tasks"),
+              timeout,
+              "Task fetch timed out. Please try again."
+            );
+          },
+          'get_public_tasks'
         );
+
         data = result.data;
         fetchError = result.error;
         usedFallback = true;

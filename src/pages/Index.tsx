@@ -5,11 +5,12 @@ import { FeedScreen } from "@/screens/FeedScreen";
 import { PostScreen } from "@/screens/PostScreen";
 import { ProfileScreen } from "@/screens/ProfileScreen";
 import { ChatsListScreen } from "@/screens/ChatsListScreen";
+import { ProfileSkeleton } from "@/components/skeletons/ProfileSkeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 
 const Index = () => {
-  const { authState, signOut } = useAuth();
+  const { authState, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"feed" | "post" | "chats" | "profile">("feed");
 
@@ -27,8 +28,9 @@ const Index = () => {
     navigate("/", { replace: true });
   };
 
-  // Show loading or redirect states
-  if (authState !== "ready") {
+  // OPTIMISTIC UX: Only show full-screen loading if we truly don't know auth state yet
+  // If we have any user info (even incomplete profile), render app with skeletons
+  if (authState === "loading" && !profile) {
     return (
       <div className="h-[100dvh] w-full bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -48,7 +50,8 @@ const Index = () => {
       case "chats":
         return <ChatsListScreen />;
       case "profile":
-        return <ProfileScreen onLogout={handleLogout} />;
+        // Show skeleton while profile loads, then real profile screen
+        return profile ? <ProfileScreen onLogout={handleLogout} /> : <ProfileSkeleton />;
       default:
         return <FeedScreen />;
     }
