@@ -65,14 +65,27 @@ const App = () => {
         // Auto-seed if less than 50 demo tasks
         if (stats.demoTaskCount < 50) {
           console.log('[App] Demo data insufficient, seeding 200 profiles...');
-          await seedDemoData(200, false); // 200 profiles, no photos for speed
-          console.log('[App] Demo data seeded successfully');
+          try {
+            const result = await seedDemoData(200, false); // 200 profiles, no photos for speed
+            console.log('[App] ✅ Demo data seeded successfully:', result);
+          } catch (seedError) {
+            // Make seed errors VERY visible
+            console.error('❌ [App] SEED FAILED - Demo data could not be generated:', seedError);
+            console.error('[App] This is likely because:');
+            console.error('[App] 1. Edge function "seed-demo-users" is not deployed to production');
+            console.error('[App] 2. Edge function is timing out (takes >90s)');
+            console.error('[App] 3. Network connectivity issues');
+            console.error('[App] Check Supabase Dashboard → Edge Functions to verify deployment');
+            // Re-throw to outer catch for additional handling if needed
+            throw seedError;
+          }
         } else {
           console.log('[App] Demo data sufficient:', stats.demoTaskCount, 'tasks');
         }
       } catch (error) {
-        console.error('[App] Failed to seed demo data:', error);
+        console.error('[App] Failed to initialize demo data:', error);
         // Don't block app if seeding fails - it's non-critical
+        // User can still use the app, they just won't see demo data
       }
     }
 

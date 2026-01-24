@@ -91,15 +91,15 @@ export function getAdaptiveTimeout(): number {
 
   switch (quality) {
     case 'excellent':
-      return 5000;  // 5 seconds on 4G
+      return 15000; // 15 seconds - Supabase queries can legitimately take 5-10s on mobile
     case 'good':
-      return 10000; // 10 seconds on 3G
+      return 20000; // 20 seconds on 3G
     case 'poor':
-      return 20000; // 20 seconds on 2G
+      return 30000; // 30 seconds on 2G
     case 'offline':
-      return 30000; // 30 seconds (will fail, but give time for reconnect)
+      return 40000; // 40 seconds (will fail, but give time for reconnect)
     default:
-      return 10000;
+      return 15000;
   }
 }
 
