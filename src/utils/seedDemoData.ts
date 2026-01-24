@@ -55,9 +55,7 @@ export async function getDemoDataStats() {
       .eq("status", "open")
       .in("owner_id", demoProfileIds);
 
-    if (taskCountError) {
-      console.error("Failed to get demo task count:", taskCountError);
-    } else {
+    if (!taskCountError) {
       demoTaskCount = taskCountResult || 0;
     }
   }
@@ -84,17 +82,10 @@ export async function seedDemoData(count = 200, generatePhotos = false) {
     throw new Error("Missing VITE_SUPABASE_PUBLISHABLE_KEY environment variable");
   }
 
-  console.log(`[seedDemoData] Calling edge function to generate ${count} profiles (photos: ${generatePhotos})...`);
-  const startTime = performance.now();
-
   // Create AbortController for timeout
   const controller = new AbortController();
-  // Generous timeout: 2 minutes for 200 profiles (especially with photo generation)
   const timeoutMs = generatePhotos ? 180000 : 90000; // 3min with photos, 90s without
-  const timeoutId = setTimeout(() => {
-    console.error(`[seedDemoData] Timeout after ${timeoutMs}ms - aborting request`);
-    controller.abort();
-  }, timeoutMs);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(
@@ -115,28 +106,20 @@ export async function seedDemoData(count = 200, generatePhotos = false) {
     );
 
     clearTimeout(timeoutId);
-    const elapsed = Math.round(performance.now() - startTime);
-    console.log(`[seedDemoData] Edge function responded in ${elapsed}ms (status: ${response.status})`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[seedDemoData] Edge function failed:`, errorText);
       throw new Error(`Seed function failed: ${response.status} ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log(`[seedDemoData] Success:`, data);
-    return data;
+    return await response.json();
   } catch (error) {
     clearTimeout(timeoutId);
-    const elapsed = Math.round(performance.now() - startTime);
 
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error(`[seedDemoData] Request aborted after ${elapsed}ms (timeout: ${timeoutMs}ms)`);
-      throw new Error(`Seed request timed out after ${Math.round(timeoutMs / 1000)}s. The edge function may not be deployed or is taking too long.`);
+      throw new Error(`Seed request timed out after ${Math.round(timeoutMs / 1000)}s`);
     }
 
-    console.error(`[seedDemoData] Failed after ${elapsed}ms:`, error);
     throw error;
   }
 }
@@ -156,16 +139,10 @@ export async function cleanupDemoData() {
     throw new Error("Missing VITE_SUPABASE_PUBLISHABLE_KEY environment variable");
   }
 
-  console.log('[cleanupDemoData] Calling edge function to cleanup demo data...');
-  const startTime = performance.now();
-
   // Create AbortController for timeout
   const controller = new AbortController();
   const timeoutMs = 60000; // 60 seconds for cleanup
-  const timeoutId = setTimeout(() => {
-    console.error(`[cleanupDemoData] Timeout after ${timeoutMs}ms - aborting request`);
-    controller.abort();
-  }, timeoutMs);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(
@@ -184,28 +161,20 @@ export async function cleanupDemoData() {
     );
 
     clearTimeout(timeoutId);
-    const elapsed = Math.round(performance.now() - startTime);
-    console.log(`[cleanupDemoData] Edge function responded in ${elapsed}ms (status: ${response.status})`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[cleanupDemoData] Edge function failed:`, errorText);
       throw new Error(`Cleanup function failed: ${response.status} ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log(`[cleanupDemoData] Success:`, data);
-    return data;
+    return await response.json();
   } catch (error) {
     clearTimeout(timeoutId);
-    const elapsed = Math.round(performance.now() - startTime);
 
     if (error instanceof Error && error.name === 'AbortError') {
-      console.error(`[cleanupDemoData] Request aborted after ${elapsed}ms (timeout: ${timeoutMs}ms)`);
       throw new Error(`Cleanup request timed out after ${Math.round(timeoutMs / 1000)}s`);
     }
 
-    console.error(`[cleanupDemoData] Failed after ${elapsed}ms:`, error);
     throw error;
   }
 }

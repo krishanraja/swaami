@@ -97,13 +97,7 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
           ? 'phone'
           : finalStep;
         
-        console.log('[JoinScreen] Restored progress:', {
-          step: safeStep,
-          city: validatedCity,
-          phoneVerified: validatedPhoneVerified,
-          hasPhone: !!progress.phone,
-          skills: progress.selectedSkills?.length || 0
-        });
+        // Progress restored from localStorage
         
         setStep(safeStep);
         setCity(validatedCity);
@@ -170,8 +164,7 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
     const requestStartTime = Date.now();
     
     try {
-      const maskedPhone = phone.length > 6 ? phone.slice(0, 4) + "****" + phone.slice(-2) : "***";
-      console.log('[JoinScreen] Sending OTP to:', maskedPhone, '| Start time:', new Date(requestStartTime).toISOString());
+      // Sending OTP
       
       // Get auth token from localStorage directly to avoid supabase client hanging
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -188,10 +181,9 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
           }
         }
       } catch (e) {
-        console.log('[JoinScreen] Using apikey for auth (no stored session)');
+        // Using apikey for auth (no stored session)
       }
       
-      console.log('[JoinScreen] Making fetch request to:', `${supabaseUrl}/functions/v1/send-phone-otp`);
       
       // Use direct fetch instead of supabase.functions.invoke to avoid hanging issues
       const controller = new AbortController();
@@ -213,12 +205,6 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
       const duration = Date.now() - requestStartTime;
       const data = await response.json();
       
-      console.log('[JoinScreen] OTP response received:', { 
-        duration: `${duration}ms`,
-        status: response.status,
-        hasData: !!data,
-        timestamp: new Date().toISOString()
-      });
 
       if (!response.ok) {
         console.error('[JoinScreen] OTP service error:', data.error);
@@ -230,28 +216,21 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
         throw new Error(data.error);
       }
 
-      console.log('[JoinScreen] OTP sent successfully in', duration, 'ms');
       setStep('otp');
     } catch (error) {
       const duration = Date.now() - requestStartTime;
       
       // Determine error type for better user messaging
       let errorMessage = "Failed to send verification code";
-      if (error instanceof Error) {
+        if (error instanceof Error) {
         if (error.name === 'AbortError' || error.message.includes('aborted')) {
           errorMessage = "Request timed out. Please check your connection and try again.";
-          console.error("[JoinScreen] OTP send timeout after", duration, "ms");
         } else if (error.message.includes('network') || error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
           errorMessage = "Network error. Please check your connection and try again.";
-          console.error("[JoinScreen] OTP send network error:", error.message);
         } else {
           errorMessage = error.message;
-          console.error("[JoinScreen] OTP send error:", error.message);
         }
-      } else {
-        console.error("[JoinScreen] OTP send unknown error:", error);
       }
-      
       console.error("[JoinScreen] OTP error:", errorMessage);
     } finally {
       setLoading(false);
@@ -284,7 +263,7 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
           }
         }
       } catch (e) {
-        console.log('[JoinScreen] Using apikey for auth (no stored session)');
+        // Using apikey for auth (no stored session)
       }
       
       // Use direct fetch instead of supabase.functions.invoke to avoid hanging issues
@@ -309,7 +288,6 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
       if (data?.error) throw new Error(data.error);
 
       if (data?.verified) {
-        console.log("[JoinScreen] Phone verified!");
         setPhoneVerified(true);
         setStep('preferences');
       }
@@ -335,11 +313,8 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
     setLoading(true);
     setError(null);
     
-    const requestStartTime = Date.now();
-    console.log('[JoinScreen] handleComplete started at:', new Date(requestStartTime).toISOString());
-    
     try {
-      // Get user with proper timeout that actually rejects
+      // Get user with proper timeout
       const { data: userData } = await withTimeout(
         supabase.auth.getUser(),
         TIMEOUT_MS.NORMAL,
@@ -349,7 +324,6 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
       const user = userData?.user;
       if (!user) throw new Error("Not authenticated. Please sign in again.");
       
-      console.log('[JoinScreen] Got user, updating profile...');
 
       // Update profile with proper timeout
       const updateResult = await withTimeout(
@@ -371,18 +345,11 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
       );
 
       if (updateResult.error) {
-        console.error('[JoinScreen] Profile update error:', updateResult.error);
         throw new Error(updateResult.error.message || "Failed to update profile");
       }
       const updatedProfile = updateResult.data;
       if (!updatedProfile) throw new Error("Profile update returned no data");
       
-      console.log('[JoinScreen] Profile updated successfully:', {
-        city: updatedProfile.city,
-        neighbourhood: updatedProfile.neighbourhood,
-        skills: updatedProfile.skills?.length,
-        phone: updatedProfile.phone ? '✓' : '✗'
-      });
       
       // Verify the profile meets "ready" criteria before navigating
       const isComplete = updatedProfile.city && 
@@ -391,19 +358,11 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
                          (updatedProfile.skills?.length ?? 0) > 0;
       
       if (!isComplete) {
-        console.error('[JoinScreen] Profile still incomplete after update:', {
-          city: !!updatedProfile.city,
-          neighbourhood: !!updatedProfile.neighbourhood,
-          phone: !!updatedProfile.phone,
-          skills: updatedProfile.skills?.length ?? 0
-        });
         throw new Error("Profile is still incomplete. Please fill in all required fields.");
       }
 
-      // CRITICAL: Mark onboarding complete BEFORE refreshing profile
-      // This ensures the user won't be redirected back to /join even if profile fetch fails later
+      // Mark onboarding complete BEFORE refreshing profile
       markOnboardingComplete();
-      console.log('[JoinScreen] Onboarding completion flag set');
 
       // Refresh profile context with proper timeout to ensure authState updates
       await withTimeout(
@@ -415,26 +374,16 @@ export function JoinScreen({ onComplete, refetchProfile }: JoinScreenProps) {
       // Small delay to ensure React state has propagated before navigation
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      const duration = Date.now() - requestStartTime;
-      console.log('[JoinScreen] handleComplete succeeded in', duration, 'ms, authState:', authState);
-      
       clearProgress();
       onComplete();
     } catch (err) {
-      const duration = Date.now() - requestStartTime;
-      
-      // Extract user-friendly error message
       let errorMessage = "Something went wrong. Please try again.";
       if (err instanceof TimeoutError) {
         errorMessage = err.message;
-        console.error("[JoinScreen] Timeout error after", duration, "ms:", err.message);
       } else if (err instanceof Error) {
         errorMessage = err.message;
-        console.error("[JoinScreen] Profile update error after", duration, "ms:", err.message);
-      } else {
-        console.error("[JoinScreen] Unknown error after", duration, "ms:", err);
       }
-      
+      console.error("[JoinScreen] Profile update error:", errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);

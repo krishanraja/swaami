@@ -64,9 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem(ONBOARDING_COMPLETED_KEY, "true");
       setOnboardingCompletedFlag(true);
-      console.log("[AuthContext] Onboarding marked complete in localStorage");
-    } catch (err) {
-      console.error("[AuthContext] Failed to save onboarding flag:", err);
+    } catch {
+      // Ignore localStorage errors
     }
   }, []);
 
@@ -81,15 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    const startTime = performance.now();
     setProfileLoading(true);
-    console.log("[AuthContext] Starting profile fetch for user:", userId);
 
     try {
       // Use retry logic with adaptive timeout
       const timeout = getAdaptiveTimeout();
-      const { quality } = getNetworkQuality();
-      console.log(`[AuthContext] Network quality: ${quality}, using timeout: ${timeout}ms with retry`);
 
       const result = await retryWithBackoff(
         async () => {
@@ -106,12 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "profile_fetch"
       );
 
-      const elapsed = Math.round(performance.now() - startTime);
-
       if (result.error) {
         // Check if profile doesn't exist (PGRST116 is "not found" error from PostgREST)
         if (result.error.code === 'PGRST116' || result.error.message?.includes('not found')) {
-          console.warn(`[AuthContext] Profile not found for user ${userId}, creating basic profile...`);
 
           // Create a basic profile so the user can continue
           const { data: newProfile, error: createError } = await supabase
@@ -134,18 +126,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .single();
 
           if (createError) {
-            console.error("[AuthContext] Failed to create profile:", createError);
             setProfile(null);
           } else {
-            console.log("[AuthContext] ✅ Created basic profile for user");
             setProfile(newProfile);
           }
         } else {
-          console.error("[AuthContext] Error fetching profile:", result.error);
           setProfile(null);
         }
       } else {
-        console.log(`[AuthContext] Profile fetch completed in ${elapsed}ms`);
         setProfile(result.data);
         // If profile is complete, ensure localStorage flag is set
         const isComplete = result.data?.city &&
@@ -156,12 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           markOnboardingComplete();
         }
       }
-    } catch (err) {
-      const elapsed = Math.round(performance.now() - startTime);
-      const errorMsg = err instanceof Error ? err.message : "Unknown error";
-      console.error(`[AuthContext] Profile fetch failed after ${elapsed}ms:`, errorMsg);
+    } catch {
       setProfile(null);
-      // Don't clear onboarding flag on fetch failure - that's the resilience mechanism
     } finally {
       setProfileLoading(false);
     }
@@ -172,27 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let initCompleted = false;
 
     const initAuth = async () => {
-      const startTime = performance.now();
-      console.log("[AuthContext] Starting auth initialization...");
-
       try {
         // Use adaptive timeout based on network quality
-        const { quality } = getNetworkQuality();
         const timeout = getAdaptiveTimeout();
-        console.log(`[AuthContext] Network quality: ${quality}, using timeout: ${timeout}ms`);
 
         const { data, error } = await withTimeout(
           supabase.auth.getSession(),
           timeout, // Adaptive timeout based on network
           "Auth session fetch timed out. Please check your connection."
         );
-
-        const elapsed = Math.round(performance.now() - startTime);
-        console.log(`[AuthContext] Auth session fetched in ${elapsed}ms`);
-
-        if (error) {
-          console.error('[AuthContext] Auth session error:', error);
-        }
 
         const initialSession = data?.session;
 
@@ -202,23 +174,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(initialSession?.user ?? null);
 
         if (initialSession?.user) {
-          console.log("[AuthContext] User found, fetching profile in background...");
           // Don't await - let profile load in parallel with UI render
-          fetchProfile(initialSession.user.id).catch(err => {
-            console.error("[AuthContext] Background profile fetch failed:", err);
-          });
-        } else {
-          console.log("[AuthContext] No user session found");
+          fetchProfile(initialSession.user.id).catch(() => {});
         }
 
         // Unblock UI immediately after session check
         initCompleted = true;
         setAuthLoading(false);
-        console.log(`[AuthContext] Auth init complete (UI unblocked) in ${Math.round(performance.now() - startTime)}ms`);
-      } catch (err) {
-        const elapsed = Math.round(performance.now() - startTime);
-        const errorMsg = err instanceof Error ? err.message : "Unknown error";
-        console.error(`[AuthContext] Auth init failed after ${elapsed}ms:`, errorMsg);
+      } catch {
         // On error or timeout, assume unauthenticated immediately
         if (mounted) {
           setSession(null);
@@ -320,11 +283,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                        profile?.phone && 
                        (profile?.skills?.length ?? 0) > 0;
     
-    // RESILIENCE: If profile fetch failed but user previously completed onboarding,
+    // If profile fetch failed but user previously completed onboarding,
     // treat them as "ready" to prevent redirect loop back to /join
     if (!isComplete) {
       if (onboardingCompletedFlag) {
-        console.log("[AuthContext] Profile incomplete but onboarding flag set - treating as ready");
         return "ready";
       }
       return "needs_onboarding";

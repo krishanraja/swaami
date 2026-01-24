@@ -97,7 +97,7 @@ serve(async (req) => {
       const neighbourhoods = city === "sydney" ? sydneyNeighbourhoods : nyNeighbourhoods;
       const neighbourhood = neighbourhoods[Math.floor(Math.random() * neighbourhoods.length)];
 
-      // Create profile
+      // Create profile - user_id is NULL for demo profiles (requires schema migration)
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .insert({
@@ -143,7 +143,6 @@ serve(async (req) => {
             urgency: "normal",
             status: "open",
             time_estimate: "30 min",
-            physical_level: "light",
             approx_address: neighbourhood,
           })
           .select()
