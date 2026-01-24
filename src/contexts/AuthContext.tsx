@@ -3,6 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout, TIMEOUT_MS } from "@/lib/timeout";
 import { getAdaptiveTimeout, getNetworkQuality } from "@/lib/networkDetection";
+import { retryWithBackoff } from "@/lib/retry";
 
 // Stable localStorage key for onboarding completion - acts as resilience fallback
 const ONBOARDING_COMPLETED_KEY = "swaami_onboarding_completed";
@@ -85,28 +86,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log("[AuthContext] Starting profile fetch for user:", userId);
 
     try {
-      // Use adaptive timeout based on network quality
-      const { quality } = getNetworkQuality();
+      // Use retry logic with adaptive timeout
       const timeout = getAdaptiveTimeout();
-      console.log(`[AuthContext] Network quality: ${quality}, using timeout: ${timeout}ms`);
+      const { quality } = getNetworkQuality();
+      console.log(`[AuthContext] Network quality: ${quality}, using timeout: ${timeout}ms with retry`);
 
-      const result = await withTimeout(
-        supabase
-          .from("profiles")
-          .select("*")
-          .eq("user_id", userId)
-          .single(),
-        timeout, // Adaptive timeout based on network
-        "Profile fetch timed out. Please check your connection and try again."
+      const result = await retryWithBackoff(
+        async () => {
+          return await withTimeout(
+            supabase
+              .from("profiles")
+              .select("*")
+              .eq("user_id", userId)
+              .single(),
+            timeout,
+            "Profile fetch timed out"
+          );
+        },
+        "profile_fetch"
       );
 
       const elapsed = Math.round(performance.now() - startTime);
-      console.log(`[AuthContext] Profile fetch completed in ${elapsed}ms`);
 
       if (result.error) {
-        console.error("[AuthContext] Error fetching profile:", result.error);
-        setProfile(null);
+        // Check if profile doesn't exist (PGRST116 is "not found" error from PostgREST)
+        if (result.error.code === 'PGRST116' || result.error.message?.includes('not found')) {
+          console.warn(`[AuthContext] Profile not found for user ${userId}, creating basic profile...`);
+
+          // Create a basic profile so the user can continue
+          const { data: newProfile, error: createError } = await supabase
+            .from("profiles")
+            .insert({
+              user_id: userId,
+              display_name: null,
+              city: null,
+              neighbourhood: null,
+              phone: null,
+              skills: [],
+              trust_tier: 'tier_1',
+              tasks_completed: 0,
+              reliability_score: 5.0,
+              radius: 15,
+              credits: 10,
+              is_demo: false
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            console.error("[AuthContext] Failed to create profile:", createError);
+            setProfile(null);
+          } else {
+            console.log("[AuthContext] ✅ Created basic profile for user");
+            setProfile(newProfile);
+          }
+        } else {
+          console.error("[AuthContext] Error fetching profile:", result.error);
+          setProfile(null);
+        }
       } else {
+        console.log(`[AuthContext] Profile fetch completed in ${elapsed}ms`);
         setProfile(result.data);
         // If profile is complete, ensure localStorage flag is set
         const isComplete = result.data?.city &&
